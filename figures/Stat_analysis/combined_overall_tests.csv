@@ -1,0 +1,5 @@
+Grouping_Variable,Test_Type,Statistic,P_Value,Significant,Groups_Compared
+Geographic Location,Kruskal-Wallis,209.44068411144164,8.141432779648214e-39,True,All 12 groups
+Subcontinent,Kruskal-Wallis,209.07710202157685,2.056621086675317e-39,True,All 11 groups
+Continent,Kruskal-Wallis,150.81325009525222,5.207451885811832e-30,True,All 7 groups
+Collection Date,Kruskal-Wallis,168.3943252981204,5.133043536835357e-28,True,All 16 groups

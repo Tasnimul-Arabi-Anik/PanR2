@@ -1,0 +1,263 @@
+Grouping_Variable,Group_1,Group_2,Sample_Size_1,Sample_Size_2,Test_Type,U_Statistic,P_Value,Significant,Significance_Level
+Geographic Location,absent,Germany,131,19,Mann-Whitney U,334.0,5.298586444922532e-08,True,***
+Geographic Location,absent,Poland,131,92,Mann-Whitney U,799.5,3.8192794691808925e-29,True,***
+Geographic Location,absent,Switzerland,131,73,Mann-Whitney U,2694.0,2.0621352778727932e-08,True,***
+Geographic Location,absent,India,131,6,Mann-Whitney U,321.0,0.4133339882192796,False,ns
+Geographic Location,absent,USA,131,71,Mann-Whitney U,2070.5,6.500824045475445e-12,True,***
+Geographic Location,absent,China,131,37,Mann-Whitney U,530.0,2.7899736190306266e-14,True,***
+Geographic Location,absent,Argentina,131,8,Mann-Whitney U,42.5,3.4948349340091952e-06,True,***
+Geographic Location,absent,Australia,131,29,Mann-Whitney U,978.5,1.1986656871281821e-05,True,***
+Geographic Location,absent,Portugal,131,6,Mann-Whitney U,91.5,0.0006850706994532294,True,***
+Geographic Location,absent,Spain,131,5,Mann-Whitney U,66.0,0.0011855538994150036,True,**
+Geographic Location,absent,Russia,131,5,Mann-Whitney U,189.5,0.08587813041219877,False,ns
+Geographic Location,Germany,Poland,19,92,Mann-Whitney U,371.5,6.836687660537035e-05,True,***
+Geographic Location,Germany,Switzerland,19,73,Mann-Whitney U,989.0,0.002104268423014576,True,**
+Geographic Location,Germany,India,19,6,Mann-Whitney U,105.0,0.001634359923913611,True,**
+Geographic Location,Germany,USA,19,71,Mann-Whitney U,889.5,0.029365734007691,True,*
+Geographic Location,Germany,China,19,37,Mann-Whitney U,201.0,0.008764326938977473,True,**
+Geographic Location,Germany,Argentina,19,8,Mann-Whitney U,16.5,0.0014610747574571458,True,**
+Geographic Location,Germany,Australia,19,29,Mann-Whitney U,330.5,0.23631439235357454,False,ns
+Geographic Location,Germany,Portugal,19,6,Mann-Whitney U,36.5,0.19409815477589587,False,ns
+Geographic Location,Germany,Spain,19,5,Mann-Whitney U,31.5,0.25961577566779304,False,ns
+Geographic Location,Germany,Russia,19,5,Mann-Whitney U,72.5,0.07100659004686909,False,ns
+Geographic Location,Poland,Switzerland,92,73,Mann-Whitney U,5751.0,1.6114860730754961e-15,True,***
+Geographic Location,Poland,India,92,6,Mann-Whitney U,540.0,7.50908550336069e-05,True,***
+Geographic Location,Poland,USA,92,71,Mann-Whitney U,5330.0,3.5596427368247293e-12,True,***
+Geographic Location,Poland,China,92,37,Mann-Whitney U,1206.5,0.00939003692925551,True,**
+Geographic Location,Poland,Argentina,92,8,Mann-Whitney U,280.5,0.26020511068304186,False,ns
+Geographic Location,Poland,Australia,92,29,Mann-Whitney U,1755.0,0.01003162613021403,True,*
+Geographic Location,Poland,Portugal,92,6,Mann-Whitney U,273.5,0.976015252914742,False,ns
+Geographic Location,Poland,Spain,92,5,Mann-Whitney U,190.5,0.5185037103872547,False,ns
+Geographic Location,Poland,Russia,92,5,Mann-Whitney U,423.5,0.0013958174359730955,True,**
+Geographic Location,Switzerland,India,73,6,Mann-Whitney U,303.0,0.07060614295969347,False,ns
+Geographic Location,Switzerland,USA,73,71,Mann-Whitney U,2155.0,0.059973037373478484,False,ns
+Geographic Location,Switzerland,China,73,37,Mann-Whitney U,526.0,2.793141400474081e-08,True,***
+Geographic Location,Switzerland,Argentina,73,8,Mann-Whitney U,59.5,5.3752620755243415e-05,True,***
+Geographic Location,Switzerland,Australia,73,29,Mann-Whitney U,918.0,0.24441578167653077,False,ns
+Geographic Location,Switzerland,Portugal,73,6,Mann-Whitney U,99.5,0.013925003974454665,True,*
+Geographic Location,Switzerland,Spain,73,5,Mann-Whitney U,65.5,0.007660681541208579,True,**
+Geographic Location,Switzerland,Russia,73,5,Mann-Whitney U,191.5,0.8429851608352169,False,ns
+Geographic Location,India,USA,6,71,Mann-Whitney U,90.0,0.013929952926340127,True,*
+Geographic Location,India,China,6,37,Mann-Whitney U,27.0,0.0027225456064425544,True,**
+Geographic Location,India,Argentina,6,8,Mann-Whitney U,0.0,0.0013934982570212248,True,**
+Geographic Location,India,Australia,6,29,Mann-Whitney U,51.0,0.0790534503677377,False,ns
+Geographic Location,India,Portugal,6,6,Mann-Whitney U,3.0,0.009002799524086667,True,**
+Geographic Location,India,Spain,6,5,Mann-Whitney U,3.0,0.013816354540433978,True,*
+Geographic Location,India,Russia,6,5,Mann-Whitney U,9.0,0.13638021563578917,False,ns
+Geographic Location,USA,China,71,37,Mann-Whitney U,630.5,5.917132999101578e-06,True,***
+Geographic Location,USA,Argentina,71,8,Mann-Whitney U,83.5,0.000819315876057915,True,***
+Geographic Location,USA,Australia,71,29,Mann-Whitney U,1050.0,0.8732868024221969,False,ns
+Geographic Location,USA,Portugal,71,6,Mann-Whitney U,133.5,0.12004859396779978,False,ns
+Geographic Location,USA,Spain,71,5,Mann-Whitney U,87.5,0.05188344597424341,False,ns
+Geographic Location,USA,Russia,71,5,Mann-Whitney U,219.5,0.3636198077337939,False,ns
+Geographic Location,China,Argentina,37,8,Mann-Whitney U,175.5,0.41934660525698275,False,ns
+Geographic Location,China,Australia,37,29,Mann-Whitney U,715.5,0.017953803402221254,True,*
+Geographic Location,China,Portugal,37,6,Mann-Whitney U,152.0,0.1521715478328354,False,ns
+Geographic Location,China,Spain,37,5,Mann-Whitney U,110.5,0.4919457456706827,False,ns
+Geographic Location,China,Russia,37,5,Mann-Whitney U,151.0,0.022294385889666805,True,*
+Geographic Location,Argentina,Australia,8,29,Mann-Whitney U,157.5,0.11695236886496896,False,ns
+Geographic Location,Argentina,Portugal,8,6,Mann-Whitney U,25.5,0.894957479813665,False,ns
+Geographic Location,Argentina,Spain,8,5,Mann-Whitney U,19.0,0.9404995539720309,False,ns
+Geographic Location,Argentina,Russia,8,5,Mann-Whitney U,39.0,0.005749176024066063,True,**
+Geographic Location,Australia,Portugal,29,6,Mann-Whitney U,69.5,0.43310373030510163,False,ns
+Geographic Location,Australia,Spain,29,5,Mann-Whitney U,53.0,0.3273294346208465,False,ns
+Geographic Location,Australia,Russia,29,5,Mann-Whitney U,83.0,0.5977564977704344,False,ns
+Geographic Location,Portugal,Spain,6,5,Mann-Whitney U,9.5,0.35126601405603586,False,ns
+Geographic Location,Portugal,Russia,6,5,Mann-Whitney U,25.0,0.07236892118078302,False,ns
+Geographic Location,Spain,Russia,5,5,Mann-Whitney U,20.5,0.10148060035362616,False,ns
+Subcontinent,Unknown,Western Europe,136,99,Mann-Whitney U,3424.5,5.392888848429674e-12,True,***
+Subcontinent,Unknown,Eastern Europe,136,98,Mann-Whitney U,950.0,5.132982093812989e-30,True,***
+Subcontinent,Unknown,Southern Asia,136,7,Mann-Whitney U,395.5,0.4138563671752826,False,ns
+Subcontinent,Unknown,Northern America,136,75,Mann-Whitney U,2335.5,5.015119774393962e-12,True,***
+Subcontinent,Unknown,Eastern Asia,136,40,Mann-Whitney U,691.5,4.687810987126233e-14,True,***
+Subcontinent,Unknown,South America,136,9,Mann-Whitney U,42.5,6.478291524203971e-07,True,***
+Subcontinent,Unknown,Australia and New Zealand,136,29,Mann-Whitney U,1030.0,1.4283766270482498e-05,True,***
+Subcontinent,Unknown,Southern Europe,136,14,Mann-Whitney U,195.0,1.9467130795032648e-07,True,***
+Subcontinent,Unknown,Northern Asia,136,5,Mann-Whitney U,199.0,0.08991661808570953,False,ns
+Subcontinent,Unknown,Northern Europe,136,8,Mann-Whitney U,276.0,0.011745669354262644,True,*
+Subcontinent,Western Europe,Eastern Europe,99,98,Mann-Whitney U,1711.0,1.7474091424933896e-15,True,***
+Subcontinent,Western Europe,Southern Asia,99,7,Mann-Whitney U,511.0,0.02172407040901386,True,*
+Subcontinent,Western Europe,Northern America,99,75,Mann-Whitney U,3495.0,0.4826488216874296,False,ns
+Subcontinent,Western Europe,Eastern Asia,99,40,Mann-Whitney U,988.0,1.2519754822099878e-06,True,***
+Subcontinent,Western Europe,South America,99,9,Mann-Whitney U,90.0,2.7810100840503306e-05,True,***
+Subcontinent,Western Europe,Australia and New Zealand,99,29,Mann-Whitney U,1343.0,0.5713041961389309,False,ns
+Subcontinent,Western Europe,Southern Europe,99,14,Mann-Whitney U,321.5,0.0006075577923389016,True,***
+Subcontinent,Western Europe,Northern Asia,99,5,Mann-Whitney U,283.5,0.5585805497740244,False,ns
+Subcontinent,Western Europe,Northern Europe,99,8,Mann-Whitney U,403.5,0.9285624168736688,False,ns
+Subcontinent,Eastern Europe,Southern Asia,98,7,Mann-Whitney U,665.0,2.9220707546564982e-05,True,***
+Subcontinent,Eastern Europe,Northern America,98,75,Mann-Whitney U,5893.5,7.671548538852815e-12,True,***
+Subcontinent,Eastern Europe,Eastern Asia,98,40,Mann-Whitney U,1551.5,0.05391223438848363,False,ns
+Subcontinent,Eastern Europe,South America,98,9,Mann-Whitney U,297.0,0.10193061609094711,False,ns
+Subcontinent,Eastern Europe,Australia and New Zealand,98,29,Mann-Whitney U,1849.5,0.013226234787604051,True,*
+Subcontinent,Eastern Europe,Southern Europe,98,14,Mann-Whitney U,647.5,0.7353282923834599,False,ns
+Subcontinent,Eastern Europe,Northern Asia,98,5,Mann-Whitney U,445.5,0.0018825282150942116,True,**
+Subcontinent,Eastern Europe,Northern Europe,98,8,Mann-Whitney U,648.5,0.001955099653965271,True,**
+Subcontinent,Southern Asia,Northern America,7,75,Mann-Whitney U,115.5,0.009659549495960451,True,**
+Subcontinent,Southern Asia,Eastern Asia,7,40,Mann-Whitney U,38.5,0.0018598159600577175,True,**
+Subcontinent,Southern Asia,South America,7,9,Mann-Whitney U,0.0,0.0005538781788365812,True,***
+Subcontinent,Southern Asia,Australia and New Zealand,7,29,Mann-Whitney U,59.5,0.05881755006256716,False,ns
+Subcontinent,Southern Asia,Southern Europe,7,14,Mann-Whitney U,7.0,0.0012184308306076013,True,**
+Subcontinent,Southern Asia,Northern Asia,7,5,Mann-Whitney U,10.5,0.10461329831971726,False,ns
+Subcontinent,Southern Asia,Northern Europe,7,8,Mann-Whitney U,14.0,0.0449578329938776,True,*
+Subcontinent,Northern America,Eastern Asia,75,40,Mann-Whitney U,814.0,3.385851747686015e-05,True,***
+Subcontinent,Northern America,South America,75,9,Mann-Whitney U,89.5,0.00021897260174772004,True,***
+Subcontinent,Northern America,Australia and New Zealand,75,29,Mann-Whitney U,1095.5,0.9543113319606178,False,ns
+Subcontinent,Northern America,Southern Europe,75,14,Mann-Whitney U,293.0,0.007048611970683937,True,**
+Subcontinent,Northern America,Northern Asia,75,5,Mann-Whitney U,229.0,0.3921940533346726,False,ns
+Subcontinent,Northern America,Northern Europe,75,8,Mann-Whitney U,327.5,0.6622658909111205,False,ns
+Subcontinent,Eastern Asia,South America,40,9,Mann-Whitney U,181.5,0.9792281007287941,False,ns
+Subcontinent,Eastern Asia,Australia and New Zealand,40,29,Mann-Whitney U,750.0,0.03397535380236721,True,*
+Subcontinent,Eastern Asia,Southern Europe,40,14,Mann-Whitney U,342.0,0.2205250732673666,False,ns
+Subcontinent,Eastern Asia,Northern Asia,40,5,Mann-Whitney U,157.5,0.036189675766128526,True,*
+Subcontinent,Eastern Asia,Northern Europe,40,8,Mann-Whitney U,236.0,0.033611613741127054,True,*
+Subcontinent,South America,Australia and New Zealand,9,29,Mann-Whitney U,181.5,0.07309585542126584,False,ns
+Subcontinent,South America,Southern Europe,9,14,Mann-Whitney U,73.5,0.5250248560086246,False,ns
+Subcontinent,South America,Northern Asia,9,5,Mann-Whitney U,44.0,0.004453745880239509,True,**
+Subcontinent,South America,Northern Europe,9,8,Mann-Whitney U,64.5,0.006340074742489072,True,**
+Subcontinent,Australia and New Zealand,Southern Europe,29,14,Mann-Whitney U,153.0,0.1841692754736921,False,ns
+Subcontinent,Australia and New Zealand,Northern Asia,29,5,Mann-Whitney U,83.0,0.5977564977704344,False,ns
+Subcontinent,Australia and New Zealand,Northern Europe,29,8,Mann-Whitney U,119.5,0.9051533742562188,False,ns
+Subcontinent,Southern Europe,Northern Asia,14,5,Mann-Whitney U,59.0,0.027323049832347734,True,*
+Subcontinent,Southern Europe,Northern Europe,14,8,Mann-Whitney U,82.0,0.07773201805731308,False,ns
+Subcontinent,Northern Asia,Northern Europe,5,8,Mann-Whitney U,17.5,0.749883858263114,False,ns
+Continent,Africa,Unknown,8,136,Mann-Whitney U,673.0,0.22480333941605368,False,ns
+Continent,Africa,Europe,8,219,Mann-Whitney U,294.0,0.0012204518498801222,True,**
+Continent,Africa,Asia,8,55,Mann-Whitney U,96.5,0.008394812874166888,True,**
+Continent,Africa,North America,8,75,Mann-Whitney U,155.5,0.01931187138252344,True,*
+Continent,Africa,South America,8,9,Mann-Whitney U,0.0,0.0004962258084873636,True,***
+Continent,Africa,Oceania,8,29,Mann-Whitney U,78.5,0.1361767735181946,False,ns
+Continent,Unknown,Europe,136,219,Mann-Whitney U,4845.5,6.485192815035702e-28,True,***
+Continent,Unknown,Asia,136,55,Mann-Whitney U,1319.0,1.3888544929717201e-13,True,***
+Continent,Unknown,North America,136,75,Mann-Whitney U,2335.5,5.015119774393962e-12,True,***
+Continent,Unknown,South America,136,9,Mann-Whitney U,42.5,6.478291524203971e-07,True,***
+Continent,Unknown,Oceania,136,29,Mann-Whitney U,1030.0,1.4283766270482498e-05,True,***
+Continent,Europe,Asia,219,55,Mann-Whitney U,5284.5,0.15413294078850537,False,ns
+Continent,Europe,North America,219,75,Mann-Whitney U,10418.0,0.0004126341037379226,True,***
+Continent,Europe,South America,219,9,Mann-Whitney U,447.0,0.004969678819495639,True,**
+Continent,Europe,Oceania,219,29,Mann-Whitney U,3558.0,0.28487069098407936,False,ns
+Continent,Asia,North America,55,75,Mann-Whitney U,2610.5,0.007377934458739094,True,**
+Continent,Asia,South America,55,9,Mann-Whitney U,186.0,0.2296731004319108,False,ns
+Continent,Asia,Oceania,55,29,Mann-Whitney U,928.5,0.20052404285066883,False,ns
+Continent,North America,South America,75,9,Mann-Whitney U,89.5,0.00021897260174772004,True,***
+Continent,North America,Oceania,75,29,Mann-Whitney U,1095.5,0.9543113319606178,False,ns
+Continent,South America,Oceania,9,29,Mann-Whitney U,181.5,0.07309585542126584,False,ns
+Collection Date,2017,absent,76,160,Mann-Whitney U,8722.0,1.2236472914680985e-08,True,***
+Collection Date,2017,2022,76,19,Mann-Whitney U,842.0,0.23928176604067786,False,ns
+Collection Date,2017,2018,76,35,Mann-Whitney U,748.0,0.00016230600482739006,True,***
+Collection Date,2017,2020,76,21,Mann-Whitney U,840.0,0.7004286885742863,False,ns
+Collection Date,2017,2019,76,49,Mann-Whitney U,1318.0,0.004737132889501959,True,**
+Collection Date,2017,2021,76,34,Mann-Whitney U,815.5,0.0014862524028968743,True,**
+Collection Date,2017,2015,76,22,Mann-Whitney U,716.5,0.29213359834203245,False,ns
+Collection Date,2017,2023,76,14,Mann-Whitney U,679.5,0.08279795252233066,False,ns
+Collection Date,2017,2016,76,38,Mann-Whitney U,978.0,0.004044615426933315,True,**
+Collection Date,2017,2009,76,12,Mann-Whitney U,261.5,0.014460184253514847,True,*
+Collection Date,2017,2011,76,7,Mann-Whitney U,81.0,0.0017599697833566637,True,**
+Collection Date,2017,2012,76,7,Mann-Whitney U,148.0,0.04579968428552021,True,*
+Collection Date,2017,2014,76,16,Mann-Whitney U,472.0,0.14745626453940344,False,ns
+Collection Date,2017,2013,76,7,Mann-Whitney U,137.0,0.029490992565090312,True,*
+Collection Date,2017,2010,76,6,Mann-Whitney U,74.0,0.00466842011251201,True,**
+Collection Date,absent,2022,160,19,Mann-Whitney U,1028.5,0.013581626456837833,True,*
+Collection Date,absent,2018,160,35,Mann-Whitney U,675.5,2.267782040519779e-13,True,***
+Collection Date,absent,2020,160,21,Mann-Whitney U,1056.5,0.0030611589399992777,True,**
+Collection Date,absent,2019,160,49,Mann-Whitney U,1357.5,4.690299527464892e-13,True,***
+Collection Date,absent,2021,160,34,Mann-Whitney U,899.0,1.1462282719050966e-10,True,***
+Collection Date,absent,2015,160,22,Mann-Whitney U,779.0,7.147170268676268e-06,True,***
+Collection Date,absent,2023,160,14,Mann-Whitney U,840.0,0.0963002796540834,False,ns
+Collection Date,absent,2016,160,38,Mann-Whitney U,958.0,6.466868277521971e-12,True,***
+Collection Date,absent,2009,160,12,Mann-Whitney U,267.0,9.932955730519593e-06,True,***
+Collection Date,absent,2011,160,7,Mann-Whitney U,45.5,1.3284676189713723e-05,True,***
+Collection Date,absent,2012,160,7,Mann-Whitney U,125.0,0.00022481613689978247,True,***
+Collection Date,absent,2014,160,16,Mann-Whitney U,513.0,2.8382465328799243e-05,True,***
+Collection Date,absent,2013,160,7,Mann-Whitney U,86.5,6.124116977949582e-05,True,***
+Collection Date,absent,2010,160,6,Mann-Whitney U,39.0,5.1599690729034155e-05,True,***
+Collection Date,2022,2018,19,35,Mann-Whitney U,130.5,0.0002042830284797507,True,***
+Collection Date,2022,2020,19,21,Mann-Whitney U,185.0,0.6625930399409765,False,ns
+Collection Date,2022,2019,19,49,Mann-Whitney U,252.0,0.002749138011767902,True,**
+Collection Date,2022,2021,19,34,Mann-Whitney U,169.5,0.003187176636313748,True,**
+Collection Date,2022,2015,19,22,Mann-Whitney U,143.5,0.07038332727338656,False,ns
+Collection Date,2022,2023,19,14,Mann-Whitney U,145.5,0.6021465946727578,False,ns
+Collection Date,2022,2016,19,38,Mann-Whitney U,181.0,0.0017689257669342702,True,**
+Collection Date,2022,2009,19,12,Mann-Whitney U,54.0,0.01034605350899473,True,*
+Collection Date,2022,2011,19,7,Mann-Whitney U,12.0,0.0009662250434967457,True,***
+Collection Date,2022,2012,19,7,Mann-Whitney U,26.5,0.014444743329380321,True,*
+Collection Date,2022,2014,19,16,Mann-Whitney U,92.0,0.036201367034111136,True,*
+Collection Date,2022,2013,19,7,Mann-Whitney U,19.5,0.004593316721356735,True,**
+Collection Date,2022,2010,19,6,Mann-Whitney U,10.5,0.001892853081455908,True,**
+Collection Date,2018,2020,35,21,Mann-Whitney U,526.0,0.006458729565121519,True,**
+Collection Date,2018,2019,35,49,Mann-Whitney U,979.5,0.26512700010499446,False,ns
+Collection Date,2018,2021,35,34,Mann-Whitney U,567.0,0.7397104284986806,False,ns
+Collection Date,2018,2015,35,22,Mann-Whitney U,501.5,0.05491296764711233,False,ns
+Collection Date,2018,2023,35,14,Mann-Whitney U,426.0,4.8811497693324105e-05,True,***
+Collection Date,2018,2016,35,38,Mann-Whitney U,737.5,0.42328516478855827,False,ns
+Collection Date,2018,2009,35,12,Mann-Whitney U,188.0,0.5980513291203134,False,ns
+Collection Date,2018,2011,35,7,Mann-Whitney U,85.0,0.20568364697269326,False,ns
+Collection Date,2018,2012,35,7,Mann-Whitney U,122.0,1.0,False,ns
+Collection Date,2018,2014,35,16,Mann-Whitney U,334.0,0.27445173716825655,False,ns
+Collection Date,2018,2013,35,7,Mann-Whitney U,128.0,0.8654033432592843,False,ns
+Collection Date,2018,2010,35,6,Mann-Whitney U,72.0,0.22808452476123708,False,ns
+Collection Date,2020,2019,21,49,Mann-Whitney U,373.5,0.06375347945939944,False,ns
+Collection Date,2020,2021,21,34,Mann-Whitney U,230.0,0.022643575788864116,True,*
+Collection Date,2020,2015,21,22,Mann-Whitney U,191.0,0.30699207137628826,False,ns
+Collection Date,2020,2023,21,14,Mann-Whitney U,170.5,0.35995812746194744,False,ns
+Collection Date,2020,2016,21,38,Mann-Whitney U,279.0,0.05162480614834479,False,ns
+Collection Date,2020,2009,21,12,Mann-Whitney U,78.0,0.05869418369000571,False,ns
+Collection Date,2020,2011,21,7,Mann-Whitney U,36.0,0.037827668339475644,True,*
+Collection Date,2020,2012,21,7,Mann-Whitney U,46.0,0.1248827475711561,False,ns
+Collection Date,2020,2014,21,16,Mann-Whitney U,123.5,0.1509819261086595,False,ns
+Collection Date,2020,2013,21,7,Mann-Whitney U,37.0,0.04390015865231503,True,*
+Collection Date,2020,2010,21,6,Mann-Whitney U,27.0,0.02795760748215354,True,*
+Collection Date,2019,2021,49,34,Mann-Whitney U,664.0,0.11402119266892205,False,ns
+Collection Date,2019,2015,49,22,Mann-Whitney U,623.0,0.2906090325897457,False,ns
+Collection Date,2019,2023,49,14,Mann-Whitney U,548.0,0.0005054183923638885,True,***
+Collection Date,2019,2016,49,38,Mann-Whitney U,899.0,0.7849139063818209,False,ns
+Collection Date,2019,2009,49,12,Mann-Whitney U,218.0,0.1652518510128309,False,ns
+Collection Date,2019,2011,49,7,Mann-Whitney U,96.5,0.05996623852574351,False,ns
+Collection Date,2019,2012,49,7,Mann-Whitney U,148.5,0.5718376606023379,False,ns
+Collection Date,2019,2014,49,16,Mann-Whitney U,411.0,0.7749406275834492,False,ns
+Collection Date,2019,2013,49,7,Mann-Whitney U,150.5,0.6075772324562048,False,ns
+Collection Date,2019,2010,49,6,Mann-Whitney U,80.0,0.069012611517916,False,ns
+Collection Date,2021,2015,34,22,Mann-Whitney U,488.0,0.05244158136351826,False,ns
+Collection Date,2021,2023,34,14,Mann-Whitney U,376.5,0.001134690917126009,True,**
+Collection Date,2021,2016,34,38,Mann-Whitney U,751.5,0.23102916173264587,False,ns
+Collection Date,2021,2009,34,12,Mann-Whitney U,213.5,0.8192420851813913,False,ns
+Collection Date,2021,2011,34,7,Mann-Whitney U,113.5,0.8609130177679881,False,ns
+Collection Date,2021,2012,34,7,Mann-Whitney U,138.5,0.5048512075807337,False,ns
+Collection Date,2021,2014,34,16,Mann-Whitney U,322.0,0.29592253134450786,False,ns
+Collection Date,2021,2013,34,7,Mann-Whitney U,130.0,0.7131459810105869,False,ns
+Collection Date,2021,2010,34,6,Mann-Whitney U,86.5,0.5654575576026756,False,ns
+Collection Date,2015,2023,22,14,Mann-Whitney U,224.5,0.015088158847829342,True,*
+Collection Date,2015,2016,22,38,Mann-Whitney U,332.0,0.18299814089971445,False,ns
+Collection Date,2015,2009,22,12,Mann-Whitney U,84.0,0.08107691072457233,False,ns
+Collection Date,2015,2011,22,7,Mann-Whitney U,29.5,0.014349957380796023,True,*
+Collection Date,2015,2012,22,7,Mann-Whitney U,53.5,0.23199881047521032,False,ns
+Collection Date,2015,2014,22,16,Mann-Whitney U,160.5,0.6504726425929561,False,ns
+Collection Date,2015,2013,22,7,Mann-Whitney U,53.5,0.23497265484507246,False,ns
+Collection Date,2015,2010,22,6,Mann-Whitney U,25.5,0.02311682134291908,True,*
+Collection Date,2023,2016,14,38,Mann-Whitney U,96.0,0.00032568159542217687,True,***
+Collection Date,2023,2009,14,12,Mann-Whitney U,27.0,0.0018904631840739239,True,**
+Collection Date,2023,2011,14,7,Mann-Whitney U,0.0,0.00011458280562360167,True,***
+Collection Date,2023,2012,14,7,Mann-Whitney U,9.0,0.0014334259207040576,True,**
+Collection Date,2023,2014,14,16,Mann-Whitney U,56.5,0.014476586344781177,True,*
+Collection Date,2023,2013,14,7,Mann-Whitney U,6.0,0.00077472274848909,True,***
+Collection Date,2023,2010,14,6,Mann-Whitney U,1.5,0.00042100380525071244,True,***
+Collection Date,2016,2009,38,12,Mann-Whitney U,183.0,0.30664147606888503,False,ns
+Collection Date,2016,2011,38,7,Mann-Whitney U,71.0,0.051184461353326126,False,ns
+Collection Date,2016,2012,38,7,Mann-Whitney U,119.5,0.6799519618486916,False,ns
+Collection Date,2016,2014,38,16,Mann-Whitney U,329.5,0.6318978437054315,False,ns
+Collection Date,2016,2013,38,7,Mann-Whitney U,128.0,0.8868213730579991,False,ns
+Collection Date,2016,2010,38,6,Mann-Whitney U,68.5,0.12001397258613908,False,ns
+Collection Date,2009,2011,12,7,Mann-Whitney U,39.0,0.8305999811508923,False,ns
+Collection Date,2009,2012,12,7,Mann-Whitney U,51.5,0.4401777990371767,False,ns
+Collection Date,2009,2014,12,16,Mann-Whitney U,119.0,0.290083015240475,False,ns
+Collection Date,2009,2013,12,7,Mann-Whitney U,50.5,0.4951545345257744,False,ns
+Collection Date,2009,2010,12,6,Mann-Whitney U,29.0,0.5403618537595001,False,ns
+Collection Date,2011,2012,7,7,Mann-Whitney U,36.0,0.1411000777871497,False,ns
+Collection Date,2011,2014,7,16,Mann-Whitney U,79.5,0.11902969986924379,False,ns
+Collection Date,2011,2013,7,7,Mann-Whitney U,38.0,0.08861400686674191,False,ns
+Collection Date,2011,2010,7,6,Mann-Whitney U,21.0,1.0,False,ns
+Collection Date,2012,2014,7,16,Mann-Whitney U,68.0,0.4371216467212722,False,ns
+Collection Date,2012,2013,7,7,Mann-Whitney U,28.0,0.6946959011541634,False,ns
+Collection Date,2012,2010,7,6,Mann-Whitney U,13.0,0.276597687569621,False,ns
+Collection Date,2014,2013,16,7,Mann-Whitney U,42.0,0.3638338903241729,False,ns
+Collection Date,2014,2010,16,6,Mann-Whitney U,27.0,0.12810294443314899,False,ns
+Collection Date,2013,2010,7,6,Mann-Whitney U,10.5,0.14801830727232673,False,ns
