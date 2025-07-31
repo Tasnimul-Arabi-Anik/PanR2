@@ -139,13 +139,14 @@ output/
 - **`ncbi_gene_presence_count_percentage.csv`** - Gene presence counts and percentages
 
 #### 6. Navigation
-- **`index.html`** - Interactive HTML index page for easy navigation of all generated visualizations
-
----
+- **[View the interactive HTML report](https://tasnimul-arabi-anik.github.io/PanR2/)** – Interactive HTML index page for easy navigation of all generated visualizations
 
 ## Example Visualizations
 
 ### Static Plots
+
+**Mean ARG by Geographic Location**
+![Mean Antibiotic Resistance Genes by Country](figures/mean_ARG/Mean_ARG_by_Geographic%20Location.png)
 
 **Resistance Gene Presence Analysis:**
 ![Resistance Gene Presence](figures/Resistance_gene_presence.png)
@@ -198,21 +199,12 @@ The tool generates interactive HTML visualizations that provide enhanced data ex
 - **Export Capabilities**: High-quality image export functionality
 - **Responsive Design**: Optimized for different screen sizes
 
-**To Access Interactive Plots:**
-1. Navigate to your output directory
-2. Open `figures/index.html` in a web browser
-3. Click on any visualization link to explore interactive plots
-
 **Available Interactive Visualizations:**
 - Geographic distribution maps with zoom capabilities
 - Interactive heatmaps with data filtering
 - Dynamic correlation plots with hover details
 - Responsive boxplots and bar charts
 - Time-series analysis with date selection
-
-> **Note**: Interactive HTML files must be opened in a web browser to view. GitHub README cannot display interactive HTML content directly.
-
----
 
 ## Statistical Analysis Features
 
@@ -222,12 +214,11 @@ PanR2 provides comprehensive statistical analysis including:
 - **Summary Statistics**: Descriptive statistics for all variables
 - **Pairwise Comparisons**: Detailed pairwise statistical tests
 - **Geographic Patterns**: Spatial distribution analysis
-
 ---
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.9+
 - Required Python packages (automatically installed):
   - pandas
   - numpy
