@@ -253,14 +253,7 @@ This tool is provided under the MIT License. See `LICENSE` file for details.
 
 ## Citation
 
-If you use PanR2 in your research, please cite:
-```
-PanR2: A comprehensive tool for panresistome analysis and visualization
-Author: Tasnimul Arabi Anik
-GitHub: https://github.com/Tasnimul-Arabi-Anik/PanR2
-```
-
----
+If you use PanR2 in your research, please cite: If you use PanR2 in your research, please cite: DOI: 10.1101/2025.04.08.647722 
 
 ## Support
 
