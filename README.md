@@ -1,7 +1,9 @@
 # PanR2: Panresistome Analysis Tool
 
 ## Overview
-PanR2 is a comprehensive Python-based tool for analyzing panresistome data. It processes NCBI and Abricate summary files, merges the data, and generates a wide range of visualizations including heatmaps, bar plots, boxplots, and interactive HTML plots. The tool is designed to help researchers analyze and visualize antibiotic resistance gene presence, prevalence, and distribution patterns across different geographic locations and temporal scales.
+PanR2 is a comprehensive Python-based tool for analyzing panresistome data (Global Resistance Pattern). It processes NCBI and Abricate summary files, merges the data, and generates a wide range of visualizations including heatmaps, bar plots, boxplots, and interactive HTML plots. The tool is designed to help researchers analyze and visualize antibiotic resistance gene presence, prevalence, and distribution patterns across different geographic locations and temporal scales.
+
+It enables robust statistical analysis, including group-wise comparisons, summary statistics, and correlation assessments, to support meaningful interpretation of resistome data. Given sufficient sequencing data, PanR2 can help identify local resistance spread, compare resistance patterns between regions or over time, and detect signals of emerging resistance epidemics. This makes it a valuable tool for surveillance, epidemiology, and public health research.
 
 **Prerequisites:**
 - `ncbi_clean.csv` from [FetchM](https://github.com/Tasnimul-Arabi-Anik/FetchM)
@@ -103,20 +105,14 @@ output/
 #### 1. Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
-- **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene identity scores
+- **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
 - **`Resistance_percentage_by_Antibiotics.{format}`** - Bar plot of resistance by antibiotic classes
 
 #### 2. Heatmaps (`heatmap/` directory)
-- **`ncbi_ncbi_Continent_heatmap.{format}`** - Resistance gene distribution by continent
-- **`ncbi_ncbi_Geographic_Location_heatmap.{format}`** - Distribution by geographic location
-- **`ncbi_ncbi_Subcontinent_heatmap.{format}`** - Distribution by subcontinent
-- **`ncbi_ncbi_Collection_Date_heatmap.{format}`** - Temporal distribution patterns
+- **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
 #### 3. Mean ARG Analysis (`mean_ARG/` directory)
-- **`Mean_ARG_by_Continent.{format}`** - Average antibiotic resistance genes by continent
-- **`Mean_ARG_by_Geographic Location.{format}`** - Average ARGs by geographic location
-- **`Mean_ARG_by_Subcontinent.{format}`** - Average ARGs by subcontinent  
-- **`Mean_ARG_by_Collection Date.{format}`** - Temporal trends in ARG abundance
+- **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
 #### 4. Interactive HTML Visualizations (`html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
@@ -139,6 +135,7 @@ output/
 - **`ncbi_gene_presence_count_percentage.csv`** - Gene presence counts and percentages
 
 #### 6. Navigation
+- **It generates an interactive combined index.html file** 
 - **[View the interactive HTML report](https://tasnimul-arabi-anik.github.io/PanR2/)** – Interactive HTML index page for easy navigation of all generated visualizations
 
 ## Example Visualizations
@@ -251,15 +248,6 @@ If you use PanR2 in your research, please cite: If you use PanR2 in your researc
 For questions, issues, or feature requests, please:
 1. Check the existing [Issues](https://github.com/Tasnimul-Arabi-Anik/PanR2/issues)
 2. Create a new issue with detailed information
-3. Contact the author: Tasnimul Arabi Anik
+3. Contact the author: Tasnimul Arabi Anik (arabianik987@gmail.com)
 
 ---
-
-## Changelog
-
-### Latest Updates
-- Added interactive HTML visualizations
-- Enhanced statistical analysis capabilities  
-- Improved output organization and navigation
-- Added support for multiple figure formats
-- Enhanced correlation analysis features
