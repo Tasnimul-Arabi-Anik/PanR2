@@ -74,7 +74,7 @@ The fixture is intentionally small. Correlation plots that require at least five
 
 ## Source Layout
 
-PanR2 keeps the installed command as `panr`, while the implementation lives in the `panr2` Python package. The `bin/panr` file is a compatibility wrapper around `panr2.cli`.
+PanR2 keeps the installed command as `panr`, while the implementation lives in the `panr2` Python package. The `bin/panr` file is a compatibility wrapper around `panr2.cli`. Core code is split into focused modules: `io`, `qc`, `filters`, `analysis`, `plots`, and `stats`.
 
 ---
 
