@@ -101,10 +101,13 @@ panr --ncbi-dir ./data/ncbi_clean.csv --abricate-dir ./data/abricate --output-di
 
 ## Output Structure
 
+PanR2 first writes an input QC report under `qc/`. Review this report before interpreting downstream figures, especially for unmatched accessions, zero-hit samples, or missing resistance annotations.
+
 PanR2 generates a comprehensive set of outputs organized in the following directory structure:
 
 ```
 output/
+├── qc/                               # Input validation reports
 ├── figures/
 │   ├── heatmap/                          # Geographic heatmaps
 │   ├── html_files/                       # Interactive HTML plots
@@ -117,7 +120,12 @@ output/
 
 ### Output Files Description
 
-#### 1. Static Visualizations
+#### 1. Input QC (`qc/` directory)
+- **`panr2_input_qc.csv`** - Machine-readable input checks with `PASS`, `WARN`, `FAIL`, and `INFO` statuses
+- **`panr2_input_qc_summary.txt`** - Human-readable summary of input checks
+- **`panr2_unmatched_accessions.csv`** - Accessions present in only one of the NCBI or ABRicate inputs
+
+#### 2. Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences

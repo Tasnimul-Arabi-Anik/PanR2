@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Input QC reports under `output/qc/` for required columns, accession matching, zero-hit samples, and resistance annotations.
 - Lightweight CI validation for the PanR2 CLI.
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
