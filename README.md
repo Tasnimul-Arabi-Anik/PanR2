@@ -65,7 +65,9 @@ python bin/panr \
   --rare-threshold 25 \
   --top-n 10 \
   --cooccurrence-min-prevalence 0 \
-  --cooccurrence-top-n 10
+  --cooccurrence-top-n 10 \
+  --vfdb-dir tests/fixtures/vfdb \
+  --plasmidfinder-dir tests/fixtures/plasmidfinder
 ```
 
 The fixture is intentionally small. Correlation plots that require at least five samples per group may be skipped, while the rest of the outputs should be generated.
@@ -106,6 +108,8 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-di
 | `--top-n` | int | `25` | Number of top genes/classes to include in compact summary plots |
 | `--cooccurrence-min-prevalence` | float | `0.0` | Minimum prevalence percentage for genes/classes included in co-occurrence matrices |
 | `--cooccurrence-top-n` | int | `25` | Number of top genes/classes or pairs to include in co-occurrence plots and pair tables |
+| `--vfdb-dir` | path | optional | Directory containing ABRicate VFDB summary/results files |
+| `--plasmidfinder-dir` | path | optional | Directory containing ABRicate PlasmidFinder summary/results files |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 
@@ -134,6 +138,8 @@ output/
 ├── qc/                               # Input validation reports
 ├── analysis/                         # Panresistome summary tables and compact plots
 ├── report/                           # Journal-style narrative report and methods text
+├── virulence/                        # Optional VFDB feature summaries
+├── plasmid/                          # Optional PlasmidFinder feature summaries
 ├── figures/
 │   ├── heatmap/                          # Geographic heatmaps
 │   ├── html_files/                       # Interactive HTML plots
@@ -163,12 +169,18 @@ output/
 - **`*_top_class_pairs.csv`** - Ranked resistance-class pairs with support, prevalence, and Jaccard index
 - **`plots/`** - Compact prevalence and co-occurrence plots intended for quick review, not exhaustive visualization
 
-#### 3. Written Report (`report/` directory)
+#### 3. Optional Virulence and Plasmid Analysis
+- **`virulence/virulence_feature_summary.csv`** - VFDB feature prevalence and identity summaries
+- **`virulence/virulence_category_summary.csv`** - Virulence feature category summaries
+- **`plasmid/plasmid_feature_summary.csv`** - PlasmidFinder replicon prevalence and identity summaries
+- **`plasmid/plasmid_category_summary.csv`** - Plasmid feature category summaries
+
+#### 4. Written Report (`report/` directory)
 - **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables
 - **`*_panr2_report.html`** - Simple HTML rendering of the Markdown report
 - **`*_methods.txt`** - Reusable methods description for manuscript drafting
 
-#### 4. Static Visualizations
+#### 5. Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
@@ -177,10 +189,10 @@ output/
 #### 2. Heatmaps (`heatmap/` directory)
 - **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
-#### 5. Mean ARG Analysis (`mean_ARG/` directory)
+#### 6. Mean ARG Analysis (`mean_ARG/` directory)
 - **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
-#### 6. Interactive HTML Visualizations (`html_files/` directory)
+#### 7. Interactive HTML Visualizations (`html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
 - **`Resistance_gene_geographic_distribution.html`** - Geographic distribution map
 - **`Resistance_gene_frequency_boxplot.html`** - Interactive frequency analysis
@@ -193,7 +205,7 @@ output/
 - **`Geographic_Location_correlation_plot.html`** - Location-based correlations
 - **`Subcontinent_correlation_plot.html`** - Subcontinental correlation patterns
 
-#### 7. Statistical Analysis (`Stat_analysis/` directory)
+#### 8. Statistical Analysis (`Stat_analysis/` directory)
 - **`combined_geographic_correlation_summary.csv`** - Geographic correlation statistics
 - **`combined_overall_tests.csv`** - Overall statistical test results
 - **`combined_pairwise_comparisons.csv`** - Pairwise comparison results

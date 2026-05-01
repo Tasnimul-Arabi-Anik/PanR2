@@ -1,0 +1,5 @@
+#FILE	NUM_FOUND	espA	stx2
+/path/to/GCF_000001.1.fna	1	96.0	0
+/path/to/GCA_000002.1.fna	1	0	92.5
+/path/to/GCF_000003.1.fna	0	0	0
+/path/to/GCA_000004.1.fna	2	94.0	90.0

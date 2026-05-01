@@ -19,3 +19,5 @@ validation_output/
 .DS_Store
 # Files generated when TAB fixtures are converted during smoke tests
 tests/fixtures/abricate/*.csv
+tests/fixtures/vfdb/*.csv
+tests/fixtures/plasmidfinder/*.csv

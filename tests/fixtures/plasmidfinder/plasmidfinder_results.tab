@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	GENE	COVERAGE	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT
+/path/to/GCF_000001.1.fna	contig1	1	600	IncFIB	1-600/600	100.00	99.00	plasmidfinder	PF001	IncFIB replicon
+/path/to/GCA_000002.1.fna	contig2	5	650	IncI1	1-646/650	99.40	95.50	plasmidfinder	PF002	IncI1 replicon
+/path/to/GCA_000004.1.fna	contig3	10	610	IncFIB	1-601/600	100.00	98.00	plasmidfinder	PF001	IncFIB replicon
+/path/to/GCA_000004.1.fna	contig3	950	1600	IncI1	1-651/650	100.00	96.00	plasmidfinder	PF002	IncI1 replicon

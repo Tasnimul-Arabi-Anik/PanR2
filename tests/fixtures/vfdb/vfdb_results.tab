@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	GENE	COVERAGE	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT
+/path/to/GCF_000001.1.fna	contig1	1	800	espA	1-800/800	100.00	96.00	vfdb	VF001	type III secretion system protein
+/path/to/GCA_000002.1.fna	contig2	5	900	stx2	1-896/900	99.50	92.50	vfdb	VF002	Shiga toxin
+/path/to/GCA_000004.1.fna	contig3	10	810	espA	1-801/800	100.00	94.00	vfdb	VF001	type III secretion system protein
+/path/to/GCA_000004.1.fna	contig3	950	1700	stx2	1-751/900	83.40	90.00	vfdb	VF002	Shiga toxin

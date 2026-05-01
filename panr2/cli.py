@@ -7,6 +7,7 @@ import shutil
 import pandas as pd
 
 from panr2.analysis import generate_comprehensive_analysis_outputs
+from panr2.features import analyze_abricate_feature_database
 from panr2.filters import apply_analysis_filters
 from panr2.io import (
     convert_tab_to_csv,
@@ -39,7 +40,7 @@ PANR2_VERSION = "0.1.3-dev"
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -87,6 +88,16 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
     first_summary_file = sorted(abricate_summary_files)[0]
     first_results_file = sorted(abricate_results_files)[0]
     write_input_qc_report(ncbi_clean_path, first_summary_file, first_results_file, output_dir)
+
+    optional_feature_outputs = {}
+    if vfdb_dir:
+        optional_feature_outputs["virulence"] = analyze_abricate_feature_database(
+            ncbi_clean_path, vfdb_dir, output_dir, "virulence", "virulence", min_identity=min_identity
+        )
+    if plasmidfinder_dir:
+        optional_feature_outputs["plasmid"] = analyze_abricate_feature_database(
+            ncbi_clean_path, plasmidfinder_dir, output_dir, "plasmid", "plasmid", min_identity=min_identity
+        )
     
     for abricate_summary_file in abricate_summary_files:
         try:
@@ -262,8 +273,11 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                     "top_n": top_n,
                     "cooccurrence_min_prevalence": cooccurrence_min_prevalence,
                     "cooccurrence_top_n": cooccurrence_top_n,
+                    "vfdb_dir": vfdb_dir or "not provided",
+                    "plasmidfinder_dir": plasmidfinder_dir or "not provided",
                 },
                 panr2_version=PANR2_VERSION,
+                feature_outputs=optional_feature_outputs,
                 input_files={
                     "ncbi_clean": ncbi_clean_path,
                     "abricate_summary": abricate_summary_file,
@@ -294,6 +308,8 @@ def run_cli():
     parser.add_argument("--top-n", type=int, default=25, help="Number of top genes/classes to include in compact summary plots.")
     parser.add_argument("--cooccurrence-min-prevalence", type=float, default=0.0, help="Minimum prevalence percentage for genes/classes included in co-occurrence matrices.")
     parser.add_argument("--cooccurrence-top-n", type=int, default=25, help="Number of top genes/classes or pairs to include in co-occurrence plots and pair tables.")
+    parser.add_argument("--vfdb-dir", help="Optional directory containing ABRicate VFDB summary/results files.")
+    parser.add_argument("--plasmidfinder-dir", help="Optional directory containing ABRicate PlasmidFinder summary/results files.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args()
@@ -314,6 +330,8 @@ def run_cli():
         top_n=args.top_n,
         cooccurrence_min_prevalence=args.cooccurrence_min_prevalence,
         cooccurrence_top_n=args.cooccurrence_top_n,
+        vfdb_dir=args.vfdb_dir,
+        plasmidfinder_dir=args.plasmidfinder_dir,
     )
 
 

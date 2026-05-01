@@ -40,7 +40,9 @@ jobs:
             --rare-threshold 25 \
             --top-n 10 \
             --cooccurrence-min-prevalence 0 \
-            --cooccurrence-top-n 10
+            --cooccurrence-top-n 10 \
+            --vfdb-dir tests/fixtures/vfdb \
+            --plasmidfinder-dir tests/fixtures/plasmidfinder
           test -s test_output/qc/panr2_input_qc.csv
           test -s test_output/qc/ncbi_filter_report.csv
           test -s test_output/qc/panr2_input_qc_summary.txt
@@ -57,3 +59,7 @@ jobs:
           test -s test_output/report/ncbi_panr2_report.md
           test -s test_output/report/ncbi_panr2_report.html
           test -s test_output/report/ncbi_methods.txt
+          test -s test_output/virulence/virulence_feature_summary.csv
+          test -s test_output/virulence/virulence_category_summary.csv
+          test -s test_output/plasmid/plasmid_feature_summary.csv
+          test -s test_output/plasmid/plasmid_category_summary.csv

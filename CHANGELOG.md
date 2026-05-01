@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Optional VFDB and PlasmidFinder ABRicate-style feature analysis with separate virulence/plasmid summaries and report sections.
 - Deterministic Markdown/HTML report generation with methods and reproducibility summaries.
 - Unit tests for filtering, comprehensive summaries, and co-occurrence outputs.
 - Gene and resistance-class co-occurrence matrices, ranked pair tables, and compact co-occurrence heatmaps.
