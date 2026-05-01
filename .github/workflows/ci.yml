@@ -33,9 +33,16 @@ jobs:
             --genep 0 \
             --nseq 1 \
             --min-identity 90 \
-            --min-samples-per-group 2
+            --min-samples-per-group 2 \
+            --core-threshold 75 \
+            --rare-threshold 25 \
+            --top-n 10
           test -s test_output/qc/panr2_input_qc.csv
           test -s test_output/qc/ncbi_filter_report.csv
           test -s test_output/qc/panr2_input_qc_summary.txt
           test -s test_output/merged_output/ncbi_ncbi_summary.csv
           test -s test_output/merged_output/ncbi_ncbi_tidy_summary.csv
+          test -s test_output/analysis/ncbi_sample_resistome_burden.csv
+          test -s test_output/analysis/ncbi_gene_prevalence_summary.csv
+          test -s test_output/analysis/ncbi_resistome_category_summary.csv
+          test -s test_output/analysis/ncbi_resistance_class_summary.csv

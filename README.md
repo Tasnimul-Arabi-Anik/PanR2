@@ -60,7 +60,10 @@ python bin/panr \
   --genep 0 \
   --nseq 1 \
   --min-identity 90 \
-  --min-samples-per-group 2
+  --min-samples-per-group 2 \
+  --core-threshold 75 \
+  --rare-threshold 25 \
+  --top-n 10
 ```
 
 The fixture is intentionally small. Correlation plots that require at least five samples per group may be skipped, while the rest of the outputs should be generated.
@@ -90,6 +93,9 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-di
 | `--min-identity` | float | `0.0` | Minimum ABRicate identity percentage to treat a gene call as present |
 | `--drop-unmatched-accessions` | flag | off | Drop NCBI rows with no matching ABRicate summary row |
 | `--min-samples-per-group` | int | `5` | Minimum samples per group required for correlation analyses |
+| `--core-threshold` | float | `95.0` | Prevalence percentage used to classify core ARGs |
+| `--rare-threshold` | float | `5.0` | Prevalence percentage used to classify rare ARGs |
+| `--top-n` | int | `25` | Number of top genes/classes to include in compact summary plots |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 
@@ -116,6 +122,7 @@ PanR2 generates a comprehensive set of outputs organized in the following direct
 ```
 output/
 ├── qc/                               # Input validation reports
+├── analysis/                         # Panresistome summary tables and compact plots
 ├── figures/
 │   ├── heatmap/                          # Geographic heatmaps
 │   ├── html_files/                       # Interactive HTML plots
@@ -134,7 +141,14 @@ output/
 - **`panr2_unmatched_accessions.csv`** - Accessions present in only one of the NCBI or ABRicate inputs
 - **`*_filter_report.csv`** - Row and ARG-call counts before and after optional analysis filters
 
-#### 2. Static Visualizations
+#### 2. Panresistome Analysis (`analysis/` directory)
+- **`*_sample_resistome_burden.csv`** - Per-sample ARG burden, resistance class count, and identity summary
+- **`*_gene_prevalence_summary.csv`** - Per-gene prevalence, identity range, resistance class, and geographic spread
+- **`*_resistome_category_summary.csv`** - Core/accessory/rare ARG categories using configurable thresholds
+- **`*_resistance_class_summary.csv`** - Resistance class prevalence, gene diversity, and top genes
+- **`plots/`** - Compact prevalence plots intended for quick review, not exhaustive visualization
+
+#### 3. Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
@@ -143,10 +157,10 @@ output/
 #### 2. Heatmaps (`heatmap/` directory)
 - **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
-#### 3. Mean ARG Analysis (`mean_ARG/` directory)
+#### 4. Mean ARG Analysis (`mean_ARG/` directory)
 - **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
-#### 4. Interactive HTML Visualizations (`html_files/` directory)
+#### 5. Interactive HTML Visualizations (`html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
 - **`Resistance_gene_geographic_distribution.html`** - Geographic distribution map
 - **`Resistance_gene_frequency_boxplot.html`** - Interactive frequency analysis

@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Comprehensive panresistome analysis tables for sample burden, gene prevalence, core/accessory/rare categories, and resistance class summaries.
+- Compact summary plots for top ARG prevalence and resistance class prevalence.
 - Analysis filtering options: `--min-identity`, `--drop-unmatched-accessions`, and `--min-samples-per-group`.
 - Per-run filter reports under `output/qc/`.
 - Input QC reports under `output/qc/` for required columns, accession matching, zero-hit samples, and resistance annotations.
