@@ -133,6 +133,7 @@ PanR2 generates a comprehensive set of outputs organized in the following direct
 output/
 ├── qc/                               # Input validation reports
 ├── analysis/                         # Panresistome summary tables and compact plots
+├── report/                           # Journal-style narrative report and methods text
 ├── figures/
 │   ├── heatmap/                          # Geographic heatmaps
 │   ├── html_files/                       # Interactive HTML plots
@@ -162,7 +163,12 @@ output/
 - **`*_top_class_pairs.csv`** - Ranked resistance-class pairs with support, prevalence, and Jaccard index
 - **`plots/`** - Compact prevalence and co-occurrence plots intended for quick review, not exhaustive visualization
 
-#### 3. Static Visualizations
+#### 3. Written Report (`report/` directory)
+- **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables
+- **`*_panr2_report.html`** - Simple HTML rendering of the Markdown report
+- **`*_methods.txt`** - Reusable methods description for manuscript drafting
+
+#### 4. Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
@@ -171,10 +177,10 @@ output/
 #### 2. Heatmaps (`heatmap/` directory)
 - **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
-#### 4. Mean ARG Analysis (`mean_ARG/` directory)
+#### 5. Mean ARG Analysis (`mean_ARG/` directory)
 - **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
-#### 5. Interactive HTML Visualizations (`html_files/` directory)
+#### 6. Interactive HTML Visualizations (`html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
 - **`Resistance_gene_geographic_distribution.html`** - Geographic distribution map
 - **`Resistance_gene_frequency_boxplot.html`** - Interactive frequency analysis
@@ -187,7 +193,7 @@ output/
 - **`Geographic_Location_correlation_plot.html`** - Location-based correlations
 - **`Subcontinent_correlation_plot.html`** - Subcontinental correlation patterns
 
-#### 5. Statistical Analysis (`Stat_analysis/` directory)
+#### 7. Statistical Analysis (`Stat_analysis/` directory)
 - **`combined_geographic_correlation_summary.csv`** - Geographic correlation statistics
 - **`combined_overall_tests.csv`** - Overall statistical test results
 - **`combined_pairwise_comparisons.csv`** - Pairwise comparison results

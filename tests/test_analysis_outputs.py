@@ -99,6 +99,30 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertAlmostEqual(float(gene_pairs.iloc[0]["jaccard_index"]), 0.5)
         self.assertEqual(int(class_pairs.iloc[0]["cooccurring_samples"]), 2)
 
+    def test_report_contains_journal_style_summary_sections(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tidy = self.build_tidy_df(tmp, min_identity=80)
+            self.panr.generate_comprehensive_analysis_outputs(
+                tidy, tmp, "ncbi", "png", core_threshold=75, rare_threshold=25,
+                top_n=10, cooccurrence_min_prevalence=0, cooccurrence_top_n=10
+            )
+            from panr2.report import write_report
+            outputs = write_report(
+                tmp,
+                "ncbi",
+                options={"core_threshold": 75, "rare_threshold": 25, "min_identity": 80},
+                panr2_version="test-version",
+                input_files={"ncbi_clean": str(self.ncbi_clean), "abricate_summary": str(self.summary_tab), "abricate_results": str(self.results_tab)},
+            )
+            report_text = Path(outputs["markdown"]).read_text()
+
+        self.assertIn("# PanR2 Panresistome Analysis Report", report_text)
+        self.assertIn("## Executive Summary", report_text)
+        self.assertIn("A total of 4 assemblies or samples", report_text)
+        self.assertIn("blaA", report_text)
+        self.assertIn("## Methods Summary", report_text)
+        self.assertIn("## Reproducibility", report_text)
+
 
 if __name__ == "__main__":
     unittest.main()

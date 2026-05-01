@@ -29,6 +29,7 @@ from panr2.plots import (
     mean_Arg_resistance_analysis_plotly,
 )
 from panr2.qc import write_input_qc_report
+from panr2.report import write_report
 from panr2.stats import combined_correlation_analysis, correlation_scatterplot_analysis
 
 
@@ -245,6 +246,30 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                     src = os.path.join(figures_dir, file)
                     dst = os.path.join(stat_analysis_dir, file)
                     shutil.move(src, dst)
+
+            write_report(
+                output_dir,
+                base_name,
+                options={
+                    "fig_format": fig_format,
+                    "nseq": nseq,
+                    "genep": genep,
+                    "min_identity": min_identity,
+                    "drop_unmatched_accessions": drop_unmatched_accessions,
+                    "min_samples_per_group": min_samples_per_group,
+                    "core_threshold": core_threshold,
+                    "rare_threshold": rare_threshold,
+                    "top_n": top_n,
+                    "cooccurrence_min_prevalence": cooccurrence_min_prevalence,
+                    "cooccurrence_top_n": cooccurrence_top_n,
+                },
+                panr2_version=PANR2_VERSION,
+                input_files={
+                    "ncbi_clean": ncbi_clean_path,
+                    "abricate_summary": abricate_summary_file,
+                    "abricate_results": expected_results_file or "not available",
+                },
+            )
 
         except Exception as e:
             logging.error(f"Error processing {abricate_summary_file}: {e}")

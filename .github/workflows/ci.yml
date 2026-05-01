@@ -54,3 +54,6 @@ jobs:
           test -s test_output/analysis/ncbi_top_gene_pairs.csv
           test -s test_output/analysis/ncbi_class_cooccurrence_matrix.csv
           test -s test_output/analysis/ncbi_top_class_pairs.csv
+          test -s test_output/report/ncbi_panr2_report.md
+          test -s test_output/report/ncbi_panr2_report.html
+          test -s test_output/report/ncbi_methods.txt
