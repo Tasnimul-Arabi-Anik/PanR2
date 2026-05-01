@@ -9,6 +9,7 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/Tasnimul-Arabi-Anik/PanR2",
+    packages=["panr2"],
     scripts=["bin/panr"],  # Include the script from the bin directory
     install_requires=[
 	"pandas>=1.3",

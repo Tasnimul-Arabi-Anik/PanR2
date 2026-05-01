@@ -1,5 +1,3 @@
-import importlib.util
-from importlib.machinery import SourceFileLoader
 import os
 import tempfile
 import unittest
@@ -11,21 +9,13 @@ import pandas as pd
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PANR_PATH = REPO_ROOT / "bin" / "panr"
-
-
-def load_panr_module():
-    loader = SourceFileLoader("panr_cli", str(PANR_PATH))
-    spec = importlib.util.spec_from_loader("panr_cli", loader)
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
 
 
 class PanRAnalysisOutputTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.panr = load_panr_module()
+        from panr2 import cli as panr_cli
+        cls.panr = panr_cli
         cls.ncbi_clean = REPO_ROOT / "tests" / "fixtures" / "ncbi" / "ncbi_clean.csv"
         cls.summary_tab = REPO_ROOT / "tests" / "fixtures" / "abricate" / "ncbi_summary.tab"
         cls.results_tab = REPO_ROOT / "tests" / "fixtures" / "abricate" / "ncbi_results.tab"
