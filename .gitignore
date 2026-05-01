@@ -11,6 +11,7 @@ dist/
 output/
 outputs/
 test_output/
+test_output_*/
 validation_output/
 
 # Local editor/runtime state

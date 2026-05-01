@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Analysis filtering options: `--min-identity`, `--drop-unmatched-accessions`, and `--min-samples-per-group`.
+- Per-run filter reports under `output/qc/`.
 - Input QC reports under `output/qc/` for required columns, accession matching, zero-hit samples, and resistance annotations.
 - Lightweight CI validation for the PanR2 CLI.
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.

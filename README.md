@@ -58,7 +58,9 @@ python bin/panr \
   --output-dir test_output \
   --format png \
   --genep 0 \
-  --nseq 1
+  --nseq 1 \
+  --min-identity 90 \
+  --min-samples-per-group 2
 ```
 
 The fixture is intentionally small. Correlation plots that require at least five samples per group may be skipped, while the rest of the outputs should be generated.
@@ -85,6 +87,9 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-di
 | `--genep` | float | `10.0` | Minimum % gene presence to include in heatmap |
 | `--nseq` | int | `1` | Minimum number of sequences required per group in heatmaps |
 | `--format` | str | `tiff` | Output format for figures (`tiff`, `svg`, `png`, `pdf`) |
+| `--min-identity` | float | `0.0` | Minimum ABRicate identity percentage to treat a gene call as present |
+| `--drop-unmatched-accessions` | flag | off | Drop NCBI rows with no matching ABRicate summary row |
+| `--min-samples-per-group` | int | `5` | Minimum samples per group required for correlation analyses |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 
@@ -95,6 +100,9 @@ panr --ncbi-dir ./data/ncbi_clean.csv --abricate-dir ./data/abricate --output-di
 
 # With optional parameters
 panr --ncbi-dir ./data/ncbi_clean.csv --abricate-dir ./data/abricate --output-dir ./output --format pdf --genep 10 --nseq 5
+
+# Apply analysis filtering before plotting
+panr --ncbi-dir ./data/ncbi --abricate-dir ./data/abricate --output-dir ./output_filtered --min-identity 90 --drop-unmatched-accessions
 ```
 
 ---
@@ -124,6 +132,7 @@ output/
 - **`panr2_input_qc.csv`** - Machine-readable input checks with `PASS`, `WARN`, `FAIL`, and `INFO` statuses
 - **`panr2_input_qc_summary.txt`** - Human-readable summary of input checks
 - **`panr2_unmatched_accessions.csv`** - Accessions present in only one of the NCBI or ABRicate inputs
+- **`*_filter_report.csv`** - Row and ARG-call counts before and after optional analysis filters
 
 #### 2. Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples

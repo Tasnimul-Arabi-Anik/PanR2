@@ -240,6 +240,72 @@ def save_merged_data(merged_df, output_dir, output_filename):
     logging.info(f"Merged file saved to: {output_file}")
 
 
+def get_gene_columns(df):
+    """Return ABRicate gene columns from a merged dataframe."""
+    if "NUM_FOUND" in df.columns:
+        gene_start = df.columns.get_loc("NUM_FOUND") + 1
+        return list(df.columns[gene_start:])
+    if df.shape[1] > 15:
+        return list(df.columns[15:])
+    return []
+
+
+def apply_analysis_filters(merged_df, min_identity=0.0, drop_unmatched_accessions=False, output_dir=None, base_name="panr2"):
+    """Apply optional analysis filters and write a filter report."""
+    filtered_df = merged_df.copy()
+    report = []
+
+    def add_filter(name, enabled, before, after, detail):
+        report.append({
+            "filter": name,
+            "enabled": bool(enabled),
+            "before": before,
+            "after": after,
+            "removed": before - after,
+            "detail": detail,
+        })
+
+    before_rows = len(filtered_df)
+    if drop_unmatched_accessions:
+        file_col = "#File" if "#File" in filtered_df.columns else "#FILE" if "#FILE" in filtered_df.columns else None
+        if file_col:
+            filtered_df = filtered_df[filtered_df[file_col].astype(str) != "0"].copy()
+            detail = f"Kept assemblies with a matching ABRicate summary row using {file_col}."
+        else:
+            detail = "No ABRicate #FILE/#File column found after merge; no rows dropped."
+    else:
+        detail = "Filter disabled."
+    add_filter("drop_unmatched_accessions", drop_unmatched_accessions, before_rows, len(filtered_df), detail)
+
+    gene_cols = get_gene_columns(filtered_df)
+    before_present_calls = 0
+    after_present_calls = 0
+    if gene_cols:
+        numeric_genes = filtered_df[gene_cols].apply(pd.to_numeric, errors="coerce").fillna(0)
+        before_present_calls = int((numeric_genes > 0).sum().sum())
+        if min_identity > 0:
+            numeric_genes = numeric_genes.where(numeric_genes >= min_identity, 0)
+            filtered_df.loc[:, gene_cols] = numeric_genes
+            if "NUM_FOUND" in filtered_df.columns:
+                filtered_df["NUM_FOUND"] = (numeric_genes > 0).sum(axis=1).astype(int)
+            detail = f"Set ARG calls below {min_identity:g}% identity to absent."
+        else:
+            detail = "Filter disabled."
+        after_present_calls = int((numeric_genes > 0).sum().sum())
+    else:
+        detail = "No gene columns found; identity filter skipped."
+    add_filter("min_identity", min_identity > 0, before_present_calls, after_present_calls, detail)
+
+    if output_dir:
+        qc_dir = os.path.join(output_dir, "qc")
+        os.makedirs(qc_dir, exist_ok=True)
+        report_path = os.path.join(qc_dir, f"{base_name}_filter_report.csv")
+        pd.DataFrame(report).to_csv(report_path, index=False)
+        logging.info(f"Filter report saved to {report_path}")
+
+    return filtered_df
+
+
 def convert_to_tidy_format(df):
     """Convert the merged dataframe to tidy format."""
     try:
@@ -247,13 +313,11 @@ def convert_to_tidy_format(df):
             raise ValueError("Not enough columns in the dataframe.")
 
         # ABRicate summary gene columns begin after NUM_FOUND when present.
+        value_vars = get_gene_columns(df)
         if "NUM_FOUND" in df.columns:
-            gene_start = df.columns.get_loc("NUM_FOUND") + 1
-            id_vars = list(df.columns[:gene_start])
-            value_vars = list(df.columns[gene_start:])
+            id_vars = list(df.columns[:df.columns.get_loc("NUM_FOUND") + 1])
         else:
             id_vars = list(df.columns[:15])
-            value_vars = list(df.columns[15:])
 
         if not value_vars:
             raise ValueError("No gene columns found in the merged dataframe.")
@@ -1974,7 +2038,7 @@ def mean_Arg_resistance_analysis_plotly(tidy_file, output_dir):
         return None
 
 
-def correlation_scatterplot_analysis(tidy_file, output_dir, group_col):
+def correlation_scatterplot_analysis(tidy_file, output_dir, group_col, min_samples_per_group=5):
     """
     Generate scatterplots and correlation analysis for NUM_FOUND vs Collection Date (Year),
     grouped by the specified column (e.g., 'Continent', 'Geographic Location').
@@ -2002,7 +2066,7 @@ def correlation_scatterplot_analysis(tidy_file, output_dir, group_col):
 
         for val in sorted(df[group_col].dropna().unique()):
             sub_df = df[df[group_col] == val]
-            if len(sub_df) >= 5:
+            if len(sub_df) >= min_samples_per_group:
                 unique_values.append(val)
                 valid_groups[val] = sub_df
 
@@ -2013,7 +2077,7 @@ def correlation_scatterplot_analysis(tidy_file, output_dir, group_col):
             ]).to_csv(corr_csv, index=False)
             logging.warning(
                 f"No {group_col} groups have sufficient data for correlation analysis "
-                "(minimum 5 samples required). Skipping."
+                f"(minimum {min_samples_per_group} samples required). Skipping."
             )
             return None
 
@@ -2406,9 +2470,14 @@ def generate_index_html(html_dir, figures_dir, output_file="index.html"):
 
     print(f"✅ index.html generated at: {output_path}")
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
+
+    if min_identity < 0 or min_identity > 100:
+        raise ValueError("--min-identity must be between 0 and 100.")
+    if min_samples_per_group < 1:
+        raise ValueError("--min-samples-per-group must be at least 1.")
     
     # Define paths
     ncbi_clean_path = os.path.join(ncbi_dir, "ncbi_clean.csv")
@@ -2454,11 +2523,19 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep):
                 print(f"⚠️ No .csv or .tab found for {os.path.basename(base)}, skipping.")
                 continue
 
-            # Load and merge data
+            # Load, filter, and merge data
             merged_df = load_and_merge_data(ncbi_clean_path, abricate_summary_file)
+            output_filename = f"ncbi_{os.path.basename(abricate_summary_file)}"
+            base_name = os.path.basename(abricate_summary_file).replace("_summary.csv", "")
+            merged_df = apply_analysis_filters(
+                merged_df,
+                min_identity=min_identity,
+                drop_unmatched_accessions=drop_unmatched_accessions,
+                output_dir=output_dir,
+                base_name=base_name,
+            )
             
             # Save merged data
-            output_filename = f"ncbi_{os.path.basename(abricate_summary_file)}"
             save_merged_data(merged_df, merged_output_dir, output_filename)
             
             # Convert to tidy format
@@ -2498,7 +2575,6 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep):
             logging.info(f"Tidied file saved to {tidy_file}")
             
             # Analyze gene prevalence and generate figures
-            base_name = os.path.basename(abricate_summary_file).replace("_summary.csv", "")
             analyze_gene_presence(tidy_df, figures_dir, base_name, fig_format)
             
 
@@ -2544,11 +2620,11 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep):
 
             # Generate correlation scatterplot analysis
             print("Generating Geographic Location analysis...")
-            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Geographic Location")
+            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Geographic Location", min_samples_per_group=min_samples_per_group)
             print("Generating Continent analysis...")
-            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Continent")
+            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Continent", min_samples_per_group=min_samples_per_group)
             print("Generating Subcontinent analysis...")
-            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Subcontinent")
+            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Subcontinent", min_samples_per_group=min_samples_per_group)
              # Combine the three CSV files
             print("Combining correlation summary CSV files...")
             combined_correlation_analysis(figures_dir)
@@ -2593,12 +2669,25 @@ if __name__ == "__main__":
     parser.add_argument("--genep", type=float, default=10.0, help="Minimum %% gene presence to include in heatmap.")
     parser.add_argument("--nseq", type=int, default=1, help="Minimum number of sequences required per group in heatmaps.")
     parser.add_argument("--format", default="tiff", choices=["tiff", "svg", "png", "pdf"], help="Output format for figures (tiff, svg, png, pdf).")
+    parser.add_argument("--min-identity", type=float, default=0.0, help="Minimum ABRicate identity percentage to treat a gene call as present. Values below this are set to absent.")
+    parser.add_argument("--drop-unmatched-accessions", action="store_true", help="Drop NCBI assemblies that do not have a matching ABRicate summary row after merge.")
+    parser.add_argument("--min-samples-per-group", type=int, default=5, help="Minimum samples per group required for correlation analyses.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args()
     
     # Run the main function
-    main(args.ncbi_dir, args.abricate_dir, args.output_dir, args.format, args.nseq, args.genep)
+    main(
+        args.ncbi_dir,
+        args.abricate_dir,
+        args.output_dir,
+        args.format,
+        args.nseq,
+        args.genep,
+        min_identity=args.min_identity,
+        drop_unmatched_accessions=args.drop_unmatched_accessions,
+        min_samples_per_group=args.min_samples_per_group,
+    )
     
     
     
