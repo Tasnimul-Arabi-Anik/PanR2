@@ -171,9 +171,15 @@ output/
 
 #### 3. Optional Virulence and Plasmid Analysis
 - **`virulence/virulence_feature_summary.csv`** - VFDB feature prevalence and identity summaries
-- **`virulence/virulence_category_summary.csv`** - Virulence feature category summaries
+- **`virulence/virulence_category_summary.csv`** - Virulence product/category summaries
+- **`virulence/virulence_geographic_summary.csv`** - Descriptive VFDB feature burden by metadata group
+- **`virulence/plots/`** - VFDB feature prevalence, category prevalence, burden, and presence heatmap figures
 - **`plasmid/plasmid_feature_summary.csv`** - PlasmidFinder replicon prevalence and identity summaries
-- **`plasmid/plasmid_category_summary.csv`** - Plasmid feature category summaries
+- **`plasmid/plasmid_category_summary.csv`** - Plasmid replicon/category summaries
+- **`plasmid/plasmid_geographic_summary.csv`** - Descriptive plasmid replicon burden by metadata group
+- **`plasmid/plots/`** - Plasmid replicon prevalence, category prevalence, burden, and presence heatmap figures
+
+VFDB and PlasmidFinder are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography summaries, and feature presence heatmaps instead of resistance-class composition plots.
 
 #### 4. Written Report (`report/` directory)
 - **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables

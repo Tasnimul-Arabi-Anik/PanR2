@@ -61,5 +61,11 @@ jobs:
           test -s test_output/report/ncbi_methods.txt
           test -s test_output/virulence/virulence_feature_summary.csv
           test -s test_output/virulence/virulence_category_summary.csv
+          test -s test_output/virulence/virulence_geographic_summary.csv
+          test -s test_output/virulence/plots/virulence_feature_prevalence.png
+          test -s test_output/virulence/plots/virulence_presence_heatmap.png
           test -s test_output/plasmid/plasmid_feature_summary.csv
           test -s test_output/plasmid/plasmid_category_summary.csv
+          test -s test_output/plasmid/plasmid_geographic_summary.csv
+          test -s test_output/plasmid/plots/plasmid_feature_prevalence.png
+          test -s test_output/plasmid/plots/plasmid_presence_heatmap.png

@@ -134,9 +134,18 @@ class PanRAnalysisOutputTests(unittest.TestCase):
             )
             vf_summary = pd.read_csv(vfdb["feature_summary"])
             plasmid_summary = pd.read_csv(plasmid["feature_summary"])
+            vf_geo = pd.read_csv(vfdb["geographic_summary"])
+            plasmid_geo = pd.read_csv(plasmid["geographic_summary"])
+
+            for outputs in [vfdb, plasmid]:
+                self.assertTrue(Path(outputs["feature_prevalence_plot"]).exists())
+                self.assertTrue(Path(outputs["category_prevalence_plot"]).exists())
+                self.assertTrue(Path(outputs["presence_heatmap"]).exists())
 
         self.assertEqual(set(vf_summary["feature_id"]), {"espA", "stx2"})
         self.assertEqual(set(plasmid_summary["feature_id"]), {"IncFIB", "IncI1"})
+        self.assertIn("geographic_level", vf_geo.columns)
+        self.assertIn("geographic_level", plasmid_geo.columns)
 
 
 if __name__ == "__main__":
