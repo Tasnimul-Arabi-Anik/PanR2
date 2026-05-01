@@ -1,0 +1,5 @@
+Assembly Accession,Assembly BioSample Accession,Organism Name,Geographic Location,Continent,Subcontinent,Collection Date,Host,Isolation Source,Submitter,Assembly Level,Genome Representation,RefSeq Category
+GCF_000001.1,SAMN000001,Example bacterium A,United States,North America,Northern America,2020,Homo sapiens,clinical,Example Lab,Complete Genome,Full,na
+GCA_000002.1,SAMN000002,Example bacterium B,Bangladesh,Asia,Southern Asia,2021,Homo sapiens,clinical,Example Lab,Scaffold,Full,na
+GCF_000003.1,SAMN000003,Example bacterium C,Canada,North America,Northern America,2022,Homo sapiens,environmental,Example Lab,Contig,Full,na
+GCA_000004.1,SAMN000004,Example bacterium D,India,Asia,Southern Asia,2023,Homo sapiens,clinical,Example Lab,Complete Genome,Full,na

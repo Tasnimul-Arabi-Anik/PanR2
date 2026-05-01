@@ -1,0 +1,6 @@
+#FILE	SEQUENCE	START	END	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+/path/to/GCF_000001.1.fna	contig1	1	900	blaA	1-900/900	=	0/0	100.00	99.50	ncbi	ABC001	beta-lactamase	beta-lactam
+/path/to/GCA_000002.1.fna	contig2	4	850	tetB	1-847/847	=	0/0	100.00	91.20	ncbi	ABC002	tetracycline efflux	tetracycline
+/path/to/GCF_000003.1.fna	contig1	12	812	blaA	1-801/900	=	0/0	89.00	88.10	ncbi	ABC001	beta-lactamase	beta-lactam
+/path/to/GCA_000004.1.fna	contig3	2	900	blaA	1-899/900	=	0/0	99.80	94.00	ncbi	ABC001	beta-lactamase	beta-lactam
+/path/to/GCA_000004.1.fna	contig3	950	1750	tetB	1-801/847	=	0/0	94.50	83.50	ncbi	ABC002	tetracycline efflux	tetracycline

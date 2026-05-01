@@ -48,6 +48,21 @@ pip install -r requirements.txt
 panr --help
 ```
 
+### Run the Included Smoke Test
+From a source checkout, run the bundled small fixture to confirm the CLI, merge step, tidy output, and plotting path work locally:
+
+```bash
+python bin/panr \
+  --ncbi-dir tests/fixtures/ncbi \
+  --abricate-dir tests/fixtures/abricate \
+  --output-dir test_output \
+  --format png \
+  --genep 0 \
+  --nseq 1
+```
+
+The fixture is intentionally small. Correlation plots that require at least five samples per group may be skipped, while the rest of the outputs should be generated.
+
 ---
 
 ## Usage
@@ -60,16 +75,16 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-di
 ### Required Arguments
 | Argument | Description |
 |----------|-------------|
-| `--ncbi-dir` | Path to the `ncbi_clean.csv` file from FetchM |
+| `--ncbi-dir` | Directory containing `ncbi_clean.csv` from FetchM |
 | `--abricate-dir` | Directory containing Abricate summary `.tab` or `.csv` files |
 | `--output-dir` | Directory to store merged results and visualizations |
 
 ### Optional Arguments
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `--genep` | float | - | Minimum % gene presence to include in heatmap |
-| `--nseq` | int | - | Minimum number of sequences required per group in heatmaps |
-| `--format` | str | `png` | Output format for figures (`tiff`, `svg`, `png`, `pdf`) |
+| `--genep` | float | `10.0` | Minimum % gene presence to include in heatmap |
+| `--nseq` | int | `1` | Minimum number of sequences required per group in heatmaps |
+| `--format` | str | `tiff` | Output format for figures (`tiff`, `svg`, `png`, `pdf`) |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 

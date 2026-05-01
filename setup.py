@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="PanR2",
-    version="0.1.2",
+    version="0.1.3.dev0",
     author="Tasnimul Arabi Anik",
     author_email="arabianik987@gmail.com",
     description="A Python tool for panresistome analysis",

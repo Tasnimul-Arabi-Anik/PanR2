@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+
+# Local analysis outputs
+output/
+outputs/
+test_output/
+validation_output/
+
+# Local editor/runtime state
+.Rhistory
+.DS_Store
+# Files generated when TAB fixtures are converted during smoke tests
+tests/fixtures/abricate/*.csv
