@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Unit tests for filtering, comprehensive summaries, and co-occurrence outputs.
 - Gene and resistance-class co-occurrence matrices, ranked pair tables, and compact co-occurrence heatmaps.
 - Comprehensive panresistome analysis tables for sample burden, gene prevalence, core/accessory/rare categories, and resistance class summaries.
 - Compact summary plots for top ARG prevalence and resistance class prevalence.
