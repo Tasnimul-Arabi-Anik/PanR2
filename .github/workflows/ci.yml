@@ -20,7 +20,7 @@ jobs:
           pip install -r requirements.txt
       - name: Compile and check CLI
         run: |
-          python -m py_compile bin/panr panr2/cli.py panr2/__init__.py
+          python -m py_compile bin/panr panr2/*.py
           python bin/panr --help
           python bin/panr --version
       - name: Run unit tests

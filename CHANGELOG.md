@@ -14,6 +14,7 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- Split table I/O, QC, filtering, and comprehensive analysis code into dedicated `panr2` modules.
 - Moved the implementation into the `panr2` package while keeping `bin/panr` as a compatibility wrapper.
 - Improve ABRicate accession parsing to support both GCF and GCA assembly accessions.
 - Report missing required inputs as command failures instead of successful no-op runs.
