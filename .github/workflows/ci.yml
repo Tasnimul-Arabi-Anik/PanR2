@@ -36,7 +36,9 @@ jobs:
             --min-samples-per-group 2 \
             --core-threshold 75 \
             --rare-threshold 25 \
-            --top-n 10
+            --top-n 10 \
+            --cooccurrence-min-prevalence 0 \
+            --cooccurrence-top-n 10
           test -s test_output/qc/panr2_input_qc.csv
           test -s test_output/qc/ncbi_filter_report.csv
           test -s test_output/qc/panr2_input_qc_summary.txt
@@ -46,3 +48,7 @@ jobs:
           test -s test_output/analysis/ncbi_gene_prevalence_summary.csv
           test -s test_output/analysis/ncbi_resistome_category_summary.csv
           test -s test_output/analysis/ncbi_resistance_class_summary.csv
+          test -s test_output/analysis/ncbi_gene_cooccurrence_matrix.csv
+          test -s test_output/analysis/ncbi_top_gene_pairs.csv
+          test -s test_output/analysis/ncbi_class_cooccurrence_matrix.csv
+          test -s test_output/analysis/ncbi_top_class_pairs.csv

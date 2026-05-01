@@ -63,7 +63,9 @@ python bin/panr \
   --min-samples-per-group 2 \
   --core-threshold 75 \
   --rare-threshold 25 \
-  --top-n 10
+  --top-n 10 \
+  --cooccurrence-min-prevalence 0 \
+  --cooccurrence-top-n 10
 ```
 
 The fixture is intentionally small. Correlation plots that require at least five samples per group may be skipped, while the rest of the outputs should be generated.
@@ -96,6 +98,8 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-di
 | `--core-threshold` | float | `95.0` | Prevalence percentage used to classify core ARGs |
 | `--rare-threshold` | float | `5.0` | Prevalence percentage used to classify rare ARGs |
 | `--top-n` | int | `25` | Number of top genes/classes to include in compact summary plots |
+| `--cooccurrence-min-prevalence` | float | `0.0` | Minimum prevalence percentage for genes/classes included in co-occurrence matrices |
+| `--cooccurrence-top-n` | int | `25` | Number of top genes/classes or pairs to include in co-occurrence plots and pair tables |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 
@@ -146,7 +150,11 @@ output/
 - **`*_gene_prevalence_summary.csv`** - Per-gene prevalence, identity range, resistance class, and geographic spread
 - **`*_resistome_category_summary.csv`** - Core/accessory/rare ARG categories using configurable thresholds
 - **`*_resistance_class_summary.csv`** - Resistance class prevalence, gene diversity, and top genes
-- **`plots/`** - Compact prevalence plots intended for quick review, not exhaustive visualization
+- **`*_gene_cooccurrence_matrix.csv`** - Gene-by-gene co-occurrence counts across samples
+- **`*_class_cooccurrence_matrix.csv`** - Resistance-class co-occurrence counts across samples
+- **`*_top_gene_pairs.csv`** - Ranked ARG pairs with support, prevalence, and Jaccard index
+- **`*_top_class_pairs.csv`** - Ranked resistance-class pairs with support, prevalence, and Jaccard index
+- **`plots/`** - Compact prevalence and co-occurrence plots intended for quick review, not exhaustive visualization
 
 #### 3. Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples

@@ -344,7 +344,17 @@ def get_resistance_class(series):
     return clean.mode().iloc[0]
 
 
-def generate_comprehensive_analysis_outputs(tidy_df, output_dir, base_name, fig_format, core_threshold=95.0, rare_threshold=5.0, top_n=25):
+def generate_comprehensive_analysis_outputs(
+    tidy_df,
+    output_dir,
+    base_name,
+    fig_format,
+    core_threshold=95.0,
+    rare_threshold=5.0,
+    top_n=25,
+    cooccurrence_min_prevalence=0.0,
+    cooccurrence_top_n=25,
+):
     """Generate clean panresistome summary tables and compact plots."""
     analysis_dir = os.path.join(output_dir, "analysis")
     plot_dir = os.path.join(analysis_dir, "plots")
@@ -453,6 +463,108 @@ def generate_comprehensive_analysis_outputs(tidy_df, output_dir, base_name, fig_
     class_path = os.path.join(analysis_dir, f"{base_name}_resistance_class_summary.csv")
     class_summary.to_csv(class_path, index=False)
 
+    def build_cooccurrence_outputs(entity_col, label, prevalence_col, matrix_filename, pairs_filename, plot_filename):
+        if present_df.empty:
+            empty_matrix = pd.DataFrame()
+            empty_pairs = pd.DataFrame(columns=[
+                f"{label}_1", f"{label}_2", "cooccurring_samples", "cooccurrence_percentage",
+                f"{label}_1_samples", f"{label}_2_samples", "jaccard_index"
+            ])
+            matrix_path = os.path.join(analysis_dir, matrix_filename)
+            pairs_path = os.path.join(analysis_dir, pairs_filename)
+            empty_matrix.to_csv(matrix_path)
+            empty_pairs.to_csv(pairs_path, index=False)
+            return matrix_path, pairs_path
+
+        presence = (
+            present_df[[sample_col, entity_col]]
+            .dropna()
+            .drop_duplicates()
+            .assign(value=1)
+            .pivot_table(index=sample_col, columns=entity_col, values="value", fill_value=0, aggfunc="max")
+        )
+        if presence.empty:
+            matrix_path = os.path.join(analysis_dir, matrix_filename)
+            pairs_path = os.path.join(analysis_dir, pairs_filename)
+            pd.DataFrame().to_csv(matrix_path)
+            pd.DataFrame().to_csv(pairs_path, index=False)
+            return matrix_path, pairs_path
+
+        prevalence = (presence.sum(axis=0) / total_samples) * 100
+        kept_entities = prevalence[prevalence >= cooccurrence_min_prevalence].index.tolist()
+        presence = presence[kept_entities]
+        if presence.empty:
+            matrix_path = os.path.join(analysis_dir, matrix_filename)
+            pairs_path = os.path.join(analysis_dir, pairs_filename)
+            pd.DataFrame().to_csv(matrix_path)
+            pd.DataFrame(columns=[
+                f"{label}_1", f"{label}_2", "cooccurring_samples", "cooccurrence_percentage",
+                f"{label}_1_samples", f"{label}_2_samples", "jaccard_index"
+            ]).to_csv(pairs_path, index=False)
+            return matrix_path, pairs_path
+
+        cooc_matrix = presence.T.dot(presence).astype(int)
+        matrix_path = os.path.join(analysis_dir, matrix_filename)
+        cooc_matrix.to_csv(matrix_path)
+
+        pair_rows = []
+        entities = list(cooc_matrix.columns)
+        sample_counts = presence.sum(axis=0).astype(int).to_dict()
+        for i, first in enumerate(entities):
+            for second in entities[i + 1:]:
+                co_count = int(cooc_matrix.loc[first, second])
+                union_count = int(((presence[first] + presence[second]) > 0).sum())
+                pair_rows.append({
+                    f"{label}_1": first,
+                    f"{label}_2": second,
+                    "cooccurring_samples": co_count,
+                    "cooccurrence_percentage": (co_count / total_samples) * 100,
+                    f"{label}_1_samples": sample_counts[first],
+                    f"{label}_2_samples": sample_counts[second],
+                    "jaccard_index": co_count / union_count if union_count else 0,
+                })
+        pair_df = pd.DataFrame(pair_rows)
+        if not pair_df.empty:
+            pair_df = pair_df[pair_df["cooccurring_samples"] > 0]
+            pair_df = pair_df.sort_values(["cooccurring_samples", "jaccard_index", f"{label}_1", f"{label}_2"], ascending=[False, False, True, True]).head(cooccurrence_top_n)
+        pairs_path = os.path.join(analysis_dir, pairs_filename)
+        pair_df.to_csv(pairs_path, index=False)
+
+        plot_entities = prevalence.loc[kept_entities].sort_values(ascending=False).head(cooccurrence_top_n).index.tolist()
+        if len(plot_entities) >= 2:
+            plot_matrix = cooc_matrix.loc[plot_entities, plot_entities]
+            size = max(5, min(14, 0.45 * len(plot_entities) + 3))
+            plt.figure(figsize=(size, size))
+            sns.heatmap(plot_matrix, cmap="Blues", square=True, linewidths=0.3, linecolor="white", cbar_kws={"label": "Co-occurring samples"})
+            plt.title(f"{label.replace('_', ' ').title()} co-occurrence")
+            plt.xlabel(label.replace("_", " ").title())
+            plt.ylabel(label.replace("_", " ").title())
+            plt.xticks(rotation=45, ha="right")
+            plt.yticks(rotation=0)
+            plt.tight_layout()
+            plot_path = os.path.join(plot_dir, plot_filename)
+            plt.savefig(plot_path, dpi=300, bbox_inches="tight", format=fig_format)
+            plt.close()
+
+        return matrix_path, pairs_path
+
+    gene_cooc_matrix_path, gene_cooc_pairs_path = build_cooccurrence_outputs(
+        "Gene",
+        "gene",
+        "prevalence_percentage",
+        f"{base_name}_gene_cooccurrence_matrix.csv",
+        f"{base_name}_top_gene_pairs.csv",
+        f"{base_name}_gene_cooccurrence_heatmap.{fig_format}",
+    )
+    class_cooc_matrix_path, class_cooc_pairs_path = build_cooccurrence_outputs(
+        "RESISTANCE",
+        "class",
+        "prevalence_percentage",
+        f"{base_name}_class_cooccurrence_matrix.csv",
+        f"{base_name}_top_class_pairs.csv",
+        f"{base_name}_class_cooccurrence_heatmap.{fig_format}",
+    )
+
     # Clean, compact plots for the summary layer.
     if not gene_prevalence.empty:
         top_genes_df = gene_prevalence.head(top_n).sort_values("prevalence_percentage", ascending=True)
@@ -489,6 +601,10 @@ def generate_comprehensive_analysis_outputs(tidy_df, output_dir, base_name, fig_
         "gene_prevalence_summary": gene_path,
         "resistome_category_summary": category_path,
         "resistance_class_summary": class_path,
+        "gene_cooccurrence_matrix": gene_cooc_matrix_path,
+        "top_gene_pairs": gene_cooc_pairs_path,
+        "class_cooccurrence_matrix": class_cooc_matrix_path,
+        "top_class_pairs": class_cooc_pairs_path,
     }
 
 
@@ -2627,7 +2743,7 @@ def generate_index_html(html_dir, figures_dir, output_file="index.html"):
 
     print(f"✅ index.html generated at: {output_path}")
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -2643,6 +2759,10 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         raise ValueError("--rare-threshold cannot be greater than --core-threshold.")
     if top_n < 1:
         raise ValueError("--top-n must be at least 1.")
+    if cooccurrence_min_prevalence < 0 or cooccurrence_min_prevalence > 100:
+        raise ValueError("--cooccurrence-min-prevalence must be between 0 and 100.")
+    if cooccurrence_top_n < 1:
+        raise ValueError("--cooccurrence-top-n must be at least 1.")
     
     # Define paths
     ncbi_clean_path = os.path.join(ncbi_dir, "ncbi_clean.csv")
@@ -2747,6 +2867,8 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 core_threshold=core_threshold,
                 rare_threshold=rare_threshold,
                 top_n=top_n,
+                cooccurrence_min_prevalence=cooccurrence_min_prevalence,
+                cooccurrence_top_n=cooccurrence_top_n,
             )
             
             # Analyze gene prevalence and generate figures
@@ -2850,6 +2972,8 @@ if __name__ == "__main__":
     parser.add_argument("--core-threshold", type=float, default=95.0, help="Prevalence percentage used to classify core ARGs.")
     parser.add_argument("--rare-threshold", type=float, default=5.0, help="Prevalence percentage used to classify rare ARGs.")
     parser.add_argument("--top-n", type=int, default=25, help="Number of top genes/classes to include in compact summary plots.")
+    parser.add_argument("--cooccurrence-min-prevalence", type=float, default=0.0, help="Minimum prevalence percentage for genes/classes included in co-occurrence matrices.")
+    parser.add_argument("--cooccurrence-top-n", type=int, default=25, help="Number of top genes/classes or pairs to include in co-occurrence plots and pair tables.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args()
@@ -2868,6 +2992,8 @@ if __name__ == "__main__":
         core_threshold=args.core_threshold,
         rare_threshold=args.rare_threshold,
         top_n=args.top_n,
+        cooccurrence_min_prevalence=args.cooccurrence_min_prevalence,
+        cooccurrence_top_n=args.cooccurrence_top_n,
     )
     
     
