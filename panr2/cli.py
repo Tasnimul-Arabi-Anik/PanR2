@@ -91,12 +91,12 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
 
     optional_feature_outputs = {}
     if vfdb_dir:
-        optional_feature_outputs["virulence"] = analyze_abricate_feature_database(
-            ncbi_clean_path, vfdb_dir, output_dir, "virulence", "virulence", min_identity=min_identity, fig_format=fig_format
+        optional_feature_outputs["vfdb"] = analyze_abricate_feature_database(
+            ncbi_clean_path, vfdb_dir, output_dir, "vfdb", "virulence", min_identity=min_identity, fig_format=fig_format
         )
     if plasmidfinder_dir:
-        optional_feature_outputs["plasmid"] = analyze_abricate_feature_database(
-            ncbi_clean_path, plasmidfinder_dir, output_dir, "plasmid", "plasmid", min_identity=min_identity, fig_format=fig_format
+        optional_feature_outputs["plasmidfinder"] = analyze_abricate_feature_database(
+            ncbi_clean_path, plasmidfinder_dir, output_dir, "plasmidfinder", "plasmid", min_identity=min_identity, fig_format=fig_format
         )
     
     for abricate_summary_file in abricate_summary_files:

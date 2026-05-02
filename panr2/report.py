@@ -226,7 +226,7 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
             "Prevalence values below describe feature presence after the same identity filtering threshold used for this run."
         )
         lines.append("")
-        for feature_type in ["virulence", "plasmid"]:
+        for feature_type in ["vfdb", "plasmidfinder", "virulence", "plasmid"]:
             if feature_type not in feature_outputs:
                 continue
             feature_dir = os.path.join(output_dir, feature_type)
@@ -241,11 +241,11 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
             count_col = f"{feature_type}_feature_count"
             if count_col in sample_burden.columns:
                 carrying_samples = int((pd.to_numeric(sample_burden[count_col], errors="coerce").fillna(0) > 0).sum())
-            label = "Virulence" if feature_type == "virulence" else "Plasmid"
+            label = "VFDB" if feature_type in ["vfdb", "virulence"] else "PlasmidFinder"
             lines.append(f"### {label} Features")
             lines.append("")
             lines.append(
-                f"The {feature_type} module detected {feature_count} feature(s), with {carrying_samples} sample(s) carrying at least one {feature_type} feature."
+                f"The {label} module detected {feature_count} feature(s), with {carrying_samples} sample(s) carrying at least one {label} feature."
             )
             lines.append("")
             lines.append(_markdown_table(feature_summary, ["feature_id", "feature_category", "present_samples", "prevalence_percentage", "mean_identity", "min_identity", "max_identity"], max_rows=20))
@@ -344,7 +344,7 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
         "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
-        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, and descriptive feature co-occurrence tables."
+        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, and descriptive feature co-occurrence tables."
     )
     lines.append("")
 

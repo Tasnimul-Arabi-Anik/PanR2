@@ -69,11 +69,19 @@ def _safe_figsize(row_count, base_height=2.0, per_row=0.35, width=9, max_height=
     return (width, max(4, min(max_height, base_height + per_row * max(row_count, 1))))
 
 
-def _write_feature_plots(feature_type, output_feature_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col):
+def _feature_label(feature_type, mode):
+    if mode == "virulence" or feature_type.lower() == "vfdb":
+        return "VFDB"
+    if mode == "plasmid" or feature_type.lower() == "plasmidfinder":
+        return "PlasmidFinder"
+    return feature_type.replace("_", " ").title()
+
+
+def _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col):
     plot_dir = os.path.join(output_feature_dir, "plots")
     os.makedirs(plot_dir, exist_ok=True)
     plot_paths = {}
-    label = "Virulence" if feature_type == "virulence" else "Plasmid"
+    label = _feature_label(feature_type, mode)
 
     if not feature_summary.empty:
         plot_df = feature_summary.head(25).sort_values("prevalence_percentage", ascending=True)
@@ -94,7 +102,7 @@ def _write_feature_plots(feature_type, output_feature_dir, fig_format, tidy, fea
         plt.figure(figsize=_safe_figsize(len(plot_df), width=10))
         sns.barplot(data=plot_df, x="prevalence_percentage", y="feature_category", color="#59A14F")
         plt.xlabel("Samples carrying category (%)")
-        ylabel = "VFDB product/category" if feature_type == "virulence" else "Plasmid replicon/category"
+        ylabel = "VFDB product/category" if mode == "virulence" else "PlasmidFinder replicon/category"
         plt.ylabel(ylabel)
         plt.title(f"Top {label.lower()} categories by prevalence")
         plt.xlim(0, 100)
@@ -201,7 +209,7 @@ def _write_feature_geographic_summary(feature_type, output_feature_dir, tidy, sa
 
 
 
-def _write_feature_cooccurrence(feature_type, output_feature_dir, fig_format, tidy, total_samples, sample_col, top_n=25):
+def _write_feature_cooccurrence(feature_type, mode, output_feature_dir, fig_format, tidy, total_samples, sample_col, top_n=25):
     present = tidy[tidy["presence"] == 1].copy()
     matrix_path = os.path.join(output_feature_dir, f"{feature_type}_feature_cooccurrence_matrix.csv")
     pairs_path = os.path.join(output_feature_dir, f"{feature_type}_top_feature_pairs.csv")
@@ -255,7 +263,7 @@ def _write_feature_cooccurrence(feature_type, output_feature_dir, fig_format, ti
         top_features = presence.sum(axis=0).sort_values(ascending=False).head(top_n).index.tolist()
         plot_matrix = cooc_matrix.loc[top_features, top_features]
         size = max(5, min(14, 0.45 * len(top_features) + 3))
-        label = "Virulence" if feature_type == "virulence" else "Plasmid"
+        label = _feature_label(feature_type, mode)
         plt.figure(figsize=(size, size))
         sns.heatmap(plot_matrix, cmap="Blues", square=True, linewidths=0.3, linecolor="white", cbar_kws={"label": "Co-occurring samples"})
         plt.title(f"{label} feature co-occurrence")
@@ -375,8 +383,8 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
 
     geographic_summary_path = _write_feature_geographic_summary(feature_type, output_feature_dir, tidy, sample_burden)
     temporal_summary_path = _write_feature_temporal_summary(feature_type, output_feature_dir, sample_burden)
-    plot_paths = _write_feature_plots(feature_type, output_feature_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col)
-    cooc_matrix_path, top_pairs_path, cooc_plot_paths = _write_feature_cooccurrence(feature_type, output_feature_dir, fig_format, tidy, total_samples, sample_col)
+    plot_paths = _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col)
+    cooc_matrix_path, top_pairs_path, cooc_plot_paths = _write_feature_cooccurrence(feature_type, mode, output_feature_dir, fig_format, tidy, total_samples, sample_col)
 
     logging.info(f"{feature_type} analysis outputs saved to {output_feature_dir}")
     return {

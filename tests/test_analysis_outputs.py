@@ -123,17 +123,19 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertIn("## Methods Summary", report_text)
         self.assertIn("## Reproducibility", report_text)
 
-    def test_optional_virulence_and_plasmid_feature_analysis(self):
+    def test_optional_vfdb_and_plasmidfinder_feature_analysis(self):
         with tempfile.TemporaryDirectory() as tmp:
             from panr2.features import analyze_abricate_feature_database
             vfdb = analyze_abricate_feature_database(
-                str(self.ncbi_clean), str(REPO_ROOT / "tests" / "fixtures" / "vfdb"), tmp, "virulence", "virulence", min_identity=90
+                str(self.ncbi_clean), str(REPO_ROOT / "tests" / "fixtures" / "vfdb"), tmp, "vfdb", "virulence", min_identity=90
             )
             plasmid = analyze_abricate_feature_database(
-                str(self.ncbi_clean), str(REPO_ROOT / "tests" / "fixtures" / "plasmidfinder"), tmp, "plasmid", "plasmid", min_identity=90
+                str(self.ncbi_clean), str(REPO_ROOT / "tests" / "fixtures" / "plasmidfinder"), tmp, "plasmidfinder", "plasmid", min_identity=90
             )
             vf_summary = pd.read_csv(vfdb["feature_summary"])
             plasmid_summary = pd.read_csv(plasmid["feature_summary"])
+            self.assertIn("/vfdb/", vfdb["feature_summary"])
+            self.assertIn("/plasmidfinder/", plasmid["feature_summary"])
             vf_geo = pd.read_csv(vfdb["geographic_summary"])
             plasmid_geo = pd.read_csv(plasmid["geographic_summary"])
             vf_pairs = pd.read_csv(vfdb["top_feature_pairs"])

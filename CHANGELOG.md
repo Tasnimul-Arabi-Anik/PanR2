@@ -17,6 +17,7 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- Optional VFDB and PlasmidFinder outputs now use database-named folders (`vfdb/` and `plasmidfinder/`).
 - Split plotting and statistical helper code into `panr2.plots` and `panr2.stats`.
 - Split table I/O, QC, filtering, and comprehensive analysis code into dedicated `panr2` modules.
 - Moved the implementation into the `panr2` package while keeping `bin/panr` as a compatibility wrapper.

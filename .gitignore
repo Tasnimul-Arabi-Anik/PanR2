@@ -10,6 +10,7 @@ dist/
 # Local analysis outputs
 output/
 outputs/
+output_*/
 test_output/
 test_output_*/
 validation_output/
