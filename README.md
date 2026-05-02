@@ -135,19 +135,14 @@ PanR2 generates a comprehensive set of outputs organized in the following direct
 
 ```
 output/
-├── qc/                               # Input validation reports
-├── analysis/                         # Panresistome summary tables and compact plots
-├── report/                           # Journal-style narrative report and methods text
-├── vfdb/                              # Optional VFDB feature summaries
-├── plasmidfinder/                    # Optional PlasmidFinder feature summaries
-├── figures/
-│   ├── heatmap/                          # Geographic heatmaps
-│   ├── html_files/                       # Interactive HTML plots
-│   ├── mean_ARG/                         # Mean antibiotic resistance gene plots
-│   ├── Stat_analysis/                    # Statistical analysis results
-│   ├── index.html                        # Main navigation page
-│   └── [Various static plots]
-└── [Processed CSV files]
+├── ncbi/                              # AMR/resistome tables, merged data, and figures
+│   ├── analysis/                      # Panresistome summary tables and compact plots
+│   ├── figures/                       # AMR static and interactive figures
+│   └── merged_output/                 # Merged and tidy AMR tables
+├── vfdb/                              # Optional VFDB feature tables and figures
+├── plasmidfinder/                     # Optional PlasmidFinder feature tables and figures
+├── qc/                                # Shared input validation and filter reports
+└── report/                            # Journal-style narrative report and methods text
 ```
 
 ### Output Files Description
@@ -158,7 +153,7 @@ output/
 - **`panr2_unmatched_accessions.csv`** - Accessions present in only one of the NCBI or ABRicate inputs
 - **`*_filter_report.csv`** - Row and ARG-call counts before and after optional analysis filters
 
-#### 2. Panresistome Analysis (`analysis/` directory)
+#### 2. NCBI/AMR Panresistome Analysis (`ncbi/` directory)
 - **`*_sample_resistome_burden.csv`** - Per-sample ARG burden, resistance class count, and identity summary
 - **`*_gene_prevalence_summary.csv`** - Per-gene prevalence, identity range, resistance class, and geographic spread
 - **`*_resistome_category_summary.csv`** - Core/accessory/rare ARG categories using configurable thresholds
@@ -167,7 +162,7 @@ output/
 - **`*_class_cooccurrence_matrix.csv`** - Resistance-class co-occurrence counts across samples
 - **`*_top_gene_pairs.csv`** - Ranked ARG pairs with support, prevalence, and Jaccard index
 - **`*_top_class_pairs.csv`** - Ranked resistance-class pairs with support, prevalence, and Jaccard index
-- **`plots/`** - Compact prevalence and co-occurrence plots intended for quick review, not exhaustive visualization
+- **`ncbi/analysis/plots/`** - Compact prevalence and co-occurrence plots intended for quick review, not exhaustive visualization
 
 #### 3. Optional Database-Named Feature Analysis
 - **`vfdb/vfdb_feature_summary.csv`** - VFDB feature prevalence and identity summaries
@@ -192,19 +187,19 @@ VFDB and PlasmidFinder are handled as separate feature families, not as antibiot
 - **`*_panr2_report.html`** - Simple HTML rendering of the Markdown report
 - **`*_methods.txt`** - Reusable methods description for manuscript drafting
 
-#### 5. Static Visualizations
+#### 5. NCBI/AMR Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
 - **`Resistance_percentage_by_Antibiotics.{format}`** - Bar plot of resistance by antibiotic classes
 
-#### 2. Heatmaps (`heatmap/` directory)
+#### 6. Heatmaps (`ncbi/figures/heatmap/` directory)
 - **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
-#### 6. Mean ARG Analysis (`mean_ARG/` directory)
+#### 7. Mean ARG Analysis (`ncbi/figures/mean_ARG/` directory)
 - **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
-#### 7. Interactive HTML Visualizations (`html_files/` directory)
+#### 8. Interactive HTML Visualizations (`ncbi/figures/html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
 - **`Resistance_gene_geographic_distribution.html`** - Geographic distribution map
 - **`Resistance_gene_frequency_boxplot.html`** - Interactive frequency analysis
@@ -217,14 +212,14 @@ VFDB and PlasmidFinder are handled as separate feature families, not as antibiot
 - **`Geographic_Location_correlation_plot.html`** - Location-based correlations
 - **`Subcontinent_correlation_plot.html`** - Subcontinental correlation patterns
 
-#### 8. Statistical Analysis (`Stat_analysis/` directory)
+#### 9. Statistical Analysis (`ncbi/figures/Stat_analysis/` directory)
 - **`combined_geographic_correlation_summary.csv`** - Geographic correlation statistics
 - **`combined_overall_tests.csv`** - Overall statistical test results
 - **`combined_pairwise_comparisons.csv`** - Pairwise comparison results
 - **`combined_summary_statistics.csv`** - Comprehensive summary statistics
 - **`ncbi_gene_presence_count_percentage.csv`** - Gene presence counts and percentages
 
-#### 6. Navigation
+#### 10. Navigation
 - **It generates an interactive combined index.html file** 
 - **[View the interactive HTML report](https://tasnimul-arabi-anik.github.io/PanR2/)** – Interactive HTML index page for easy navigation of all generated visualizations
 
@@ -233,31 +228,31 @@ VFDB and PlasmidFinder are handled as separate feature families, not as antibiot
 ### Static Plots
 
 **Mean ARG by Geographic Location**
-![Mean Antibiotic Resistance Genes by Country](figures/mean_ARG/Mean_ARG_by_Geographic%20Location.png)
+![Mean Antibiotic Resistance Genes by Country](ncbi/figures/mean_ARG/Mean_ARG_by_Geographic%20Location.png)
 
 **Resistance Gene Presence Analysis:**
-![Resistance Gene Presence](figures/Resistance_gene_presence.png)
+![Resistance Gene Presence](ncbi/figures/Resistance_gene_presence.png)
 *Bar plot showing the presence of resistance genes across samples*
 
 **Gene Percentage Distribution:**
-![Resistance Gene Percentage](figures/Resistance_gene_percentage.png) 
+![Resistance Gene Percentage](ncbi/figures/Resistance_gene_percentage.png) 
 *Lollipop plot displaying gene percentage distribution*
 
 **Geographic Distribution Heatmap:**
-![Geographic Heatmap](figures/heatmap/ncbi_ncbi_Continent_heatmap.png)
+![Geographic Heatmap](ncbi/figures/heatmap/ncbi_ncbi_Continent_heatmap.png)
 *Heatmap showing resistance gene distribution across continents*
 
 **Antibiotic Resistance by Classes:**
-![Resistance by Antibiotics](figures/Resistance_percentage_by_Antibiotics.png)
+![Resistance by Antibiotics](ncbi/figures/Resistance_percentage_by_Antibiotics.png)
 *Bar plot showing resistance patterns by antibiotic classes*
 
 **Gene Identity Analysis:**
-![Gene Identity Boxplot](figures/Resistance_gene_identity_boxplot.png)
+![Gene Identity Boxplot](ncbi/figures/Resistance_gene_identity_boxplot.png)
 *Boxplot analysis of resistance gene identity scores*
 
 ### Sample Output Directory Structure
 ```
-figures/
+ncbi/figures/
 ├── Resistance_gene_presence.png
 ├── Resistance_gene_percentage.png  
 ├── Resistance_gene_identity_boxplot.png

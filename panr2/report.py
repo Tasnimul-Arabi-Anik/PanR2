@@ -74,17 +74,18 @@ def _top_names(df, name_col, value_col, n=5):
     return [f"{row[name_col]} ({_fmt_pct(row[value_col])})" for _, row in ranked.iterrows()]
 
 
-def write_report(output_dir, base_name, options=None, panr2_version="unknown", input_files=None, feature_outputs=None):
+def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None):
     """Write a deterministic journal-style PanR2 report."""
     options = options or {}
     input_files = input_files or {}
     feature_outputs = feature_outputs or {}
     report_dir = os.path.join(output_dir, "report")
     os.makedirs(report_dir, exist_ok=True)
+    ncbi_output_dir = ncbi_output_dir or output_dir
 
     qc_dir = os.path.join(output_dir, "qc")
-    analysis_dir = os.path.join(output_dir, "analysis")
-    figures_dir = os.path.join(output_dir, "figures")
+    analysis_dir = os.path.join(ncbi_output_dir, "analysis")
+    figures_dir = os.path.join(ncbi_output_dir, "figures")
     stat_dir = os.path.join(figures_dir, "Stat_analysis")
 
     qc_df = _read_csv(os.path.join(qc_dir, "panr2_input_qc.csv"))
@@ -288,16 +289,16 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
     for rel_path in [
         f"qc/panr2_input_qc.csv",
         f"qc/{base_name}_filter_report.csv",
-        f"merged_output/ncbi_{base_name}_summary.csv",
-        f"merged_output/ncbi_{base_name}_tidy_summary.csv",
-        f"analysis/{base_name}_sample_resistome_burden.csv",
-        f"analysis/{base_name}_gene_prevalence_summary.csv",
-        f"analysis/{base_name}_resistome_category_summary.csv",
-        f"analysis/{base_name}_resistance_class_summary.csv",
-        f"analysis/{base_name}_gene_cooccurrence_matrix.csv",
-        f"analysis/{base_name}_top_gene_pairs.csv",
-        f"analysis/{base_name}_class_cooccurrence_matrix.csv",
-        f"analysis/{base_name}_top_class_pairs.csv",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'merged_output', f'ncbi_{base_name}_summary.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'merged_output', f'ncbi_{base_name}_tidy_summary.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_sample_resistome_burden.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_gene_prevalence_summary.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_resistome_category_summary.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_resistance_class_summary.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_gene_cooccurrence_matrix.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_top_gene_pairs.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_class_cooccurrence_matrix.csv'), output_dir)}",
+        f"{os.path.relpath(os.path.join(ncbi_output_dir, 'analysis', f'{base_name}_top_class_pairs.csv'), output_dir)}",
     ]:
         lines.append(f"- `{rel_path}`")
     lines.append("")

@@ -79,9 +79,10 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
     if not abricate_results_files:
         raise FileNotFoundError(f"No CSV or TAB results files (abricate) found in {abricate_dir}.")
     
-    # Create output subdirectories
-    merged_output_dir = os.path.join(output_dir, "merged_output")
-    figures_dir = os.path.join(output_dir, "figures")
+    # Create database-specific output subdirectories. Shared QC and reports stay top-level.
+    ncbi_output_dir = os.path.join(output_dir, "ncbi")
+    merged_output_dir = os.path.join(ncbi_output_dir, "merged_output")
+    figures_dir = os.path.join(ncbi_output_dir, "figures")
     os.makedirs(merged_output_dir, exist_ok=True)
     os.makedirs(figures_dir, exist_ok=True)
 
@@ -168,7 +169,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
 
             generate_comprehensive_analysis_outputs(
                 tidy_df,
-                output_dir,
+                ncbi_output_dir,
                 base_name,
                 fig_format,
                 core_threshold=core_threshold,
@@ -261,6 +262,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
             write_report(
                 output_dir,
                 base_name,
+                ncbi_output_dir=ncbi_output_dir,
                 options={
                     "fig_format": fig_format,
                     "nseq": nseq,

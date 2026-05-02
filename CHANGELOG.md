@@ -17,6 +17,7 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- AMR/resistome outputs now live under `ncbi/`, leaving top-level output organized as `ncbi/`, `vfdb/`, `plasmidfinder/`, `qc/`, and `report/`.
 - Optional VFDB and PlasmidFinder outputs now use database-named folders (`vfdb/` and `plasmidfinder/`).
 - Split plotting and statistical helper code into `panr2.plots` and `panr2.stats`.
 - Split table I/O, QC, filtering, and comprehensive analysis code into dedicated `panr2` modules.
