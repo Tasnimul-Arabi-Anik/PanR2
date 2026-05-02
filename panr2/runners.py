@@ -61,6 +61,14 @@ def write_tool_manifest(output_dir, manifest):
     qc_dir = os.path.join(output_dir, "qc")
     os.makedirs(qc_dir, exist_ok=True)
     json_path = os.path.join(qc_dir, "panr2_tool_manifest.json")
+    if os.path.exists(json_path):
+        with open(json_path) as handle:
+            existing = json.load(handle)
+        existing.setdefault("tools", []).extend(manifest.get("tools", []))
+        existing["generated_at"] = manifest.get("generated_at", existing.get("generated_at", ""))
+        existing["sequence_dir"] = manifest.get("sequence_dir", existing.get("sequence_dir", ""))
+        existing["sequence_count"] = manifest.get("sequence_count", existing.get("sequence_count", ""))
+        manifest = existing
     with open(json_path, "w") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
 
@@ -86,6 +94,194 @@ def write_tool_manifest(output_dir, manifest):
         writer.writeheader()
         writer.writerows(rows)
     return {"json": json_path, "csv": csv_path}
+
+
+def _strip_gzip_suffix(path):
+    base = os.path.basename(path)
+    return base[:-3] if base.endswith(".gz") else base
+
+
+def _sample_prefix(path):
+    name = _strip_gzip_suffix(path)
+    for ext in SEQUENCE_EXTENSIONS:
+        if name.lower().endswith(ext):
+            return name[:-len(ext)]
+    return os.path.splitext(name)[0]
+
+
+def _clean_feature_id(value):
+    value = str(value or "").strip()
+    return value if value else "unknown_feature"
+
+
+def _float_or_default(value, default=0.0):
+    try:
+        if value is None or str(value).strip() == "":
+            return default
+        return float(str(value).strip().rstrip("%"))
+    except Exception:
+        return default
+
+
+def _first_value(row, candidates, default=""):
+    lower_map = {str(key).lower().replace(" ", "_").replace("-", "_"): key for key in row}
+    for candidate in candidates:
+        key = lower_map.get(candidate.lower().replace(" ", "_").replace("-", "_"))
+        if key is not None and str(row.get(key, "")).strip():
+            return row.get(key, "")
+    return default
+
+
+def _read_mobileelementfinder_csv(path):
+    with open(path, newline="") as handle:
+        lines = [line for line in handle if not line.startswith("#") and line.strip()]
+    if not lines:
+        return []
+    return list(csv.DictReader(lines))
+
+
+def convert_mobileelementfinder_outputs(sequence_files, raw_csv_paths, output_dir):
+    """Convert MobileElementFinder CSV outputs into ABRicate-style files."""
+    feature_dir = os.path.join(output_dir, "tool_results", "mobileelementfinder", "panr2_inputs")
+    os.makedirs(feature_dir, exist_ok=True)
+    results_path = os.path.join(feature_dir, "mobileelementfinder_results.tab")
+    summary_path = os.path.join(feature_dir, "mobileelementfinder_summary.tab")
+
+    results_rows = []
+    feature_ids = []
+    by_sample = {}
+    file_lookup = {_sample_prefix(path): path for path in sequence_files}
+
+    for csv_path in raw_csv_paths:
+        prefix = os.path.basename(csv_path).replace(".csv", "")
+        source_file = file_lookup.get(prefix)
+        if not source_file:
+            for sample_prefix, path in file_lookup.items():
+                if sample_prefix in prefix or prefix in sample_prefix:
+                    source_file = path
+                    break
+        source_file = source_file or prefix
+        sample_key = _sample_prefix(source_file)
+        by_sample.setdefault(sample_key, {"file": source_file, "features": {}})
+
+        for row in _read_mobileelementfinder_csv(csv_path):
+            feature_id = _clean_feature_id(_first_value(row, [
+                "mge_id", "mge", "mobile_element", "element", "template", "gene", "name", "id"
+            ]))
+            identity = _float_or_default(_first_value(row, [
+                "identity", "perc_identity", "percent_identity", "%identity", "%_identity"
+            ], 100.0), 100.0)
+            coverage = _float_or_default(_first_value(row, [
+                "coverage", "perc_coverage", "percent_coverage", "%coverage", "%_coverage"
+            ], 100.0), 100.0)
+            contig = _first_value(row, ["contig", "sequence", "reference", "qseqid"], "contig")
+            start = _first_value(row, ["start", "query_start", "qstart"], "0")
+            end = _first_value(row, ["end", "query_end", "qend"], "0")
+            accession = _first_value(row, ["accession", "reference_accession", "template_id"], feature_id)
+            product = _first_value(row, ["type", "family", "description", "product", "element_type"], feature_id)
+            feature_ids.append(feature_id)
+            by_sample[sample_key]["features"][feature_id] = max(identity, by_sample[sample_key]["features"].get(feature_id, 0.0))
+            results_rows.append({
+                "#FILE": source_file,
+                "SEQUENCE": contig,
+                "START": start,
+                "END": end,
+                "GENE": feature_id,
+                "COVERAGE": f"{coverage:.2f}",
+                "%COVERAGE": f"{coverage:.2f}",
+                "%IDENTITY": f"{identity:.2f}",
+                "DATABASE": "mobileelementfinder",
+                "ACCESSION": accession,
+                "PRODUCT": product,
+            })
+
+    feature_ids = sorted(set(feature_ids), key=str.lower)
+    with open(results_path, "w", newline="") as handle:
+        fieldnames = ["#FILE", "SEQUENCE", "START", "END", "GENE", "COVERAGE", "%COVERAGE", "%IDENTITY", "DATABASE", "ACCESSION", "PRODUCT"]
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(results_rows)
+
+    with open(summary_path, "w", newline="") as handle:
+        fieldnames = ["#FILE", "NUM_FOUND"] + feature_ids
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        for sample_key in sorted(file_lookup):
+            features = by_sample.get(sample_key, {"file": file_lookup[sample_key], "features": {}})
+            row = {"#FILE": features["file"], "NUM_FOUND": sum(1 for value in features["features"].values() if value > 0)}
+            for feature_id in feature_ids:
+                row[feature_id] = features["features"].get(feature_id, 0)
+            writer.writerow(row)
+
+    return {"results": results_path, "summary": summary_path, "feature_dir": feature_dir}
+
+
+def _find_mobileelementfinder_csv(raw_dir, prefix):
+    exact = os.path.join(raw_dir, f"{prefix}.csv")
+    if os.path.exists(exact):
+        return exact
+    candidates = []
+    for name in os.listdir(raw_dir):
+        if name.endswith(".csv") and prefix in name:
+            candidates.append(os.path.join(raw_dir, name))
+    return sorted(candidates)[0] if candidates else None
+
+
+def run_mobileelementfinder(
+    sequence_dir,
+    output_dir,
+    mefinder_bin="mefinder",
+    threads=1,
+    force=False,
+):
+    """Run MobileElementFinder per assembly and create PanR2-compatible inputs."""
+    executable = shutil.which(mefinder_bin)
+    if not executable:
+        raise FileNotFoundError(f"MobileElementFinder executable not found: {mefinder_bin}")
+
+    sequence_files = find_sequence_files(sequence_dir)
+    if not sequence_files:
+        raise FileNotFoundError(f"No FASTA files found in {sequence_dir}")
+
+    raw_dir = os.path.join(output_dir, "tool_results", "mobileelementfinder", "raw")
+    os.makedirs(raw_dir, exist_ok=True)
+    version = _capture_command([executable, "--version"]).splitlines()[0]
+    raw_csv_paths = []
+
+    for sequence_file in sequence_files:
+        prefix = _sample_prefix(sequence_file)
+        output_prefix = os.path.join(raw_dir, prefix)
+        expected_csv = _find_mobileelementfinder_csv(raw_dir, prefix)
+        if force or not expected_csv:
+            _run_command([executable, "find", "--contig", sequence_file, "--threads", str(threads), output_prefix])
+            expected_csv = _find_mobileelementfinder_csv(raw_dir, prefix)
+        if expected_csv:
+            raw_csv_paths.append(expected_csv)
+        else:
+            logging.warning("MobileElementFinder did not create a CSV output for %s", sequence_file)
+
+    converted = convert_mobileelementfinder_outputs(sequence_files, raw_csv_paths, output_dir)
+    manifest = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "sequence_dir": sequence_dir,
+        "sequence_count": len(sequence_files),
+        "tools": [{
+            "name": "mobileelementfinder",
+            "executable": executable,
+            "version": version,
+            "runs": [{
+                "database": "mobileelementfinder",
+                "database_sequences": "",
+                "database_date": "",
+                "results": converted["results"],
+                "summary": converted["summary"],
+                "status": "completed",
+            }],
+        }],
+    }
+    manifest_paths = write_tool_manifest(output_dir, manifest)
+    logging.info("MobileElementFinder tool manifest saved to %s", manifest_paths["json"])
+    return {"feature_dir": converted["feature_dir"], "manifest": manifest_paths, "raw_csv": raw_csv_paths}
 
 
 def run_abricate_databases(

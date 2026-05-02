@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Integrated MobileElementFinder runner mode with raw CSV preservation, PanR2-compatible feature table conversion, and manifest tracking.
 - Integrated ABRicate runner mode with `--run-abricate`, `--sequence-dir`, database selection, reusable raw outputs, and tool/database manifest tracking.
 - Optional MobileElementFinder, ISfinder, IntegronFinder, and ICEberg ABRicate-style feature analyses with database-named outputs, figures, HTML indexes, and report sections.
 - VFDB/PlasmidFinder group-burden summaries, burden-by-metadata plots, and nonparametric group-comparison outputs.

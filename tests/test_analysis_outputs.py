@@ -286,6 +286,73 @@ sys.exit(2)
             self.assertTrue((output_dir / "ncbi" / "analysis" / "ncbi_gene_prevalence_summary.csv").exists())
             self.assertIn("## Integrated Tool Runs", report_text)
 
+    def test_integrated_mobileelementfinder_runner_feeds_feature_analysis(self):
+        script = """#!/usr/bin/env python3
+import os
+import sys
+
+args = sys.argv[1:]
+if args == ["--version"]:
+    print("MobileElementFinder 1.1-test")
+    sys.exit(0)
+if args and args[0] == "find":
+    contig = args[args.index("--contig") + 1]
+    output_prefix = args[-1]
+    accession = os.path.basename(contig)
+    with open(output_prefix + ".csv", "w") as handle:
+        handle.write("# MobileElementFinder fake output\\n")
+        handle.write("contig,start,end,mge_id,identity,coverage,type,accession\\n")
+        if "GCF_000001.1" in accession:
+            handle.write("contig1,10,900,Tn3,96.5,99.0,Tn3-family transposon,ME001\\n")
+        elif "GCA_000002.1" in accession:
+            handle.write("contig2,20,820,IS26,94.0,97.0,IS6-family insertion sequence,ME002\\n")
+        elif "GCA_000004.1" in accession:
+            handle.write("contig3,30,930,Tn3,95.0,98.0,Tn3-family transposon,ME001\\n")
+            handle.write("contig3,940,1700,IS26,93.0,96.0,IS6-family insertion sequence,ME002\\n")
+    sys.exit(0)
+print("unexpected arguments: " + " ".join(args), file=sys.stderr)
+sys.exit(2)
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_mefinder = tmp_path / "mefinder"
+            fake_mefinder.write_text(script)
+            fake_mefinder.chmod(0o755)
+            sequence_dir = tmp_path / "sequence"
+            sequence_dir.mkdir()
+            for accession in ["GCF_000001.1", "GCA_000002.1", "GCF_000003.1", "GCA_000004.1"]:
+                (sequence_dir / f"{accession}_genomic.fna").write_text(">contig1\nATGC\n")
+
+            output_dir = tmp_path / "panr2_output"
+            self.panr.main(
+                str(REPO_ROOT / "tests" / "fixtures" / "ncbi"),
+                str(REPO_ROOT / "tests" / "fixtures" / "abricate"),
+                str(output_dir),
+                "png",
+                1,
+                0,
+                min_identity=90,
+                min_samples_per_group=2,
+                core_threshold=75,
+                rare_threshold=25,
+                top_n=10,
+                cooccurrence_min_prevalence=0,
+                cooccurrence_top_n=10,
+                sequence_dir=str(sequence_dir),
+                run_mobileelementfinder_tool=True,
+                mobileelementfinder_bin=str(fake_mefinder),
+            )
+
+            manifest = pd.read_csv(output_dir / "qc" / "panr2_tool_manifest.csv")
+            feature_summary = pd.read_csv(output_dir / "mobileelementfinder" / "analysis" / "mobileelementfinder_feature_summary.csv")
+            report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
+            self.assertEqual(manifest.iloc[0]["tool"], "mobileelementfinder")
+            self.assertEqual(manifest.iloc[0]["database"], "mobileelementfinder")
+            self.assertEqual(set(feature_summary["feature_id"]), {"Tn3", "IS26"})
+            self.assertTrue((output_dir / "tool_results" / "mobileelementfinder" / "panr2_inputs" / "mobileelementfinder_results.tab").exists())
+            self.assertTrue((output_dir / "mobileelementfinder" / "figures" / "index.html").exists())
+            self.assertIn("MobileElementFinder", report_text)
+
 
 if __name__ == "__main__":
     unittest.main()

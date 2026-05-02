@@ -97,6 +97,12 @@ PanR2 can also run ABRicate internally from assembly FASTA files:
 panr --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-abricate --abricate-dbs ncbi,vfdb,plasmidfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
+MobileElementFinder can also be run internally when installed:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-mobileelementfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
 ### Required Arguments
 | Argument | Description |
 |----------|-------------|
@@ -116,6 +122,9 @@ panr --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-abric
 | `--abricate-dbs` | str | `ncbi` | Comma-separated ABRicate databases to run, for example `ncbi,vfdb,plasmidfinder` |
 | `--abricate-bin` | path | `abricate` | ABRicate executable name or path |
 | `--abricate-summary-metric` | str | `identity` | Metric used in generated ABRicate summary matrices (`identity` or `coverage`) |
+| `--run-mobileelementfinder` | flag | off | Run MobileElementFinder internally before PanR2 feature analysis |
+| `--mobileelementfinder-bin` | path | `mefinder` | MobileElementFinder executable name or path |
+| `--mobileelementfinder-threads` | int | `1` | Threads passed to MobileElementFinder |
 | `--force-tool-run` | flag | off | Re-run integrated tools even when raw result files already exist |
 | `--min-identity` | float | `0.0` | Minimum ABRicate identity percentage to treat a gene call as present |
 | `--drop-unmatched-accessions` | flag | off | Drop NCBI rows with no matching ABRicate summary row |
@@ -147,6 +156,9 @@ panr --ncbi-dir ./data/ncbi --abricate-dir ./data/abricate --output-dir ./output
 
 # Run ABRicate inside PanR2, then analyze AMR, VFDB, and PlasmidFinder outputs
 panr --ncbi-dir ./data/metadata_output --sequence-dir ./data/sequence --run-abricate --abricate-dbs ncbi,vfdb,plasmidfinder --output-dir ./output_integrated --min-identity 90
+
+# Run MobileElementFinder inside PanR2 and include MGE feature analysis
+panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --sequence-dir ./data/sequence --run-mobileelementfinder --output-dir ./output_mge --min-identity 90
 ```
 
 ---
@@ -164,6 +176,9 @@ output/
 │       ├── ncbi/
 │       ├── vfdb/
 │       └── plasmidfinder/
+│   └── mobileelementfinder/
+│       ├── raw/
+│       └── panr2_inputs/
 ├── ncbi/                              # AMR/resistome tables, merged data, and figures
 │   ├── analysis/                      # Panresistome summary tables and compact plots
 │   ├── figures/                       # AMR static and interactive figures
