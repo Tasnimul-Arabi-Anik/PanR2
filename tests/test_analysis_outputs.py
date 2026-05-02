@@ -421,6 +421,47 @@ sys.exit(2)
             self.assertTrue((output_dir / "integronfinder" / "figures" / "index.html").exists())
             self.assertIn("IntegronFinder", report_text)
 
+    def test_iceberg_table_converter_feeds_feature_analysis(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            iceberg_tables = tmp_path / "iceberg_tables"
+            iceberg_tables.mkdir()
+            (iceberg_tables / "iceberg_hits.tsv").write_text(
+                "assembly_accession\tcontig\tstart\tend\tice_id\ttype\tidentity\tcoverage\tdescription\n"
+                "GCF_000001.1\tcontig1\t100\t5000\tICEKp1\tICE\t95.0\t90.0\tKlebsiella integrative conjugative element\n"
+                "GCA_000002.1\tcontig2\t200\t4200\tIME1\tIME\t93.0\t88.0\tintegrative mobilizable element\n"
+                "GCA_000004.1\tcontig3\t300\t5200\tICEKp1\tICE\t94.0\t91.0\tKlebsiella integrative conjugative element\n"
+                "GCA_000004.1\tcontig3\t5400\t8500\tCIME1\tCIME\t92.0\t87.0\tcis-mobilizable element\n"
+            )
+
+            output_dir = tmp_path / "panr2_output"
+            self.panr.main(
+                str(REPO_ROOT / "tests" / "fixtures" / "ncbi"),
+                str(REPO_ROOT / "tests" / "fixtures" / "abricate"),
+                str(output_dir),
+                "png",
+                1,
+                0,
+                min_identity=90,
+                min_samples_per_group=2,
+                core_threshold=75,
+                rare_threshold=25,
+                top_n=10,
+                cooccurrence_min_prevalence=0,
+                cooccurrence_top_n=10,
+                iceberg_table_dir=str(iceberg_tables),
+            )
+
+            manifest = pd.read_csv(output_dir / "qc" / "panr2_tool_manifest.csv")
+            feature_summary = pd.read_csv(output_dir / "iceberg" / "analysis" / "iceberg_feature_summary.csv")
+            report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
+            self.assertEqual(manifest.iloc[0]["tool"], "iceberg_table_converter")
+            self.assertEqual(manifest.iloc[0]["database"], "iceberg")
+            self.assertEqual(set(feature_summary["feature_id"]), {"ICEKp1", "IME1", "CIME1"})
+            self.assertTrue((output_dir / "tool_results" / "iceberg" / "panr2_inputs" / "iceberg_results.tab").exists())
+            self.assertTrue((output_dir / "iceberg" / "figures" / "index.html").exists())
+            self.assertIn("ICEberg", report_text)
+
 
 if __name__ == "__main__":
     unittest.main()

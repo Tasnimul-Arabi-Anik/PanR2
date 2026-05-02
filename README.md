@@ -109,6 +109,12 @@ IntegronFinder can also be run internally when installed:
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-integronfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
+User-provided ICE/IME/CIME tables can be converted into ICEberg-style PanR2 analysis inputs:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-table-dir <ICE_TABLE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
 ### Required Arguments
 | Argument | Description |
 |----------|-------------|
@@ -134,6 +140,7 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-
 | `--run-integronfinder` | flag | off | Run IntegronFinder internally before PanR2 feature analysis |
 | `--integronfinder-bin` | path | `integron_finder` | IntegronFinder executable name or path |
 | `--integronfinder-threads` | int | `1` | CPU threads passed to IntegronFinder |
+| `--iceberg-table-dir` | path | optional | Directory containing ICE/IME/CIME CSV/TSV/TAB tables to convert into PanR2 ICEberg analysis inputs |
 | `--force-tool-run` | flag | off | Re-run integrated tools even when raw result files already exist |
 | `--min-identity` | float | `0.0` | Minimum ABRicate identity percentage to treat a gene call as present |
 | `--drop-unmatched-accessions` | flag | off | Drop NCBI rows with no matching ABRicate summary row |
@@ -171,6 +178,9 @@ panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --sequence
 
 # Run IntegronFinder inside PanR2 and include integron feature analysis
 panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --sequence-dir ./data/sequence --run-integronfinder --output-dir ./output_integrons --min-identity 90
+
+# Convert ICE/IME/CIME annotation tables and include ICEberg-style feature analysis
+panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --iceberg-table-dir ./data/iceberg_tables --output-dir ./output_iceberg --min-identity 90
 ```
 
 ---
@@ -193,6 +203,8 @@ output/
 │       └── panr2_inputs/
 │   └── integronfinder/
 │       ├── raw/
+│       └── panr2_inputs/
+│   └── iceberg/
 │       └── panr2_inputs/
 ├── ncbi/                              # AMR/resistome tables, merged data, and figures
 │   ├── analysis/                      # Panresistome summary tables and compact plots

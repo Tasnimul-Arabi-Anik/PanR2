@@ -31,7 +31,7 @@ from panr2.plots import (
 )
 from panr2.qc import write_input_qc_report
 from panr2.report import write_report
-from panr2.runners import run_abricate_databases, run_integronfinder, run_mobileelementfinder
+from panr2.runners import convert_iceberg_tables, run_abricate_databases, run_integronfinder, run_mobileelementfinder
 from panr2.stats import combined_correlation_analysis, correlation_scatterplot_analysis
 
 
@@ -41,7 +41,7 @@ PANR2_VERSION = "0.1.3-dev"
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, force_tool_run=False):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, iceberg_table_dir=None, force_tool_run=False):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -109,6 +109,11 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         tool_manifest = integronfinder_run.get("manifest", tool_manifest)
         if not integronfinder_dir:
             integronfinder_dir = integronfinder_run["feature_dir"]
+    if iceberg_table_dir:
+        iceberg_run = convert_iceberg_tables(iceberg_table_dir, output_dir)
+        tool_manifest = iceberg_run.get("manifest", tool_manifest)
+        if not iceberg_dir:
+            iceberg_dir = iceberg_run["feature_dir"]
 
     if not abricate_dir:
         raise ValueError("--abricate-dir is required unless --run-abricate includes the ncbi database.")
@@ -354,6 +359,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                     "run_integronfinder": run_integronfinder_tool,
                     "integronfinder_bin": integronfinder_bin,
                     "integronfinder_threads": integronfinder_threads,
+                    "iceberg_table_dir": iceberg_table_dir or "not provided",
                     "tool_manifest_json": tool_manifest.get("json", "not available"),
                     "tool_manifest_csv": tool_manifest.get("csv", "not available"),
                 },
@@ -389,6 +395,7 @@ def run_cli():
     parser.add_argument("--run-integronfinder", action="store_true", help="Run IntegronFinder internally before PanR2 feature analysis.")
     parser.add_argument("--integronfinder-bin", default="integron_finder", help="IntegronFinder executable name or path.")
     parser.add_argument("--integronfinder-threads", type=int, default=1, help="CPU threads passed to IntegronFinder.")
+    parser.add_argument("--iceberg-table-dir", help="Directory containing ICE/IME/CIME CSV/TSV/TAB tables to convert into PanR2 ICEberg analysis inputs.")
     parser.add_argument("--force-tool-run", action="store_true", help="Re-run integrated tools even when result files already exist.")
     parser.add_argument("--genep", type=float, default=10.0, help="Minimum %% gene presence to include in heatmap.")
     parser.add_argument("--nseq", type=int, default=1, help="Minimum number of sequences required per group in heatmaps.")
@@ -445,6 +452,7 @@ def run_cli():
         run_integronfinder_tool=args.run_integronfinder,
         integronfinder_bin=args.integronfinder_bin,
         integronfinder_threads=args.integronfinder_threads,
+        iceberg_table_dir=args.iceberg_table_dir,
         force_tool_run=args.force_tool_run,
     )
 

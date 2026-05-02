@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- ICEberg table-converter workflow for user-provided ICE/IME/CIME CSV/TSV/TAB annotations with PanR2-compatible feature table conversion and manifest tracking.
 - Integrated IntegronFinder runner mode with raw output preservation, PanR2-compatible feature table conversion, and manifest tracking.
 - Integrated MobileElementFinder runner mode with raw CSV preservation, PanR2-compatible feature table conversion, and manifest tracking.
 - Integrated ABRicate runner mode with `--run-abricate`, `--sequence-dir`, database selection, reusable raw outputs, and tool/database manifest tracking.

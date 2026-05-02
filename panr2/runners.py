@@ -443,6 +443,126 @@ def run_integronfinder(
     return {"feature_dir": converted["feature_dir"], "manifest": manifest_paths, "raw_tables": raw_table_paths}
 
 
+def _read_delimited_table(path):
+    with open(path, newline="") as handle:
+        lines = [line for line in handle if not line.startswith("#") and line.strip()]
+    if not lines:
+        return []
+    sample = lines[0]
+    delimiter = "\t" if "\t" in sample else ","
+    return list(csv.DictReader(lines, delimiter=delimiter))
+
+
+def _find_table_files(table_dir):
+    if not os.path.isdir(table_dir):
+        raise FileNotFoundError(f"Table directory not found: {table_dir}")
+    paths = []
+    for name in sorted(os.listdir(table_dir)):
+        lower = name.lower()
+        if lower.endswith((".csv", ".tsv", ".tab")):
+            paths.append(os.path.join(table_dir, name))
+    return paths
+
+
+def convert_iceberg_tables(table_dir, output_dir):
+    """Convert user-provided ICE/IME/CIME tables into ABRicate-style files."""
+    table_paths = _find_table_files(table_dir)
+    if not table_paths:
+        raise FileNotFoundError(f"No CSV/TSV/TAB ICEberg tables found in {table_dir}")
+
+    feature_dir = os.path.join(output_dir, "tool_results", "iceberg", "panr2_inputs")
+    os.makedirs(feature_dir, exist_ok=True)
+    results_path = os.path.join(feature_dir, "iceberg_results.tab")
+    summary_path = os.path.join(feature_dir, "iceberg_summary.tab")
+
+    results_rows = []
+    feature_ids = []
+    by_sample = {}
+
+    for table_path in table_paths:
+        for row in _read_delimited_table(table_path):
+            sample = _first_value(row, [
+                "file", "#file", "assembly_file", "assembly", "assembly_accession",
+                "genome", "genome_id", "sample", "sample_id", "isolate"
+            ], os.path.basename(table_path))
+            feature_id = _clean_feature_id(_first_value(row, [
+                "ice_id", "element_id", "element", "mge_id", "name", "id", "accession", "gene"
+            ], "iceberg_feature"))
+            element_type = _first_value(row, ["type", "element_type", "category", "class"], "ICE/IME/CIME")
+            identity = _float_or_default(_first_value(row, [
+                "identity", "perc_identity", "percent_identity", "%identity", "%_identity", "score"
+            ], 100.0), 100.0)
+            coverage = _float_or_default(_first_value(row, [
+                "coverage", "perc_coverage", "percent_coverage", "%coverage", "%_coverage"
+            ], 100.0), 100.0)
+            contig = _first_value(row, ["contig", "sequence", "replicon", "chromosome"], "contig")
+            start = _first_value(row, ["start", "pos_beg", "begin", "left"], "0")
+            end = _first_value(row, ["end", "pos_end", "stop", "right"], "0")
+            accession = _first_value(row, ["accession", "ice_accession", "reference", "reference_id"], feature_id)
+            product = _first_value(row, ["description", "product", "annotation", "element_type", "type"], element_type)
+
+            sample_key = _sample_prefix(str(sample))
+            by_sample.setdefault(sample_key, {"file": str(sample), "features": {}})
+            feature_ids.append(feature_id)
+            by_sample[sample_key]["features"][feature_id] = max(identity, by_sample[sample_key]["features"].get(feature_id, 0.0))
+            results_rows.append({
+                "#FILE": str(sample),
+                "SEQUENCE": contig,
+                "START": start,
+                "END": end,
+                "GENE": feature_id,
+                "COVERAGE": f"{coverage:.2f}",
+                "%COVERAGE": f"{coverage:.2f}",
+                "%IDENTITY": f"{identity:.2f}",
+                "DATABASE": "iceberg",
+                "ACCESSION": accession,
+                "PRODUCT": product,
+            })
+
+    feature_ids = sorted(set(feature_ids), key=str.lower)
+    if not feature_ids:
+        raise ValueError(f"No ICEberg features found in {table_dir}")
+
+    with open(results_path, "w", newline="") as handle:
+        fieldnames = ["#FILE", "SEQUENCE", "START", "END", "GENE", "COVERAGE", "%COVERAGE", "%IDENTITY", "DATABASE", "ACCESSION", "PRODUCT"]
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(results_rows)
+
+    with open(summary_path, "w", newline="") as handle:
+        fieldnames = ["#FILE", "NUM_FOUND"] + feature_ids
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        for sample_key in sorted(by_sample):
+            features = by_sample[sample_key]
+            row = {"#FILE": features["file"], "NUM_FOUND": sum(1 for value in features["features"].values() if value > 0)}
+            for feature_id in feature_ids:
+                row[feature_id] = features["features"].get(feature_id, 0)
+            writer.writerow(row)
+
+    manifest = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "sequence_dir": "",
+        "sequence_count": "",
+        "tools": [{
+            "name": "iceberg_table_converter",
+            "executable": "panr2",
+            "version": "",
+            "runs": [{
+                "database": "iceberg",
+                "database_sequences": "",
+                "database_date": "",
+                "results": results_path,
+                "summary": summary_path,
+                "status": "completed",
+            }],
+        }],
+    }
+    manifest_paths = write_tool_manifest(output_dir, manifest)
+    logging.info("ICEberg table converter manifest saved to %s", manifest_paths["json"])
+    return {"feature_dir": feature_dir, "manifest": manifest_paths, "source_tables": table_paths}
+
+
 def run_abricate_databases(
     sequence_dir,
     output_dir,
