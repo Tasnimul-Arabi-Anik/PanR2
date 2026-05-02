@@ -237,6 +237,8 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             geographic_summary = _read_csv(outputs.get("geographic_summary", ""))
             temporal_summary = _read_csv(outputs.get("temporal_summary", ""))
             top_pairs = _read_csv(outputs.get("top_feature_pairs", ""))
+            group_burden = _read_csv(outputs.get("group_burden_summary", ""))
+            group_overall = _read_csv(outputs.get("group_overall_tests", ""))
             feature_count = len(feature_summary) if not feature_summary.empty else 0
             carrying_samples = 0
             count_col = f"{feature_type}_feature_count"
@@ -268,6 +270,14 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
                 lines.append("Feature co-occurrence was calculated from shared sample presence and is reported descriptively; it does not imply physical linkage or causal association.")
             lines.append("")
             lines.append(_markdown_table(top_pairs, ["feature_1", "feature_2", "cooccurring_samples", "cooccurrence_percentage", "feature_1_samples", "feature_2_samples", "jaccard_index"], max_rows=20))
+            lines.append(f"### {label} Group Burden Comparisons")
+            lines.append(
+                "Mean feature burden was summarized across available metadata groups. Nonparametric tests are reported only when at least two groups meet the minimum sample-size requirement."
+            )
+            lines.append("")
+            lines.append(_markdown_table(group_burden, ["grouping_variable", "group", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "min_feature_count", "max_feature_count"], max_rows=25))
+            lines.append(f"### {label} Group-Level Statistical Tests")
+            lines.append(_markdown_table(group_overall, ["grouping_variable", "test", "groups_tested", "min_group_size", "statistic", "p_value", "significant_0_05", "error"], max_rows=20))
 
     lines.append("## Geographic and Temporal Patterns")
     lines.append("")
@@ -327,6 +337,9 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
                 "temporal_summary",
                 "feature_cooccurrence_matrix",
                 "top_feature_pairs",
+                "group_burden_summary",
+                "group_overall_tests",
+                "group_pairwise_tests",
                 "feature_prevalence_plot",
                 "category_prevalence_plot",
                 "burden_by_continent_plot",
@@ -341,6 +354,14 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
                 "feature_cooccurrence_heatmap_html",
                 "geographic_burden_html",
                 "temporal_burden_html",
+                "mean_burden_by_geographic_location_plot",
+                "mean_burden_by_continent_plot",
+                "mean_burden_by_subcontinent_plot",
+                "mean_burden_by_collection_year_plot",
+                "mean_burden_by_geographic_location_html",
+                "mean_burden_by_continent_html",
+                "mean_burden_by_subcontinent_html",
+                "mean_burden_by_collection_year_html",
                 "html_index",
             ]:
                 output_path = feature_outputs.get(feature_type, {}).get(key)
@@ -354,7 +375,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
-        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures."
+        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit."
     )
     lines.append("")
 

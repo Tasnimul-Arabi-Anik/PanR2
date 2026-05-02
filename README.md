@@ -177,14 +177,20 @@ output/
 - **`vfdb/analysis/vfdb_temporal_summary.csv`** - Descriptive VFDB feature burden by collection year
 - **`vfdb/analysis/vfdb_feature_cooccurrence_matrix.csv`** - VFDB feature co-occurrence counts across samples
 - **`vfdb/analysis/vfdb_top_feature_pairs.csv`** - Ranked VFDB feature pairs with support and Jaccard index
-- **`vfdb/figures/`** - VFDB static figures, interactive HTML files under `html_files/`, and `index.html` navigation
+- **`vfdb/analysis/vfdb_group_burden_summary.csv`** - VFDB feature burden summaries by location, continent, subcontinent, and year
+- **`vfdb/analysis/vfdb_group_overall_tests.csv`** - VFDB nonparametric group-level tests where sample sizes permit
+- **`vfdb/analysis/vfdb_group_pairwise_tests.csv`** - VFDB pairwise group comparisons where sample sizes permit
+- **`vfdb/figures/`** - VFDB static figures, burden-by-group plots, interactive HTML files under `html_files/`, and `index.html` navigation
 - **`plasmidfinder/analysis/plasmidfinder_feature_summary.csv`** - PlasmidFinder replicon prevalence and identity summaries
 - **`plasmidfinder/analysis/plasmidfinder_category_summary.csv`** - Plasmid replicon/category summaries
 - **`plasmidfinder/analysis/plasmidfinder_geographic_summary.csv`** - Descriptive plasmid replicon burden by metadata group
 - **`plasmidfinder/analysis/plasmidfinder_temporal_summary.csv`** - Descriptive plasmid replicon burden by collection year
 - **`plasmidfinder/analysis/plasmidfinder_feature_cooccurrence_matrix.csv`** - Plasmid replicon co-occurrence counts across samples
 - **`plasmidfinder/analysis/plasmidfinder_top_feature_pairs.csv`** - Ranked plasmid replicon pairs with support and Jaccard index
-- **`plasmidfinder/figures/`** - PlasmidFinder static figures, interactive HTML files under `html_files/`, and `index.html` navigation
+- **`plasmidfinder/analysis/plasmidfinder_group_burden_summary.csv`** - PlasmidFinder feature burden summaries by location, continent, subcontinent, and year
+- **`plasmidfinder/analysis/plasmidfinder_group_overall_tests.csv`** - PlasmidFinder nonparametric group-level tests where sample sizes permit
+- **`plasmidfinder/analysis/plasmidfinder_group_pairwise_tests.csv`** - PlasmidFinder pairwise group comparisons where sample sizes permit
+- **`plasmidfinder/figures/`** - PlasmidFinder static figures, burden-by-group plots, interactive HTML files under `html_files/`, and `index.html` navigation
 
 VFDB and PlasmidFinder are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots.
 

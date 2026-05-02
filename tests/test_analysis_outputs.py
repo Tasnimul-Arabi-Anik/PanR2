@@ -144,6 +144,8 @@ class PanRAnalysisOutputTests(unittest.TestCase):
             plasmid_geo = pd.read_csv(plasmid["geographic_summary"])
             vf_pairs = pd.read_csv(vfdb["top_feature_pairs"])
             plasmid_pairs = pd.read_csv(plasmid["top_feature_pairs"])
+            vf_group = pd.read_csv(vfdb["group_burden_summary"])
+            plasmid_group = pd.read_csv(plasmid["group_burden_summary"])
 
             for outputs in [vfdb, plasmid]:
                 self.assertTrue(Path(outputs["feature_prevalence_plot"]).exists())
@@ -154,6 +156,10 @@ class PanRAnalysisOutputTests(unittest.TestCase):
                 self.assertTrue(Path(outputs["feature_prevalence_html"]).exists())
                 self.assertTrue(Path(outputs["presence_heatmap_html"]).exists())
                 self.assertTrue(Path(outputs["html_index"]).exists())
+                self.assertTrue(Path(outputs["group_burden_summary"]).exists())
+                self.assertTrue(Path(outputs["group_overall_tests"]).exists())
+                self.assertTrue(Path(outputs["mean_burden_by_continent_plot"]).exists())
+                self.assertTrue(Path(outputs["mean_burden_by_continent_html"]).exists())
 
         self.assertEqual(set(vf_summary["feature_id"]), {"espA", "stx2"})
         self.assertEqual(set(plasmid_summary["feature_id"]), {"IncFIB", "IncI1"})
@@ -163,6 +169,8 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertIn("geographic_level", plasmid_geo.columns)
         self.assertIn("jaccard_index", vf_pairs.columns)
         self.assertIn("jaccard_index", plasmid_pairs.columns)
+        self.assertIn("grouping_variable", vf_group.columns)
+        self.assertIn("grouping_variable", plasmid_group.columns)
 
 
 if __name__ == "__main__":

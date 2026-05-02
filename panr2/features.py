@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 import seaborn as sns
+from scipy.stats import kruskal, mannwhitneyu
 
 from panr2.io import extract_assembly_accessions, read_table_auto, unique_input_files
 
@@ -377,6 +378,116 @@ def _write_feature_temporal_summary(feature_type, mode, analysis_dir, figures_di
 
 
 
+
+def _write_feature_group_analysis(feature_type, mode, analysis_dir, figures_dir, fig_format, sample_burden, min_group_size=2):
+    count_col = f"{feature_type}_feature_count"
+    summary_path = os.path.join(analysis_dir, f"{feature_type}_group_burden_summary.csv")
+    overall_path = os.path.join(analysis_dir, f"{feature_type}_group_overall_tests.csv")
+    pairwise_path = os.path.join(analysis_dir, f"{feature_type}_group_pairwise_tests.csv")
+    plot_paths = {}
+    if count_col not in sample_burden.columns:
+        pd.DataFrame().to_csv(summary_path, index=False)
+        pd.DataFrame().to_csv(overall_path, index=False)
+        pd.DataFrame().to_csv(pairwise_path, index=False)
+        return summary_path, overall_path, pairwise_path, plot_paths
+
+    df = sample_burden.copy()
+    df[count_col] = pd.to_numeric(df[count_col], errors="coerce").fillna(0)
+    if "Collection Date" in df.columns:
+        df["Collection Year"] = pd.to_numeric(df["Collection Date"], errors="coerce").astype("Int64").astype(str).replace("<NA>", "Unknown")
+
+    group_cols = [col for col in ["Geographic Location", "Continent", "Subcontinent", "Collection Year"] if col in df.columns]
+    summary_rows = []
+    overall_rows = []
+    pairwise_rows = []
+    html_dir = os.path.join(figures_dir, "html_files")
+    os.makedirs(html_dir, exist_ok=True)
+    label = _feature_label(feature_type, mode)
+
+    for group_col in group_cols:
+        work = df[[group_col, count_col]].copy()
+        work[group_col] = work[group_col].fillna("Unknown").astype(str).replace({"": "Unknown", "nan": "Unknown", "None": "Unknown"})
+        for group_name, sub_df in work.groupby(group_col):
+            values = sub_df[count_col]
+            summary_rows.append({
+                "grouping_variable": group_col,
+                "group": group_name,
+                "sample_count": int(len(values)),
+                "samples_with_feature": int((values > 0).sum()),
+                "mean_feature_count": float(values.mean()) if len(values) else 0.0,
+                "median_feature_count": float(values.median()) if len(values) else 0.0,
+                "min_feature_count": float(values.min()) if len(values) else 0.0,
+                "max_feature_count": float(values.max()) if len(values) else 0.0,
+            })
+
+        valid_groups = [(name, sub[count_col].astype(float).tolist()) for name, sub in work.groupby(group_col) if len(sub) >= min_group_size]
+        if len(valid_groups) >= 2:
+            try:
+                statistic, p_value = kruskal(*[values for _, values in valid_groups])
+                overall_rows.append({
+                    "grouping_variable": group_col,
+                    "test": "Kruskal-Wallis",
+                    "groups_tested": len(valid_groups),
+                    "min_group_size": min_group_size,
+                    "statistic": statistic,
+                    "p_value": p_value,
+                    "significant_0_05": bool(p_value < 0.05),
+                })
+            except Exception as exc:
+                overall_rows.append({"grouping_variable": group_col, "test": "Kruskal-Wallis", "error": str(exc)})
+
+            for i, (first_name, first_values) in enumerate(valid_groups):
+                for second_name, second_values in valid_groups[i + 1:]:
+                    try:
+                        statistic, p_value = mannwhitneyu(first_values, second_values, alternative="two-sided")
+                        pairwise_rows.append({
+                            "grouping_variable": group_col,
+                            "group_1": first_name,
+                            "group_2": second_name,
+                            "sample_size_1": len(first_values),
+                            "sample_size_2": len(second_values),
+                            "test": "Mann-Whitney U",
+                            "statistic": statistic,
+                            "p_value": p_value,
+                            "significant_0_05": bool(p_value < 0.05),
+                        })
+                    except Exception as exc:
+                        pairwise_rows.append({"grouping_variable": group_col, "group_1": first_name, "group_2": second_name, "error": str(exc)})
+
+        plot_df = pd.DataFrame([row for row in summary_rows if row["grouping_variable"] == group_col])
+        if not plot_df.empty:
+            plot_df = plot_df.sort_values("mean_feature_count", ascending=True)
+            plt.figure(figsize=_safe_figsize(len(plot_df), width=10))
+            sns.barplot(data=plot_df, x="mean_feature_count", y="group", color="#4C78A8")
+            plt.xlabel("Mean feature count")
+            plt.ylabel(group_col)
+            plt.title(f"{label} mean feature burden by {group_col}")
+            plt.tight_layout()
+            safe_group = group_col.lower().replace(" ", "_")
+            path = os.path.join(figures_dir, f"{feature_type}_mean_burden_by_{safe_group}.{fig_format}")
+            plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
+            plt.close()
+            plot_paths[f"mean_burden_by_{safe_group}_plot"] = path
+
+            fig = px.bar(
+                plot_df.sort_values("mean_feature_count", ascending=False),
+                x="mean_feature_count",
+                y="group",
+                orientation="h",
+                hover_data=["sample_count", "samples_with_feature", "median_feature_count", "min_feature_count", "max_feature_count"],
+                labels={"mean_feature_count": "Mean feature count", "group": group_col},
+                title=f"{label} mean feature burden by {group_col}",
+            )
+            fig.update_layout(yaxis={"categoryorder": "total ascending"})
+            html_path = os.path.join(html_dir, f"{feature_type}_mean_burden_by_{safe_group}.html")
+            fig.write_html(html_path)
+            plot_paths[f"mean_burden_by_{safe_group}_html"] = html_path
+
+    pd.DataFrame(summary_rows).to_csv(summary_path, index=False)
+    pd.DataFrame(overall_rows).to_csv(overall_path, index=False)
+    pd.DataFrame(pairwise_rows).to_csv(pairwise_path, index=False)
+    return summary_path, overall_path, pairwise_path, plot_paths
+
 def _write_feature_html_index(feature_type, mode, figures_dir):
     html_dir = os.path.join(figures_dir, "html_files")
     if not os.path.isdir(html_dir):
@@ -501,6 +612,7 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     temporal_summary_path, temporal_html_path = _write_feature_temporal_summary(feature_type, mode, analysis_dir, figures_dir, sample_burden)
     plot_paths = _write_feature_plots(feature_type, mode, figures_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col)
     cooc_matrix_path, top_pairs_path, cooc_plot_paths = _write_feature_cooccurrence(feature_type, mode, analysis_dir, figures_dir, fig_format, tidy, total_samples, sample_col)
+    group_summary_path, group_overall_tests_path, group_pairwise_tests_path, group_plot_paths = _write_feature_group_analysis(feature_type, mode, analysis_dir, figures_dir, fig_format, sample_burden)
     html_index_path = _write_feature_html_index(feature_type, mode, figures_dir)
 
     logging.info(f"{feature_type} analysis outputs saved to {output_feature_dir}")
@@ -519,7 +631,11 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
         "temporal_burden_html": temporal_html_path,
         "feature_cooccurrence_matrix": cooc_matrix_path,
         "top_feature_pairs": top_pairs_path,
+        "group_burden_summary": group_summary_path,
+        "group_overall_tests": group_overall_tests_path,
+        "group_pairwise_tests": group_pairwise_tests_path,
         "html_index": html_index_path,
         **plot_paths,
+        **group_plot_paths,
         **cooc_plot_paths,
     }

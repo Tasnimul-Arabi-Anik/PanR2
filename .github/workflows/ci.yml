@@ -73,13 +73,20 @@ jobs:
           test -s test_output/vfdb/analysis/vfdb_temporal_summary.csv
           test -s test_output/vfdb/analysis/vfdb_feature_cooccurrence_matrix.csv
           test -s test_output/vfdb/analysis/vfdb_top_feature_pairs.csv
+          test -s test_output/vfdb/analysis/vfdb_group_burden_summary.csv
+          test -s test_output/vfdb/analysis/vfdb_group_overall_tests.csv
+          test -s test_output/vfdb/analysis/vfdb_group_pairwise_tests.csv
           test -s test_output/vfdb/figures/vfdb_feature_prevalence.png
           test -s test_output/vfdb/figures/vfdb_presence_heatmap.png
           test -s test_output/vfdb/figures/vfdb_identity_distribution.png
           test -s test_output/vfdb/figures/vfdb_feature_cooccurrence_heatmap.png
+          test -s test_output/vfdb/figures/vfdb_mean_burden_by_continent.png
+          test -s test_output/vfdb/figures/vfdb_mean_burden_by_collection_year.png
           test -s test_output/vfdb/figures/html_files/vfdb_feature_prevalence.html
           test -s test_output/vfdb/figures/html_files/vfdb_presence_heatmap.html
           test -s test_output/vfdb/figures/html_files/vfdb_feature_cooccurrence_heatmap.html
+          test -s test_output/vfdb/figures/html_files/vfdb_mean_burden_by_continent.html
+          test -s test_output/vfdb/figures/html_files/vfdb_mean_burden_by_collection_year.html
           test -s test_output/vfdb/figures/index.html
           test -s test_output/plasmidfinder/analysis/plasmidfinder_feature_summary.csv
           test -s test_output/plasmidfinder/analysis/plasmidfinder_category_summary.csv
@@ -87,11 +94,18 @@ jobs:
           test -s test_output/plasmidfinder/analysis/plasmidfinder_temporal_summary.csv
           test -s test_output/plasmidfinder/analysis/plasmidfinder_feature_cooccurrence_matrix.csv
           test -s test_output/plasmidfinder/analysis/plasmidfinder_top_feature_pairs.csv
+          test -s test_output/plasmidfinder/analysis/plasmidfinder_group_burden_summary.csv
+          test -s test_output/plasmidfinder/analysis/plasmidfinder_group_overall_tests.csv
+          test -s test_output/plasmidfinder/analysis/plasmidfinder_group_pairwise_tests.csv
           test -s test_output/plasmidfinder/figures/plasmidfinder_feature_prevalence.png
           test -s test_output/plasmidfinder/figures/plasmidfinder_presence_heatmap.png
           test -s test_output/plasmidfinder/figures/plasmidfinder_identity_distribution.png
           test -s test_output/plasmidfinder/figures/plasmidfinder_feature_cooccurrence_heatmap.png
+          test -s test_output/plasmidfinder/figures/plasmidfinder_mean_burden_by_continent.png
+          test -s test_output/plasmidfinder/figures/plasmidfinder_mean_burden_by_collection_year.png
           test -s test_output/plasmidfinder/figures/html_files/plasmidfinder_feature_prevalence.html
           test -s test_output/plasmidfinder/figures/html_files/plasmidfinder_presence_heatmap.html
           test -s test_output/plasmidfinder/figures/html_files/plasmidfinder_feature_cooccurrence_heatmap.html
+          test -s test_output/plasmidfinder/figures/html_files/plasmidfinder_mean_burden_by_continent.html
+          test -s test_output/plasmidfinder/figures/html_files/plasmidfinder_mean_burden_by_collection_year.html
           test -s test_output/plasmidfinder/figures/index.html

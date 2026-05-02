@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- VFDB/PlasmidFinder group-burden summaries, burden-by-metadata plots, and nonparametric group-comparison outputs.
 - VFDB/PlasmidFinder feature co-occurrence, identity distribution plots, and temporal feature-burden summaries.
 - Optional VFDB and PlasmidFinder ABRicate-style feature analysis with separate virulence/plasmid summaries and report sections.
 - Deterministic Markdown/HTML report generation with methods and reproducibility summaries.
