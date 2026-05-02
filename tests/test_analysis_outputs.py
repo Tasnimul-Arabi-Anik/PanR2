@@ -136,16 +136,24 @@ class PanRAnalysisOutputTests(unittest.TestCase):
             plasmid_summary = pd.read_csv(plasmid["feature_summary"])
             vf_geo = pd.read_csv(vfdb["geographic_summary"])
             plasmid_geo = pd.read_csv(plasmid["geographic_summary"])
+            vf_pairs = pd.read_csv(vfdb["top_feature_pairs"])
+            plasmid_pairs = pd.read_csv(plasmid["top_feature_pairs"])
 
             for outputs in [vfdb, plasmid]:
                 self.assertTrue(Path(outputs["feature_prevalence_plot"]).exists())
                 self.assertTrue(Path(outputs["category_prevalence_plot"]).exists())
                 self.assertTrue(Path(outputs["presence_heatmap"]).exists())
+                self.assertTrue(Path(outputs["identity_distribution_plot"]).exists())
+                self.assertTrue(Path(outputs["feature_cooccurrence_heatmap"]).exists())
 
         self.assertEqual(set(vf_summary["feature_id"]), {"espA", "stx2"})
         self.assertEqual(set(plasmid_summary["feature_id"]), {"IncFIB", "IncI1"})
+        self.assertIn("min_identity", vf_summary.columns)
+        self.assertIn("min_identity", plasmid_summary.columns)
         self.assertIn("geographic_level", vf_geo.columns)
         self.assertIn("geographic_level", plasmid_geo.columns)
+        self.assertIn("jaccard_index", vf_pairs.columns)
+        self.assertIn("jaccard_index", plasmid_pairs.columns)
 
 
 if __name__ == "__main__":

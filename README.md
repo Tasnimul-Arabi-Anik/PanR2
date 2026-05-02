@@ -173,13 +173,19 @@ output/
 - **`virulence/virulence_feature_summary.csv`** - VFDB feature prevalence and identity summaries
 - **`virulence/virulence_category_summary.csv`** - Virulence product/category summaries
 - **`virulence/virulence_geographic_summary.csv`** - Descriptive VFDB feature burden by metadata group
-- **`virulence/plots/`** - VFDB feature prevalence, category prevalence, burden, and presence heatmap figures
+- **`virulence/virulence_temporal_summary.csv`** - Descriptive VFDB feature burden by collection year
+- **`virulence/virulence_feature_cooccurrence_matrix.csv`** - VFDB feature co-occurrence counts across samples
+- **`virulence/virulence_top_feature_pairs.csv`** - Ranked VFDB feature pairs with support and Jaccard index
+- **`virulence/plots/`** - VFDB feature prevalence, category prevalence, burden, identity, co-occurrence, and presence heatmap figures
 - **`plasmid/plasmid_feature_summary.csv`** - PlasmidFinder replicon prevalence and identity summaries
 - **`plasmid/plasmid_category_summary.csv`** - Plasmid replicon/category summaries
 - **`plasmid/plasmid_geographic_summary.csv`** - Descriptive plasmid replicon burden by metadata group
-- **`plasmid/plots/`** - Plasmid replicon prevalence, category prevalence, burden, and presence heatmap figures
+- **`plasmid/plasmid_temporal_summary.csv`** - Descriptive plasmid replicon burden by collection year
+- **`plasmid/plasmid_feature_cooccurrence_matrix.csv`** - Plasmid replicon co-occurrence counts across samples
+- **`plasmid/plasmid_top_feature_pairs.csv`** - Ranked plasmid replicon pairs with support and Jaccard index
+- **`plasmid/plots/`** - Plasmid replicon prevalence, category prevalence, burden, identity, co-occurrence, and presence heatmap figures
 
-VFDB and PlasmidFinder are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography summaries, and feature presence heatmaps instead of resistance-class composition plots.
+VFDB and PlasmidFinder are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions, feature co-occurrence, and feature presence heatmaps instead of resistance-class composition plots.
 
 #### 4. Written Report (`report/` directory)
 - **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables

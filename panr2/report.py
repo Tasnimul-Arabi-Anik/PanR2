@@ -234,6 +234,8 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
             category_summary = _read_csv(os.path.join(feature_dir, f"{feature_type}_category_summary.csv"))
             sample_burden = _read_csv(os.path.join(feature_dir, f"{feature_type}_sample_burden.csv"))
             geographic_summary = _read_csv(os.path.join(feature_dir, f"{feature_type}_geographic_summary.csv"))
+            temporal_summary = _read_csv(os.path.join(feature_dir, f"{feature_type}_temporal_summary.csv"))
+            top_pairs = _read_csv(os.path.join(feature_dir, f"{feature_type}_top_feature_pairs.csv"))
             feature_count = len(feature_summary) if not feature_summary.empty else 0
             carrying_samples = 0
             count_col = f"{feature_type}_feature_count"
@@ -246,7 +248,7 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
                 f"The {feature_type} module detected {feature_count} feature(s), with {carrying_samples} sample(s) carrying at least one {feature_type} feature."
             )
             lines.append("")
-            lines.append(_markdown_table(feature_summary, ["feature_id", "feature_category", "present_samples", "prevalence_percentage", "mean_identity", "max_identity"], max_rows=20))
+            lines.append(_markdown_table(feature_summary, ["feature_id", "feature_category", "present_samples", "prevalence_percentage", "mean_identity", "min_identity", "max_identity"], max_rows=20))
             lines.append(f"### {label} Categories")
             lines.append(_markdown_table(category_summary, ["feature_category", "present_samples", "prevalence_percentage", "unique_features"], max_rows=20))
             lines.append(f"### {label} Geographic Summary")
@@ -256,6 +258,15 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
             )
             lines.append("")
             lines.append(_markdown_table(geographic_summary, ["geographic_level", "region", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "max_feature_count", "top_features"], max_rows=20))
+            lines.append(f"### {label} Temporal Summary")
+            lines.append(_markdown_table(temporal_summary, ["collection_year", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "max_feature_count"], max_rows=20))
+            lines.append(f"### {label} Feature Co-occurrence")
+            if top_pairs.empty:
+                lines.append("No positive feature co-occurrence pairs were detected after identity filtering.")
+            else:
+                lines.append("Feature co-occurrence was calculated from shared sample presence and is reported descriptively; it does not imply physical linkage or causal association.")
+            lines.append("")
+            lines.append(_markdown_table(top_pairs, ["feature_1", "feature_2", "cooccurring_samples", "cooccurrence_percentage", "feature_1_samples", "feature_2_samples", "jaccard_index"], max_rows=20))
 
     lines.append("## Geographic and Temporal Patterns")
     lines.append("")
@@ -312,10 +323,15 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
                 "category_summary",
                 "sample_burden",
                 "geographic_summary",
+                "temporal_summary",
+                "feature_cooccurrence_matrix",
+                "top_feature_pairs",
                 "feature_prevalence_plot",
                 "category_prevalence_plot",
                 "burden_by_continent_plot",
                 "presence_heatmap",
+                "identity_distribution_plot",
+                "feature_cooccurrence_heatmap",
             ]:
                 output_path = feature_outputs.get(feature_type, {}).get(key)
                 if output_path and os.path.exists(output_path):
@@ -328,7 +344,7 @@ def write_report(output_dir, base_name, options=None, panr2_version="unknown", i
         "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
-        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic feature-burden summaries, and feature presence heatmaps."
+        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, and descriptive feature co-occurrence tables."
     )
     lines.append("")
 

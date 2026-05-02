@@ -62,10 +62,20 @@ jobs:
           test -s test_output/virulence/virulence_feature_summary.csv
           test -s test_output/virulence/virulence_category_summary.csv
           test -s test_output/virulence/virulence_geographic_summary.csv
+          test -s test_output/virulence/virulence_temporal_summary.csv
+          test -s test_output/virulence/virulence_feature_cooccurrence_matrix.csv
+          test -s test_output/virulence/virulence_top_feature_pairs.csv
           test -s test_output/virulence/plots/virulence_feature_prevalence.png
           test -s test_output/virulence/plots/virulence_presence_heatmap.png
+          test -s test_output/virulence/plots/virulence_identity_distribution.png
+          test -s test_output/virulence/plots/virulence_feature_cooccurrence_heatmap.png
           test -s test_output/plasmid/plasmid_feature_summary.csv
           test -s test_output/plasmid/plasmid_category_summary.csv
           test -s test_output/plasmid/plasmid_geographic_summary.csv
+          test -s test_output/plasmid/plasmid_temporal_summary.csv
+          test -s test_output/plasmid/plasmid_feature_cooccurrence_matrix.csv
+          test -s test_output/plasmid/plasmid_top_feature_pairs.csv
           test -s test_output/plasmid/plots/plasmid_feature_prevalence.png
           test -s test_output/plasmid/plots/plasmid_presence_heatmap.png
+          test -s test_output/plasmid/plots/plasmid_identity_distribution.png
+          test -s test_output/plasmid/plots/plasmid_feature_cooccurrence_heatmap.png

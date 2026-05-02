@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- VFDB/PlasmidFinder feature co-occurrence, identity distribution plots, and temporal feature-burden summaries.
 - Optional VFDB and PlasmidFinder ABRicate-style feature analysis with separate virulence/plasmid summaries and report sections.
 - Deterministic Markdown/HTML report generation with methods and reproducibility summaries.
 - Unit tests for filtering, comprehensive summaries, and co-occurrence outputs.

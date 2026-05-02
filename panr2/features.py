@@ -146,6 +146,25 @@ def _write_feature_plots(feature_type, output_feature_dir, fig_format, tidy, fea
             plt.close()
             plot_paths["presence_heatmap"] = path
 
+    identity_df = tidy[tidy["presence"] == 1].copy()
+    if not identity_df.empty:
+        top_features = feature_summary.head(25)["feature_id"].tolist() if not feature_summary.empty else sorted(identity_df["feature_id"].unique())[:25]
+        identity_df = identity_df[identity_df["feature_id"].isin(top_features)]
+        if not identity_df.empty:
+            plt.figure(figsize=_safe_figsize(identity_df["feature_id"].nunique(), width=11))
+            order = identity_df.groupby("feature_id")["identity"].median().sort_values(ascending=True).index
+            sns.boxplot(data=identity_df, x="identity", y="feature_id", order=order, color="#E5E7EB")
+            sns.stripplot(data=identity_df, x="identity", y="feature_id", order=order, color="#2F4B7C", size=3, jitter=True)
+            plt.xlabel("ABRicate identity (%)")
+            plt.ylabel(f"{label} feature")
+            plt.title(f"{label} feature identity distribution")
+            plt.xlim(0, 100)
+            plt.tight_layout()
+            path = os.path.join(plot_dir, f"{feature_type}_identity_distribution.{fig_format}")
+            plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
+            plt.close()
+            plot_paths["identity_distribution_plot"] = path
+
     return plot_paths
 
 
@@ -180,6 +199,102 @@ def _write_feature_geographic_summary(feature_type, output_feature_dir, tidy, sa
     summary.to_csv(path, index=False)
     return path
 
+
+
+def _write_feature_cooccurrence(feature_type, output_feature_dir, fig_format, tidy, total_samples, sample_col, top_n=25):
+    present = tidy[tidy["presence"] == 1].copy()
+    matrix_path = os.path.join(output_feature_dir, f"{feature_type}_feature_cooccurrence_matrix.csv")
+    pairs_path = os.path.join(output_feature_dir, f"{feature_type}_top_feature_pairs.csv")
+    plot_paths = {}
+    if present.empty:
+        pd.DataFrame().to_csv(matrix_path)
+        pd.DataFrame(columns=[
+            "feature_1", "feature_2", "cooccurring_samples", "cooccurrence_percentage",
+            "feature_1_samples", "feature_2_samples", "jaccard_index"
+        ]).to_csv(pairs_path, index=False)
+        return matrix_path, pairs_path, plot_paths
+
+    presence = (
+        present[[sample_col, "feature_id"]]
+        .dropna()
+        .drop_duplicates()
+        .assign(value=1)
+        .pivot_table(index=sample_col, columns="feature_id", values="value", fill_value=0, aggfunc="max")
+    )
+    if presence.empty:
+        pd.DataFrame().to_csv(matrix_path)
+        pd.DataFrame().to_csv(pairs_path, index=False)
+        return matrix_path, pairs_path, plot_paths
+
+    cooc_matrix = presence.T.dot(presence).astype(int)
+    cooc_matrix.to_csv(matrix_path)
+
+    sample_counts = presence.sum(axis=0).astype(int).to_dict()
+    pair_rows = []
+    features = list(cooc_matrix.columns)
+    for i, first in enumerate(features):
+        for second in features[i + 1:]:
+            co_count = int(cooc_matrix.loc[first, second])
+            union_count = int(((presence[first] + presence[second]) > 0).sum())
+            pair_rows.append({
+                "feature_1": first,
+                "feature_2": second,
+                "cooccurring_samples": co_count,
+                "cooccurrence_percentage": (co_count / max(total_samples, 1)) * 100,
+                "feature_1_samples": sample_counts[first],
+                "feature_2_samples": sample_counts[second],
+                "jaccard_index": co_count / union_count if union_count else 0,
+            })
+    pair_df = pd.DataFrame(pair_rows)
+    if not pair_df.empty:
+        pair_df = pair_df[pair_df["cooccurring_samples"] > 0]
+        pair_df = pair_df.sort_values(["cooccurring_samples", "jaccard_index", "feature_1", "feature_2"], ascending=[False, False, True, True]).head(top_n)
+    pair_df.to_csv(pairs_path, index=False)
+
+    if cooc_matrix.shape[0] >= 2:
+        top_features = presence.sum(axis=0).sort_values(ascending=False).head(top_n).index.tolist()
+        plot_matrix = cooc_matrix.loc[top_features, top_features]
+        size = max(5, min(14, 0.45 * len(top_features) + 3))
+        label = "Virulence" if feature_type == "virulence" else "Plasmid"
+        plt.figure(figsize=(size, size))
+        sns.heatmap(plot_matrix, cmap="Blues", square=True, linewidths=0.3, linecolor="white", cbar_kws={"label": "Co-occurring samples"})
+        plt.title(f"{label} feature co-occurrence")
+        plt.xlabel(f"{label} feature")
+        plt.ylabel(f"{label} feature")
+        plt.xticks(rotation=45, ha="right")
+        plt.yticks(rotation=0)
+        plt.tight_layout()
+        path = os.path.join(output_feature_dir, "plots", f"{feature_type}_feature_cooccurrence_heatmap.{fig_format}")
+        plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
+        plt.close()
+        plot_paths["feature_cooccurrence_heatmap"] = path
+
+    return matrix_path, pairs_path, plot_paths
+
+
+def _write_feature_temporal_summary(feature_type, output_feature_dir, sample_burden):
+    count_col = f"{feature_type}_feature_count"
+    path = os.path.join(output_feature_dir, f"{feature_type}_temporal_summary.csv")
+    if "Collection Date" not in sample_burden.columns or count_col not in sample_burden.columns:
+        pd.DataFrame(columns=["collection_year", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "max_feature_count"]).to_csv(path, index=False)
+        return path
+    df = sample_burden.copy()
+    df["collection_year"] = pd.to_numeric(df["Collection Date"], errors="coerce")
+    df[count_col] = pd.to_numeric(df[count_col], errors="coerce").fillna(0)
+    df = df.dropna(subset=["collection_year"])
+    if df.empty:
+        pd.DataFrame(columns=["collection_year", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "max_feature_count"]).to_csv(path, index=False)
+        return path
+    df["collection_year"] = df["collection_year"].astype(int)
+    summary = df.groupby("collection_year", as_index=False).agg(
+        sample_count=(count_col, "size"),
+        samples_with_feature=(count_col, lambda values: int((values > 0).sum())),
+        mean_feature_count=(count_col, "mean"),
+        median_feature_count=(count_col, "median"),
+        max_feature_count=(count_col, "max"),
+    )
+    summary.to_csv(path, index=False)
+    return path
 
 def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, feature_type, mode, min_identity=0.0, fig_format="png"):
     """Analyze an optional ABRicate-style database such as VFDB or PlasmidFinder."""
@@ -228,12 +343,13 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     present = tidy[tidy["presence"] == 1].copy()
 
     if present.empty:
-        feature_summary = pd.DataFrame(columns=["feature_id", "feature_category", "present_samples", "prevalence_percentage", "mean_identity", "max_identity"])
+        feature_summary = pd.DataFrame(columns=["feature_id", "feature_category", "present_samples", "prevalence_percentage", "mean_identity", "min_identity", "max_identity"])
         category_summary = pd.DataFrame(columns=["feature_category", "present_samples", "prevalence_percentage", "unique_features"])
     else:
         feature_summary = present.groupby(["feature_id", "feature_category"], as_index=False).agg(
             present_samples=(sample_col, "nunique"),
             mean_identity=("identity", "mean"),
+            min_identity=("identity", "min"),
             max_identity=("identity", "max"),
         )
         feature_summary["prevalence_percentage"] = (feature_summary["present_samples"] / total_samples) * 100
@@ -258,7 +374,9 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     sample_burden.to_csv(sample_burden_path, index=False)
 
     geographic_summary_path = _write_feature_geographic_summary(feature_type, output_feature_dir, tidy, sample_burden)
+    temporal_summary_path = _write_feature_temporal_summary(feature_type, output_feature_dir, sample_burden)
     plot_paths = _write_feature_plots(feature_type, output_feature_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col)
+    cooc_matrix_path, top_pairs_path, cooc_plot_paths = _write_feature_cooccurrence(feature_type, output_feature_dir, fig_format, tidy, total_samples, sample_col)
 
     logging.info(f"{feature_type} analysis outputs saved to {output_feature_dir}")
     return {
@@ -271,5 +389,9 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
         "category_summary": category_summary_path,
         "sample_burden": sample_burden_path,
         "geographic_summary": geographic_summary_path,
+        "temporal_summary": temporal_summary_path,
+        "feature_cooccurrence_matrix": cooc_matrix_path,
+        "top_feature_pairs": top_pairs_path,
         **plot_paths,
+        **cooc_plot_paths,
     }
