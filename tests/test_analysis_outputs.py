@@ -353,6 +353,74 @@ sys.exit(2)
             self.assertTrue((output_dir / "mobileelementfinder" / "figures" / "index.html").exists())
             self.assertIn("MobileElementFinder", report_text)
 
+    def test_integrated_integronfinder_runner_feeds_feature_analysis(self):
+        script = """#!/usr/bin/env python3
+import os
+import sys
+
+args = sys.argv[1:]
+if args == ["--version"]:
+    print("IntegronFinder 2.0-test")
+    sys.exit(0)
+if args:
+    sequence = args[0]
+    outdir = args[args.index("--outdir") + 1]
+    os.makedirs(outdir, exist_ok=True)
+    prefix = os.path.basename(sequence).replace(".fna", "")
+    path = os.path.join(outdir, prefix + ".integrons")
+    with open(path, "w") as handle:
+        handle.write("ID_replicon\\tpos_beg\\tpos_end\\ttype\\tid\\tmodel\\n")
+        if "GCF_000001.1" in sequence:
+            handle.write("contig1\\t100\\t1100\\tcomplete_integron\\tintI1\\tclass 1 integron\\n")
+        elif "GCA_000002.1" in sequence:
+            handle.write("contig2\\t200\\t300\\tattC\\tattC1\\tattC recombination site\\n")
+        elif "GCA_000004.1" in sequence:
+            handle.write("contig3\\t300\\t1300\\tcomplete_integron\\tintI1\\tclass 1 integron\\n")
+            handle.write("contig3\\t1400\\t1500\\tattC\\tattC1\\tattC recombination site\\n")
+    sys.exit(0)
+print("unexpected arguments", file=sys.stderr)
+sys.exit(2)
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_integronfinder = tmp_path / "integron_finder"
+            fake_integronfinder.write_text(script)
+            fake_integronfinder.chmod(0o755)
+            sequence_dir = tmp_path / "sequence"
+            sequence_dir.mkdir()
+            for accession in ["GCF_000001.1", "GCA_000002.1", "GCF_000003.1", "GCA_000004.1"]:
+                (sequence_dir / f"{accession}_genomic.fna").write_text(">contig1\nATGC\n")
+
+            output_dir = tmp_path / "panr2_output"
+            self.panr.main(
+                str(REPO_ROOT / "tests" / "fixtures" / "ncbi"),
+                str(REPO_ROOT / "tests" / "fixtures" / "abricate"),
+                str(output_dir),
+                "png",
+                1,
+                0,
+                min_identity=90,
+                min_samples_per_group=2,
+                core_threshold=75,
+                rare_threshold=25,
+                top_n=10,
+                cooccurrence_min_prevalence=0,
+                cooccurrence_top_n=10,
+                sequence_dir=str(sequence_dir),
+                run_integronfinder_tool=True,
+                integronfinder_bin=str(fake_integronfinder),
+            )
+
+            manifest = pd.read_csv(output_dir / "qc" / "panr2_tool_manifest.csv")
+            feature_summary = pd.read_csv(output_dir / "integronfinder" / "analysis" / "integronfinder_feature_summary.csv")
+            report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
+            self.assertEqual(manifest.iloc[0]["tool"], "integronfinder")
+            self.assertEqual(manifest.iloc[0]["database"], "integronfinder")
+            self.assertEqual(set(feature_summary["feature_id"]), {"attC1", "complete_integron_intI1"})
+            self.assertTrue((output_dir / "tool_results" / "integronfinder" / "panr2_inputs" / "integronfinder_results.tab").exists())
+            self.assertTrue((output_dir / "integronfinder" / "figures" / "index.html").exists())
+            self.assertIn("IntegronFinder", report_text)
+
 
 if __name__ == "__main__":
     unittest.main()

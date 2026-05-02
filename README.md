@@ -103,6 +103,12 @@ MobileElementFinder can also be run internally when installed:
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-mobileelementfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
+IntegronFinder can also be run internally when installed:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-integronfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
 ### Required Arguments
 | Argument | Description |
 |----------|-------------|
@@ -125,6 +131,9 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-
 | `--run-mobileelementfinder` | flag | off | Run MobileElementFinder internally before PanR2 feature analysis |
 | `--mobileelementfinder-bin` | path | `mefinder` | MobileElementFinder executable name or path |
 | `--mobileelementfinder-threads` | int | `1` | Threads passed to MobileElementFinder |
+| `--run-integronfinder` | flag | off | Run IntegronFinder internally before PanR2 feature analysis |
+| `--integronfinder-bin` | path | `integron_finder` | IntegronFinder executable name or path |
+| `--integronfinder-threads` | int | `1` | CPU threads passed to IntegronFinder |
 | `--force-tool-run` | flag | off | Re-run integrated tools even when raw result files already exist |
 | `--min-identity` | float | `0.0` | Minimum ABRicate identity percentage to treat a gene call as present |
 | `--drop-unmatched-accessions` | flag | off | Drop NCBI rows with no matching ABRicate summary row |
@@ -159,6 +168,9 @@ panr --ncbi-dir ./data/metadata_output --sequence-dir ./data/sequence --run-abri
 
 # Run MobileElementFinder inside PanR2 and include MGE feature analysis
 panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --sequence-dir ./data/sequence --run-mobileelementfinder --output-dir ./output_mge --min-identity 90
+
+# Run IntegronFinder inside PanR2 and include integron feature analysis
+panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --sequence-dir ./data/sequence --run-integronfinder --output-dir ./output_integrons --min-identity 90
 ```
 
 ---
@@ -177,6 +189,9 @@ output/
 │       ├── vfdb/
 │       └── plasmidfinder/
 │   └── mobileelementfinder/
+│       ├── raw/
+│       └── panr2_inputs/
+│   └── integronfinder/
 │       ├── raw/
 │       └── panr2_inputs/
 ├── ncbi/                              # AMR/resistome tables, merged data, and figures

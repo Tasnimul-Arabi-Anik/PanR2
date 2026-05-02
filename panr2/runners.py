@@ -284,6 +284,165 @@ def run_mobileelementfinder(
     return {"feature_dir": converted["feature_dir"], "manifest": manifest_paths, "raw_csv": raw_csv_paths}
 
 
+def _read_integronfinder_table(path):
+    with open(path, newline="") as handle:
+        lines = [line for line in handle if not line.startswith("#") and line.strip()]
+    if not lines:
+        return []
+    sample = lines[0]
+    delimiter = "\t" if "\t" in sample else ","
+    return list(csv.DictReader(lines, delimiter=delimiter))
+
+
+def _find_integronfinder_table(raw_dir, prefix):
+    candidates = []
+    for root, _, files in os.walk(raw_dir):
+        for name in files:
+            lower = name.lower()
+            if prefix in name and (lower.endswith(".integrons") or lower.endswith(".summary") or lower.endswith(".tsv") or lower.endswith(".tab") or lower.endswith(".csv")):
+                candidates.append(os.path.join(root, name))
+    return sorted(candidates)[0] if candidates else None
+
+
+def _integron_feature_id(row):
+    feature_type = _first_value(row, ["type", "element", "annotation", "model", "name"], "integron")
+    raw_id = _first_value(row, ["id", "ID", "integron_id", "attc_id", "protein_id", "gene"], "")
+    feature_type = _clean_feature_id(feature_type)
+    if raw_id:
+        raw_id = _clean_feature_id(raw_id)
+        if raw_id.lower().startswith(feature_type.lower()):
+            return raw_id
+        return f"{feature_type}_{raw_id}"
+    return feature_type
+
+
+def convert_integronfinder_outputs(sequence_files, raw_table_paths, output_dir):
+    """Convert IntegronFinder tabular outputs into ABRicate-style files."""
+    feature_dir = os.path.join(output_dir, "tool_results", "integronfinder", "panr2_inputs")
+    os.makedirs(feature_dir, exist_ok=True)
+    results_path = os.path.join(feature_dir, "integronfinder_results.tab")
+    summary_path = os.path.join(feature_dir, "integronfinder_summary.tab")
+
+    results_rows = []
+    feature_ids = []
+    by_sample = {}
+    file_lookup = {_sample_prefix(path): path for path in sequence_files}
+
+    for table_path in raw_table_paths:
+        prefix = os.path.basename(table_path)
+        source_file = None
+        for sample_prefix, path in file_lookup.items():
+            if sample_prefix in prefix or sample_prefix in table_path:
+                source_file = path
+                break
+        source_file = source_file or prefix
+        sample_key = _sample_prefix(source_file)
+        by_sample.setdefault(sample_key, {"file": source_file, "features": {}})
+
+        for row in _read_integronfinder_table(table_path):
+            feature_id = _integron_feature_id(row)
+            contig = _first_value(row, ["contig", "replicon", "sequence", "ID_replicon"], "contig")
+            start = _first_value(row, ["start", "pos_beg", "begin", "left"], "0")
+            end = _first_value(row, ["end", "pos_end", "stop", "right"], "0")
+            product = _first_value(row, ["type", "element", "annotation", "model"], feature_id)
+            accession = _first_value(row, ["id", "integron_id", "protein_id", "gene"], feature_id)
+            identity = _float_or_default(_first_value(row, ["identity", "score", "%identity"], 100.0), 100.0)
+            coverage = _float_or_default(_first_value(row, ["coverage", "%coverage"], 100.0), 100.0)
+            feature_ids.append(feature_id)
+            by_sample[sample_key]["features"][feature_id] = max(identity, by_sample[sample_key]["features"].get(feature_id, 0.0))
+            results_rows.append({
+                "#FILE": source_file,
+                "SEQUENCE": contig,
+                "START": start,
+                "END": end,
+                "GENE": feature_id,
+                "COVERAGE": f"{coverage:.2f}",
+                "%COVERAGE": f"{coverage:.2f}",
+                "%IDENTITY": f"{identity:.2f}",
+                "DATABASE": "integronfinder",
+                "ACCESSION": accession,
+                "PRODUCT": product,
+            })
+
+    feature_ids = sorted(set(feature_ids), key=str.lower)
+    with open(results_path, "w", newline="") as handle:
+        fieldnames = ["#FILE", "SEQUENCE", "START", "END", "GENE", "COVERAGE", "%COVERAGE", "%IDENTITY", "DATABASE", "ACCESSION", "PRODUCT"]
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(results_rows)
+
+    with open(summary_path, "w", newline="") as handle:
+        fieldnames = ["#FILE", "NUM_FOUND"] + feature_ids
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        for sample_key in sorted(file_lookup):
+            features = by_sample.get(sample_key, {"file": file_lookup[sample_key], "features": {}})
+            row = {"#FILE": features["file"], "NUM_FOUND": sum(1 for value in features["features"].values() if value > 0)}
+            for feature_id in feature_ids:
+                row[feature_id] = features["features"].get(feature_id, 0)
+            writer.writerow(row)
+
+    return {"results": results_path, "summary": summary_path, "feature_dir": feature_dir}
+
+
+def run_integronfinder(
+    sequence_dir,
+    output_dir,
+    integronfinder_bin="integron_finder",
+    cpu=1,
+    force=False,
+):
+    """Run IntegronFinder per assembly and create PanR2-compatible inputs."""
+    executable = shutil.which(integronfinder_bin)
+    if not executable:
+        raise FileNotFoundError(f"IntegronFinder executable not found: {integronfinder_bin}")
+
+    sequence_files = find_sequence_files(sequence_dir)
+    if not sequence_files:
+        raise FileNotFoundError(f"No FASTA files found in {sequence_dir}")
+
+    raw_dir = os.path.join(output_dir, "tool_results", "integronfinder", "raw")
+    os.makedirs(raw_dir, exist_ok=True)
+    version = _capture_command([executable, "--version"]).splitlines()[0]
+    raw_table_paths = []
+
+    for sequence_file in sequence_files:
+        prefix = _sample_prefix(sequence_file)
+        sample_out_dir = os.path.join(raw_dir, prefix)
+        os.makedirs(sample_out_dir, exist_ok=True)
+        expected_table = _find_integronfinder_table(raw_dir, prefix)
+        if force or not expected_table:
+            _run_command([executable, sequence_file, "--outdir", sample_out_dir, "--cpu", str(cpu)])
+            expected_table = _find_integronfinder_table(raw_dir, prefix)
+        if expected_table:
+            raw_table_paths.append(expected_table)
+        else:
+            logging.warning("IntegronFinder did not create a tabular output for %s", sequence_file)
+
+    converted = convert_integronfinder_outputs(sequence_files, raw_table_paths, output_dir)
+    manifest = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "sequence_dir": sequence_dir,
+        "sequence_count": len(sequence_files),
+        "tools": [{
+            "name": "integronfinder",
+            "executable": executable,
+            "version": version,
+            "runs": [{
+                "database": "integronfinder",
+                "database_sequences": "",
+                "database_date": "",
+                "results": converted["results"],
+                "summary": converted["summary"],
+                "status": "completed",
+            }],
+        }],
+    }
+    manifest_paths = write_tool_manifest(output_dir, manifest)
+    logging.info("IntegronFinder tool manifest saved to %s", manifest_paths["json"])
+    return {"feature_dir": converted["feature_dir"], "manifest": manifest_paths, "raw_tables": raw_table_paths}
+
+
 def run_abricate_databases(
     sequence_dir,
     output_dir,
