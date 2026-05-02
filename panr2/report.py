@@ -74,6 +74,20 @@ def _top_names(df, name_col, value_col, n=5):
     return [f"{row[name_col]} ({_fmt_pct(row[value_col])})" for _, row in ranked.iterrows()]
 
 
+def _feature_label(feature_type):
+    labels = {
+        "vfdb": "VFDB",
+        "virulence": "VFDB",
+        "plasmidfinder": "PlasmidFinder",
+        "plasmid": "PlasmidFinder",
+        "mobileelementfinder": "MobileElementFinder",
+        "isfinder": "ISfinder",
+        "integronfinder": "IntegronFinder",
+        "iceberg": "ICEberg",
+    }
+    return labels.get(feature_type.lower(), feature_type.replace("_", " ").title())
+
+
 def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None):
     """Write a deterministic journal-style PanR2 report."""
     options = options or {}
@@ -220,14 +234,15 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
     lines.append(_markdown_table(class_pairs, ["class_1", "class_2", "cooccurring_samples", "cooccurrence_percentage", "class_1_samples", "class_2_samples", "jaccard_index"], max_rows=20))
 
     if feature_outputs:
-        lines.append("## Virulence and Plasmid Feature Analysis")
+        lines.append("## Optional Database Feature Analysis")
         lines.append("")
         lines.append(
-            "Optional non-AMR feature analyses were kept separate from resistance-class analysis because virulence factors and plasmid replicons do not share the same biological class structure as antimicrobial resistance genes. "
+            "Optional non-AMR feature analyses were kept separate from resistance-class analysis because virulence factors, plasmid replicons, and mobile genetic element features do not share the same biological class structure as antimicrobial resistance genes. "
             "Prevalence values below describe feature presence after the same identity filtering threshold used for this run."
         )
         lines.append("")
-        for feature_type in ["vfdb", "plasmidfinder", "virulence", "plasmid"]:
+        feature_order = ["vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "virulence", "plasmid"]
+        for feature_type in feature_order:
             if feature_type not in feature_outputs:
                 continue
             outputs = feature_outputs.get(feature_type, {})
@@ -244,7 +259,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             count_col = f"{feature_type}_feature_count"
             if count_col in sample_burden.columns:
                 carrying_samples = int((pd.to_numeric(sample_burden[count_col], errors="coerce").fillna(0) > 0).sum())
-            label = "VFDB" if feature_type in ["vfdb", "virulence"] else "PlasmidFinder"
+            label = _feature_label(feature_type)
             lines.append(f"### {label} Features")
             lines.append("")
             lines.append(
@@ -375,7 +390,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
-        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit."
+        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit."
     )
     lines.append("")
 

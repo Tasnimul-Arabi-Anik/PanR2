@@ -10,6 +10,16 @@ from scipy.stats import kruskal, mannwhitneyu
 from panr2.io import extract_assembly_accessions, read_table_auto, unique_input_files
 
 
+FEATURE_LABELS = {
+    "vfdb": "VFDB",
+    "plasmidfinder": "PlasmidFinder",
+    "mobileelementfinder": "MobileElementFinder",
+    "isfinder": "ISfinder",
+    "integronfinder": "IntegronFinder",
+    "iceberg": "ICEberg",
+}
+
+
 def _find_first(files, token):
     matches = [path for path in files if token in os.path.basename(path).lower()]
     return sorted(matches)[0] if matches else None
@@ -55,15 +65,14 @@ def _feature_category(results_df, feature_id, mode):
     sub_df = results_df[results_df["GENE"].astype(str) == str(feature_id)]
     if sub_df.empty:
         return "Unknown"
-    if mode == "virulence":
-        for col in ["PRODUCT", "SEQUENCE", "DATABASE", "ACCESSION"]:
-            if col in sub_df.columns and sub_df[col].notna().any():
-                value = str(sub_df[col].dropna().iloc[0]).strip()
-                if value:
-                    return value
     if mode == "plasmid":
         # PlasmidFinder feature IDs usually carry the useful replicon/Inc label.
         return str(feature_id)
+    for col in ["PRODUCT", "SEQUENCE", "DATABASE", "ACCESSION"]:
+        if col in sub_df.columns and sub_df[col].notna().any():
+            value = str(sub_df[col].dropna().iloc[0]).strip()
+            if value:
+                return value
     return "Unknown"
 
 
@@ -72,6 +81,8 @@ def _safe_figsize(row_count, base_height=2.0, per_row=0.35, width=9, max_height=
 
 
 def _feature_label(feature_type, mode):
+    if feature_type.lower() in FEATURE_LABELS:
+        return FEATURE_LABELS[feature_type.lower()]
     if mode == "virulence" or feature_type.lower() == "vfdb":
         return "VFDB"
     if mode == "plasmid" or feature_type.lower() == "plasmidfinder":

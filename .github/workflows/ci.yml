@@ -42,13 +42,21 @@ jobs:
             --cooccurrence-min-prevalence 0 \
             --cooccurrence-top-n 10 \
             --vfdb-dir tests/fixtures/vfdb \
-            --plasmidfinder-dir tests/fixtures/plasmidfinder
+            --plasmidfinder-dir tests/fixtures/plasmidfinder \
+            --mobileelementfinder-dir tests/fixtures/mobileelementfinder \
+            --isfinder-dir tests/fixtures/isfinder \
+            --integronfinder-dir tests/fixtures/integronfinder \
+            --iceberg-dir tests/fixtures/iceberg
           test -s test_output/qc/panr2_input_qc.csv
           test -s test_output/qc/ncbi_filter_report.csv
           test -s test_output/qc/panr2_input_qc_summary.txt
           test -d test_output/ncbi
           test -d test_output/vfdb
           test -d test_output/plasmidfinder
+          test -d test_output/mobileelementfinder
+          test -d test_output/isfinder
+          test -d test_output/integronfinder
+          test -d test_output/iceberg
           test -d test_output/qc
           test -d test_output/report
           test ! -d test_output/analysis
@@ -109,3 +117,28 @@ jobs:
           test -s test_output/plasmidfinder/figures/html_files/plasmidfinder_mean_burden_by_continent.html
           test -s test_output/plasmidfinder/figures/html_files/plasmidfinder_mean_burden_by_collection_year.html
           test -s test_output/plasmidfinder/figures/index.html
+          for db in mobileelementfinder isfinder integronfinder iceberg; do
+            test -s test_output/$db/analysis/${db}_feature_summary.csv
+            test -s test_output/$db/analysis/${db}_category_summary.csv
+            test -s test_output/$db/analysis/${db}_geographic_summary.csv
+            test -s test_output/$db/analysis/${db}_temporal_summary.csv
+            test -s test_output/$db/analysis/${db}_feature_cooccurrence_matrix.csv
+            test -s test_output/$db/analysis/${db}_top_feature_pairs.csv
+            test -s test_output/$db/analysis/${db}_group_burden_summary.csv
+            test -s test_output/$db/analysis/${db}_group_overall_tests.csv
+            test -s test_output/$db/analysis/${db}_group_pairwise_tests.csv
+            test -s test_output/$db/figures/${db}_feature_prevalence.png
+            test -s test_output/$db/figures/${db}_category_prevalence.png
+            test -s test_output/$db/figures/${db}_presence_heatmap.png
+            test -s test_output/$db/figures/${db}_identity_distribution.png
+            test -s test_output/$db/figures/${db}_feature_cooccurrence_heatmap.png
+            test -s test_output/$db/figures/${db}_mean_burden_by_continent.png
+            test -s test_output/$db/figures/${db}_mean_burden_by_collection_year.png
+            test -s test_output/$db/figures/html_files/${db}_feature_prevalence.html
+            test -s test_output/$db/figures/html_files/${db}_category_prevalence.html
+            test -s test_output/$db/figures/html_files/${db}_presence_heatmap.html
+            test -s test_output/$db/figures/html_files/${db}_feature_cooccurrence_heatmap.html
+            test -s test_output/$db/figures/html_files/${db}_mean_burden_by_continent.html
+            test -s test_output/$db/figures/html_files/${db}_mean_burden_by_collection_year.html
+            test -s test_output/$db/figures/index.html
+          done

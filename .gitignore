@@ -22,3 +22,7 @@ validation_output/
 tests/fixtures/abricate/*.csv
 tests/fixtures/vfdb/*.csv
 tests/fixtures/plasmidfinder/*.csv
+tests/fixtures/mobileelementfinder/*.csv
+tests/fixtures/isfinder/*.csv
+tests/fixtures/integronfinder/*.csv
+tests/fixtures/iceberg/*.csv

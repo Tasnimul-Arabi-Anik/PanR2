@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	GENE	COVERAGE	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT
+/path/to/GCF_000001.1.fna	contig1	50	850	IS26	1-801/801	100.00	97.00	isfinder	IS0001	IS6-family insertion sequence
+/path/to/GCA_000002.1.fna	contig2	75	975	ISEcp1	1-901/901	100.00	94.50	isfinder	IS0002	ISEcp1 insertion sequence
+/path/to/GCA_000004.1.fna	contig3	100	900	IS26	1-801/801	100.00	95.00	isfinder	IS0001	IS6-family insertion sequence
+/path/to/GCA_000004.1.fna	contig3	1000	1900	ISEcp1	1-901/901	100.00	92.00	isfinder	IS0002	ISEcp1 insertion sequence

@@ -67,7 +67,11 @@ python bin/panr \
   --cooccurrence-min-prevalence 0 \
   --cooccurrence-top-n 10 \
   --vfdb-dir tests/fixtures/vfdb \
-  --plasmidfinder-dir tests/fixtures/plasmidfinder
+  --plasmidfinder-dir tests/fixtures/plasmidfinder \
+  --mobileelementfinder-dir tests/fixtures/mobileelementfinder \
+  --isfinder-dir tests/fixtures/isfinder \
+  --integronfinder-dir tests/fixtures/integronfinder \
+  --iceberg-dir tests/fixtures/iceberg
 ```
 
 The fixture is intentionally small. Correlation plots that require at least five samples per group may be skipped, while the rest of the outputs should be generated.
@@ -110,6 +114,10 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-di
 | `--cooccurrence-top-n` | int | `25` | Number of top genes/classes or pairs to include in co-occurrence plots and pair tables |
 | `--vfdb-dir` | path | optional | Directory containing ABRicate VFDB summary/results files |
 | `--plasmidfinder-dir` | path | optional | Directory containing ABRicate PlasmidFinder summary/results files |
+| `--mobileelementfinder-dir` | path | optional | Directory containing ABRicate MobileElementFinder summary/results files |
+| `--isfinder-dir` | path | optional | Directory containing ABRicate ISfinder summary/results files |
+| `--integronfinder-dir` | path | optional | Directory containing IntegronFinder or ABRicate-style integron summary/results files |
+| `--iceberg-dir` | path | optional | Directory containing ABRicate ICEberg summary/results files |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 
@@ -144,6 +152,22 @@ output/
 │   ├── figures/
 │   └── merged_output/
 ├── plasmidfinder/                     # Optional PlasmidFinder feature tables and figures
+│   ├── analysis/
+│   ├── figures/
+│   └── merged_output/
+├── mobileelementfinder/               # Optional mobile genetic element tables and figures
+│   ├── analysis/
+│   ├── figures/
+│   └── merged_output/
+├── isfinder/                          # Optional insertion sequence tables and figures
+│   ├── analysis/
+│   ├── figures/
+│   └── merged_output/
+├── integronfinder/                    # Optional integron feature tables and figures
+│   ├── analysis/
+│   ├── figures/
+│   └── merged_output/
+├── iceberg/                           # Optional ICE/IME feature tables and figures
 │   ├── analysis/
 │   ├── figures/
 │   └── merged_output/
@@ -192,7 +216,9 @@ output/
 - **`plasmidfinder/analysis/plasmidfinder_group_pairwise_tests.csv`** - PlasmidFinder pairwise group comparisons where sample sizes permit
 - **`plasmidfinder/figures/`** - PlasmidFinder static figures, burden-by-group plots, interactive HTML files under `html_files/`, and `index.html` navigation
 
-VFDB and PlasmidFinder are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots.
+The same database-named output pattern is used for `mobileelementfinder/`, `isfinder/`, `integronfinder/`, and `iceberg/`. Each optional mobile genetic element database writes `analysis/`, `figures/`, and `merged_output/` folders with feature summaries, product/category summaries, sample burden, geographic and temporal summaries, co-occurrence tables, group-burden comparisons, static plots, interactive HTML plots, and an `index.html` figure browser.
+
+VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots.
 
 #### 4. Written Report (`report/` directory)
 - **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables

@@ -40,7 +40,7 @@ PANR2_VERSION = "0.1.3-dev"
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -91,14 +91,25 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
     write_input_qc_report(ncbi_clean_path, first_summary_file, first_results_file, output_dir)
 
     optional_feature_outputs = {}
-    if vfdb_dir:
-        optional_feature_outputs["vfdb"] = analyze_abricate_feature_database(
-            ncbi_clean_path, vfdb_dir, output_dir, "vfdb", "virulence", min_identity=min_identity, fig_format=fig_format
-        )
-    if plasmidfinder_dir:
-        optional_feature_outputs["plasmidfinder"] = analyze_abricate_feature_database(
-            ncbi_clean_path, plasmidfinder_dir, output_dir, "plasmidfinder", "plasmid", min_identity=min_identity, fig_format=fig_format
-        )
+    optional_database_specs = [
+        ("vfdb", vfdb_dir, "virulence"),
+        ("plasmidfinder", plasmidfinder_dir, "plasmid"),
+        ("mobileelementfinder", mobileelementfinder_dir, "mge"),
+        ("isfinder", isfinder_dir, "mge"),
+        ("integronfinder", integronfinder_dir, "mge"),
+        ("iceberg", iceberg_dir, "mge"),
+    ]
+    for feature_type, feature_dir, mode in optional_database_specs:
+        if feature_dir:
+            optional_feature_outputs[feature_type] = analyze_abricate_feature_database(
+                ncbi_clean_path,
+                feature_dir,
+                output_dir,
+                feature_type,
+                mode,
+                min_identity=min_identity,
+                fig_format=fig_format,
+            )
     
     for abricate_summary_file in abricate_summary_files:
         try:
@@ -277,6 +288,10 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                     "cooccurrence_top_n": cooccurrence_top_n,
                     "vfdb_dir": vfdb_dir or "not provided",
                     "plasmidfinder_dir": plasmidfinder_dir or "not provided",
+                    "mobileelementfinder_dir": mobileelementfinder_dir or "not provided",
+                    "isfinder_dir": isfinder_dir or "not provided",
+                    "integronfinder_dir": integronfinder_dir or "not provided",
+                    "iceberg_dir": iceberg_dir or "not provided",
                 },
                 panr2_version=PANR2_VERSION,
                 feature_outputs=optional_feature_outputs,
@@ -312,6 +327,10 @@ def run_cli():
     parser.add_argument("--cooccurrence-top-n", type=int, default=25, help="Number of top genes/classes or pairs to include in co-occurrence plots and pair tables.")
     parser.add_argument("--vfdb-dir", help="Optional directory containing ABRicate VFDB summary/results files.")
     parser.add_argument("--plasmidfinder-dir", help="Optional directory containing ABRicate PlasmidFinder summary/results files.")
+    parser.add_argument("--mobileelementfinder-dir", help="Optional directory containing ABRicate MobileElementFinder summary/results files.")
+    parser.add_argument("--isfinder-dir", help="Optional directory containing ABRicate ISfinder summary/results files.")
+    parser.add_argument("--integronfinder-dir", help="Optional directory containing IntegronFinder or ABRicate-style integron summary/results files.")
+    parser.add_argument("--iceberg-dir", help="Optional directory containing ABRicate ICEberg summary/results files.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args()
@@ -334,6 +353,10 @@ def run_cli():
         cooccurrence_top_n=args.cooccurrence_top_n,
         vfdb_dir=args.vfdb_dir,
         plasmidfinder_dir=args.plasmidfinder_dir,
+        mobileelementfinder_dir=args.mobileelementfinder_dir,
+        isfinder_dir=args.isfinder_dir,
+        integronfinder_dir=args.integronfinder_dir,
+        iceberg_dir=args.iceberg_dir,
     )
 
 

@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	GENE	COVERAGE	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT
+/path/to/GCF_000001.1.fna	contig1	500	1500	intI1	1-1001/1001	100.00	96.00	integronfinder	IF001	class 1 integrase
+/path/to/GCA_000002.1.fna	contig2	1550	1650	attC	1-101/101	100.00	91.50	integronfinder	IF002	attC recombination site
+/path/to/GCA_000004.1.fna	contig3	700	1700	intI1	1-1001/1001	100.00	93.00	integronfinder	IF001	class 1 integrase
+/path/to/GCA_000004.1.fna	contig3	1750	1850	attC	1-101/101	100.00	90.50	integronfinder	IF002	attC recombination site

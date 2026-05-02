@@ -172,6 +172,46 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertIn("grouping_variable", vf_group.columns)
         self.assertIn("grouping_variable", plasmid_group.columns)
 
+    def test_optional_mobile_element_feature_analysis(self):
+        databases = [
+            ("mobileelementfinder", {"Tn3", "IS26"}),
+            ("isfinder", {"IS26", "ISEcp1"}),
+            ("integronfinder", {"intI1", "attC"}),
+            ("iceberg", {"ICEKp1", "Tn916"}),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            from panr2.features import analyze_abricate_feature_database
+            for feature_type, expected_features in databases:
+                with self.subTest(feature_type=feature_type):
+                    outputs = analyze_abricate_feature_database(
+                        str(self.ncbi_clean),
+                        str(REPO_ROOT / "tests" / "fixtures" / feature_type),
+                        tmp,
+                        feature_type,
+                        "mge",
+                        min_identity=90,
+                    )
+                    summary = pd.read_csv(outputs["feature_summary"])
+                    categories = pd.read_csv(outputs["category_summary"])
+                    group = pd.read_csv(outputs["group_burden_summary"])
+
+                    self.assertEqual(set(summary["feature_id"]), expected_features)
+                    self.assertIn("feature_category", summary.columns)
+                    self.assertTrue((summary["feature_category"] != "Unknown").any())
+                    self.assertFalse(categories.empty)
+                    self.assertIn("grouping_variable", group.columns)
+                    self.assertIn(f"/{feature_type}/analysis/", outputs["feature_summary"])
+                    self.assertIn(f"/{feature_type}/merged_output/", outputs["merged"])
+                    self.assertIn(f"/{feature_type}/figures/", outputs["feature_prevalence_plot"])
+                    self.assertTrue(Path(outputs["feature_prevalence_plot"]).exists())
+                    self.assertTrue(Path(outputs["category_prevalence_plot"]).exists())
+                    self.assertTrue(Path(outputs["presence_heatmap"]).exists())
+                    self.assertTrue(Path(outputs["identity_distribution_plot"]).exists())
+                    self.assertTrue(Path(outputs["feature_cooccurrence_heatmap"]).exists())
+                    self.assertTrue(Path(outputs["feature_prevalence_html"]).exists())
+                    self.assertTrue(Path(outputs["presence_heatmap_html"]).exists())
+                    self.assertTrue(Path(outputs["html_index"]).exists())
+
 
 if __name__ == "__main__":
     unittest.main()

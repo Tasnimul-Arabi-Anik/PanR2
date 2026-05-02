@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	GENE	COVERAGE	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT
+/path/to/GCF_000001.1.fna	contig1	100	1100	Tn3	1-1001/1001	100.00	95.50	mobileelementfinder	ME001	Tn3-family transposon
+/path/to/GCA_000002.1.fna	contig2	200	1200	IS26	1-1001/1001	100.00	93.00	mobileelementfinder	ME002	IS6-family insertion sequence
+/path/to/GCA_000004.1.fna	contig3	300	1300	Tn3	1-1001/1001	100.00	91.00	mobileelementfinder	ME001	Tn3-family transposon
+/path/to/GCA_000004.1.fna	contig3	1400	2200	IS26	1-801/801	100.00	96.00	mobileelementfinder	ME002	IS6-family insertion sequence

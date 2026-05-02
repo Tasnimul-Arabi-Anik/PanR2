@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	GENE	COVERAGE	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT
+/path/to/GCF_000001.1.fna	contig1	2000	5200	ICEKp1	1-3201/3201	100.00	95.00	iceberg	ICE001	Klebsiella integrative conjugative element
+/path/to/GCA_000002.1.fna	contig2	2500	5700	Tn916	1-3201/3201	100.00	92.00	iceberg	ICE002	Tn916 conjugative transposon
+/path/to/GCA_000004.1.fna	contig3	2100	5300	ICEKp1	1-3201/3201	100.00	94.00	iceberg	ICE001	Klebsiella integrative conjugative element
+/path/to/GCA_000004.1.fna	contig3	5800	9000	Tn916	1-3201/3201	100.00	91.00	iceberg	ICE002	Tn916 conjugative transposon
