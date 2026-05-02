@@ -3,6 +3,7 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import plotly.express as px
 import seaborn as sns
 
 from panr2.io import extract_assembly_accessions, read_table_auto, unique_input_files
@@ -77,9 +78,11 @@ def _feature_label(feature_type, mode):
     return feature_type.replace("_", " ").title()
 
 
-def _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col):
-    plot_dir = os.path.join(output_feature_dir, "plots")
+def _write_feature_plots(feature_type, mode, figures_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col):
+    plot_dir = figures_dir
+    html_dir = os.path.join(figures_dir, "html_files")
     os.makedirs(plot_dir, exist_ok=True)
+    os.makedirs(html_dir, exist_ok=True)
     plot_paths = {}
     label = _feature_label(feature_type, mode)
 
@@ -96,6 +99,14 @@ def _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tid
         plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
         plt.close()
         plot_paths["feature_prevalence_plot"] = path
+        fig = px.bar(plot_df.sort_values("prevalence_percentage", ascending=False), x="prevalence_percentage", y="feature_id", orientation="h",
+                     hover_data=[col for col in ["present_samples", "mean_identity", "min_identity", "max_identity", "feature_category"] if col in plot_df.columns],
+                     labels={"prevalence_percentage": "Samples carrying feature (%)", "feature_id": f"{label} feature"},
+                     title=f"Top {label.lower()} features by prevalence")
+        fig.update_layout(yaxis={"categoryorder": "total ascending"})
+        html_path = os.path.join(html_dir, f"{feature_type}_feature_prevalence.html")
+        fig.write_html(html_path)
+        plot_paths["feature_prevalence_html"] = html_path
 
     if not category_summary.empty:
         plot_df = category_summary.head(25).sort_values("prevalence_percentage", ascending=True)
@@ -111,6 +122,14 @@ def _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tid
         plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
         plt.close()
         plot_paths["category_prevalence_plot"] = path
+        fig = px.bar(plot_df.sort_values("prevalence_percentage", ascending=False), x="prevalence_percentage", y="feature_category", orientation="h",
+                     hover_data=[col for col in ["present_samples", "unique_features"] if col in plot_df.columns],
+                     labels={"prevalence_percentage": "Samples carrying category (%)", "feature_category": ylabel},
+                     title=f"Top {label.lower()} categories by prevalence")
+        fig.update_layout(yaxis={"categoryorder": "total ascending"})
+        html_path = os.path.join(html_dir, f"{feature_type}_category_prevalence.html")
+        fig.write_html(html_path)
+        plot_paths["category_prevalence_html"] = html_path
 
     count_col = f"{feature_type}_feature_count"
     if count_col in sample_burden.columns and not sample_burden.empty:
@@ -130,6 +149,12 @@ def _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tid
             plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
             plt.close()
             plot_paths["burden_by_continent_plot"] = path
+            fig = px.box(burden_df, x="Continent", y=count_col, points="all",
+                         labels={count_col: f"{label} feature count per sample"},
+                         title=f"{label} feature burden by continent")
+            html_path = os.path.join(html_dir, f"{feature_type}_burden_by_continent.html")
+            fig.write_html(html_path)
+            plot_paths["burden_by_continent_html"] = html_path
 
     present = tidy[tidy["presence"] == 1].copy()
     if not present.empty and tidy["feature_id"].nunique() >= 2 and tidy[sample_col].nunique() >= 2:
@@ -153,6 +178,12 @@ def _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tid
             plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
             plt.close()
             plot_paths["presence_heatmap"] = path
+            fig = px.imshow(matrix, color_continuous_scale="Blues", aspect="auto",
+                            labels={"x": f"{label} feature", "y": "Sample", "color": "Presence"},
+                            title=f"{label} feature presence matrix")
+            html_path = os.path.join(html_dir, f"{feature_type}_presence_heatmap.html")
+            fig.write_html(html_path)
+            plot_paths["presence_heatmap_html"] = html_path
 
     identity_df = tidy[tidy["presence"] == 1].copy()
     if not identity_df.empty:
@@ -172,11 +203,17 @@ def _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tid
             plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
             plt.close()
             plot_paths["identity_distribution_plot"] = path
+            fig = px.box(identity_df, x="identity", y="feature_id", points="all",
+                         labels={"identity": "ABRicate identity (%)", "feature_id": f"{label} feature"},
+                         title=f"{label} feature identity distribution")
+            html_path = os.path.join(html_dir, f"{feature_type}_identity_distribution.html")
+            fig.write_html(html_path)
+            plot_paths["identity_distribution_html"] = html_path
 
     return plot_paths
 
 
-def _write_feature_geographic_summary(feature_type, output_feature_dir, tidy, sample_burden):
+def _write_feature_geographic_summary(feature_type, mode, analysis_dir, figures_dir, tidy, sample_burden):
     count_col = f"{feature_type}_feature_count"
     rows = []
     for geo_col in ["Geographic Location", "Continent", "Subcontinent"]:
@@ -203,16 +240,32 @@ def _write_feature_geographic_summary(feature_type, output_feature_dir, tidy, sa
                 "top_features": top_features,
             })
     summary = pd.DataFrame(rows)
-    path = os.path.join(output_feature_dir, f"{feature_type}_geographic_summary.csv")
+    path = os.path.join(analysis_dir, f"{feature_type}_geographic_summary.csv")
     summary.to_csv(path, index=False)
-    return path
+    html_path = None
+    if not summary.empty:
+        html_dir = os.path.join(figures_dir, "html_files")
+        os.makedirs(html_dir, exist_ok=True)
+        label = _feature_label(feature_type, mode)
+        fig = px.bar(
+            summary.sort_values(["geographic_level", "mean_feature_count"], ascending=[True, False]),
+            x="mean_feature_count",
+            y="region",
+            color="geographic_level",
+            orientation="h",
+            hover_data=["sample_count", "samples_with_feature", "median_feature_count", "max_feature_count", "top_features"],
+            labels={"mean_feature_count": "Mean feature count", "region": "Region", "geographic_level": "Geographic level"},
+            title=f"{label} geographic feature burden",
+        )
+        html_path = os.path.join(html_dir, f"{feature_type}_geographic_burden.html")
+        fig.write_html(html_path)
+    return path, html_path
 
 
-
-def _write_feature_cooccurrence(feature_type, mode, output_feature_dir, fig_format, tidy, total_samples, sample_col, top_n=25):
+def _write_feature_cooccurrence(feature_type, mode, analysis_dir, figures_dir, fig_format, tidy, total_samples, sample_col, top_n=25):
     present = tidy[tidy["presence"] == 1].copy()
-    matrix_path = os.path.join(output_feature_dir, f"{feature_type}_feature_cooccurrence_matrix.csv")
-    pairs_path = os.path.join(output_feature_dir, f"{feature_type}_top_feature_pairs.csv")
+    matrix_path = os.path.join(analysis_dir, f"{feature_type}_feature_cooccurrence_matrix.csv")
+    pairs_path = os.path.join(analysis_dir, f"{feature_type}_top_feature_pairs.csv")
     plot_paths = {}
     if present.empty:
         pd.DataFrame().to_csv(matrix_path)
@@ -272,27 +325,36 @@ def _write_feature_cooccurrence(feature_type, mode, output_feature_dir, fig_form
         plt.xticks(rotation=45, ha="right")
         plt.yticks(rotation=0)
         plt.tight_layout()
-        path = os.path.join(output_feature_dir, "plots", f"{feature_type}_feature_cooccurrence_heatmap.{fig_format}")
+        path = os.path.join(figures_dir, f"{feature_type}_feature_cooccurrence_heatmap.{fig_format}")
         plt.savefig(path, dpi=300, bbox_inches="tight", format=fig_format)
         plt.close()
         plot_paths["feature_cooccurrence_heatmap"] = path
+        html_dir = os.path.join(figures_dir, "html_files")
+        os.makedirs(html_dir, exist_ok=True)
+        fig = px.imshow(plot_matrix, color_continuous_scale="Blues", aspect="auto",
+                        labels={"x": f"{label} feature", "y": f"{label} feature", "color": "Co-occurring samples"},
+                        title=f"{label} feature co-occurrence")
+        html_path = os.path.join(html_dir, f"{feature_type}_feature_cooccurrence_heatmap.html")
+        fig.write_html(html_path)
+        plot_paths["feature_cooccurrence_heatmap_html"] = html_path
 
     return matrix_path, pairs_path, plot_paths
 
 
-def _write_feature_temporal_summary(feature_type, output_feature_dir, sample_burden):
+def _write_feature_temporal_summary(feature_type, mode, analysis_dir, figures_dir, sample_burden):
     count_col = f"{feature_type}_feature_count"
-    path = os.path.join(output_feature_dir, f"{feature_type}_temporal_summary.csv")
+    path = os.path.join(analysis_dir, f"{feature_type}_temporal_summary.csv")
+    columns = ["collection_year", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "max_feature_count"]
     if "Collection Date" not in sample_burden.columns or count_col not in sample_burden.columns:
-        pd.DataFrame(columns=["collection_year", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "max_feature_count"]).to_csv(path, index=False)
-        return path
+        pd.DataFrame(columns=columns).to_csv(path, index=False)
+        return path, None
     df = sample_burden.copy()
     df["collection_year"] = pd.to_numeric(df["Collection Date"], errors="coerce")
     df[count_col] = pd.to_numeric(df[count_col], errors="coerce").fillna(0)
     df = df.dropna(subset=["collection_year"])
     if df.empty:
-        pd.DataFrame(columns=["collection_year", "sample_count", "samples_with_feature", "mean_feature_count", "median_feature_count", "max_feature_count"]).to_csv(path, index=False)
-        return path
+        pd.DataFrame(columns=columns).to_csv(path, index=False)
+        return path, None
     df["collection_year"] = df["collection_year"].astype(int)
     summary = df.groupby("collection_year", as_index=False).agg(
         sample_count=(count_col, "size"),
@@ -302,6 +364,55 @@ def _write_feature_temporal_summary(feature_type, output_feature_dir, sample_bur
         max_feature_count=(count_col, "max"),
     )
     summary.to_csv(path, index=False)
+    html_dir = os.path.join(figures_dir, "html_files")
+    os.makedirs(html_dir, exist_ok=True)
+    label = _feature_label(feature_type, mode)
+    fig = px.line(summary, x="collection_year", y="mean_feature_count", markers=True,
+                  hover_data=["sample_count", "samples_with_feature", "median_feature_count", "max_feature_count"],
+                  labels={"collection_year": "Collection year", "mean_feature_count": "Mean feature count"},
+                  title=f"{label} temporal feature burden")
+    html_path = os.path.join(html_dir, f"{feature_type}_temporal_burden.html")
+    fig.write_html(html_path)
+    return path, html_path
+
+
+
+def _write_feature_html_index(feature_type, mode, figures_dir):
+    html_dir = os.path.join(figures_dir, "html_files")
+    if not os.path.isdir(html_dir):
+        return None
+    html_files = sorted(name for name in os.listdir(html_dir) if name.endswith(".html"))
+    if not html_files:
+        return None
+    label = _feature_label(feature_type, mode)
+    options = "\n".join([f'<option value="html_files/{name}">{name}</option>' for name in html_files])
+    index = f'''<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{label} Feature Figures</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; margin: 0; color: #1f2933; }}
+    header {{ padding: 1rem 1.25rem; border-bottom: 1px solid #d9e2ec; display: flex; gap: 1rem; align-items: center; }}
+    h1 {{ font-size: 1.1rem; margin: 0; }}
+    select {{ min-width: 20rem; padding: 0.4rem; }}
+    iframe {{ width: 100%; height: calc(100vh - 70px); border: 0; }}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{label} Feature Figures</h1>
+    <select id="plotSelect" onchange="document.getElementById('plotFrame').src=this.value">
+      {options}
+    </select>
+  </header>
+  <iframe id="plotFrame" src="html_files/{html_files[0]}"></iframe>
+</body>
+</html>
+'''
+    path = os.path.join(figures_dir, "index.html")
+    with open(path, "w") as handle:
+        handle.write(index)
     return path
 
 def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, feature_type, mode, min_identity=0.0, fig_format="png"):
@@ -325,7 +436,12 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
         raise ValueError(f"No feature columns found in {summary_path}")
 
     output_feature_dir = os.path.join(output_dir, feature_type)
-    os.makedirs(output_feature_dir, exist_ok=True)
+    analysis_dir = os.path.join(output_feature_dir, "analysis")
+    figures_dir = os.path.join(output_feature_dir, "figures")
+    merged_output_dir = os.path.join(output_feature_dir, "merged_output")
+    os.makedirs(analysis_dir, exist_ok=True)
+    os.makedirs(figures_dir, exist_ok=True)
+    os.makedirs(merged_output_dir, exist_ok=True)
 
     numeric = merged_df[feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0)
     if min_identity > 0:
@@ -334,7 +450,7 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     if "NUM_FOUND" in merged_df.columns:
         merged_df["NUM_FOUND"] = (numeric > 0).sum(axis=1).astype(int)
 
-    merged_path = os.path.join(output_feature_dir, f"{feature_type}_merged.csv")
+    merged_path = os.path.join(merged_output_dir, f"{feature_type}_merged.csv")
     merged_df.to_csv(merged_path, index=False)
 
     id_vars = list(merged_df.columns[:merged_df.columns.get_loc("NUM_FOUND") + 1]) if "NUM_FOUND" in merged_df.columns else list(ncbi_df.columns)
@@ -343,7 +459,7 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     tidy["presence"] = (tidy["identity"] > 0).astype(int)
     tidy["feature_type"] = feature_type
     tidy["feature_category"] = tidy["feature_id"].apply(lambda value: _feature_category(results_df, value, mode))
-    tidy_path = os.path.join(output_feature_dir, f"{feature_type}_tidy.csv")
+    tidy_path = os.path.join(merged_output_dir, f"{feature_type}_tidy.csv")
     tidy.to_csv(tidy_path, index=False)
 
     sample_col = "Assembly BioSample Accession" if "Assembly BioSample Accession" in tidy.columns else "Assembly Accession"
@@ -370,21 +486,22 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
         category_summary["prevalence_percentage"] = (category_summary["present_samples"] / total_samples) * 100
         category_summary = category_summary.sort_values(["prevalence_percentage", "unique_features", "feature_category"], ascending=[False, False, True])
 
-    feature_summary_path = os.path.join(output_feature_dir, f"{feature_type}_feature_summary.csv")
-    category_summary_path = os.path.join(output_feature_dir, f"{feature_type}_category_summary.csv")
+    feature_summary_path = os.path.join(analysis_dir, f"{feature_type}_feature_summary.csv")
+    category_summary_path = os.path.join(analysis_dir, f"{feature_type}_category_summary.csv")
     feature_summary.to_csv(feature_summary_path, index=False)
     category_summary.to_csv(category_summary_path, index=False)
 
     sample_meta_cols = [col for col in ["Assembly Accession", "Assembly BioSample Accession", "Geographic Location", "Continent", "Subcontinent", "Collection Date"] if col in merged_df.columns]
     sample_burden = merged_df[sample_meta_cols].copy() if sample_meta_cols else merged_df[["Assembly Accession"]].copy()
     sample_burden[f"{feature_type}_feature_count"] = (numeric > 0).sum(axis=1).astype(int)
-    sample_burden_path = os.path.join(output_feature_dir, f"{feature_type}_sample_burden.csv")
+    sample_burden_path = os.path.join(analysis_dir, f"{feature_type}_sample_burden.csv")
     sample_burden.to_csv(sample_burden_path, index=False)
 
-    geographic_summary_path = _write_feature_geographic_summary(feature_type, output_feature_dir, tidy, sample_burden)
-    temporal_summary_path = _write_feature_temporal_summary(feature_type, output_feature_dir, sample_burden)
-    plot_paths = _write_feature_plots(feature_type, mode, output_feature_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col)
-    cooc_matrix_path, top_pairs_path, cooc_plot_paths = _write_feature_cooccurrence(feature_type, mode, output_feature_dir, fig_format, tidy, total_samples, sample_col)
+    geographic_summary_path, geographic_html_path = _write_feature_geographic_summary(feature_type, mode, analysis_dir, figures_dir, tidy, sample_burden)
+    temporal_summary_path, temporal_html_path = _write_feature_temporal_summary(feature_type, mode, analysis_dir, figures_dir, sample_burden)
+    plot_paths = _write_feature_plots(feature_type, mode, figures_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col)
+    cooc_matrix_path, top_pairs_path, cooc_plot_paths = _write_feature_cooccurrence(feature_type, mode, analysis_dir, figures_dir, fig_format, tidy, total_samples, sample_col)
+    html_index_path = _write_feature_html_index(feature_type, mode, figures_dir)
 
     logging.info(f"{feature_type} analysis outputs saved to {output_feature_dir}")
     return {
@@ -398,8 +515,11 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
         "sample_burden": sample_burden_path,
         "geographic_summary": geographic_summary_path,
         "temporal_summary": temporal_summary_path,
+        "geographic_burden_html": geographic_html_path,
+        "temporal_burden_html": temporal_html_path,
         "feature_cooccurrence_matrix": cooc_matrix_path,
         "top_feature_pairs": top_pairs_path,
+        "html_index": html_index_path,
         **plot_paths,
         **cooc_plot_paths,
     }

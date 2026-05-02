@@ -230,13 +230,13 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         for feature_type in ["vfdb", "plasmidfinder", "virulence", "plasmid"]:
             if feature_type not in feature_outputs:
                 continue
-            feature_dir = os.path.join(output_dir, feature_type)
-            feature_summary = _read_csv(os.path.join(feature_dir, f"{feature_type}_feature_summary.csv"))
-            category_summary = _read_csv(os.path.join(feature_dir, f"{feature_type}_category_summary.csv"))
-            sample_burden = _read_csv(os.path.join(feature_dir, f"{feature_type}_sample_burden.csv"))
-            geographic_summary = _read_csv(os.path.join(feature_dir, f"{feature_type}_geographic_summary.csv"))
-            temporal_summary = _read_csv(os.path.join(feature_dir, f"{feature_type}_temporal_summary.csv"))
-            top_pairs = _read_csv(os.path.join(feature_dir, f"{feature_type}_top_feature_pairs.csv"))
+            outputs = feature_outputs.get(feature_type, {})
+            feature_summary = _read_csv(outputs.get("feature_summary", ""))
+            category_summary = _read_csv(outputs.get("category_summary", ""))
+            sample_burden = _read_csv(outputs.get("sample_burden", ""))
+            geographic_summary = _read_csv(outputs.get("geographic_summary", ""))
+            temporal_summary = _read_csv(outputs.get("temporal_summary", ""))
+            top_pairs = _read_csv(outputs.get("top_feature_pairs", ""))
             feature_count = len(feature_summary) if not feature_summary.empty else 0
             carrying_samples = 0
             count_col = f"{feature_type}_feature_count"
@@ -333,6 +333,15 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
                 "presence_heatmap",
                 "identity_distribution_plot",
                 "feature_cooccurrence_heatmap",
+                "feature_prevalence_html",
+                "category_prevalence_html",
+                "burden_by_continent_html",
+                "presence_heatmap_html",
+                "identity_distribution_html",
+                "feature_cooccurrence_heatmap_html",
+                "geographic_burden_html",
+                "temporal_burden_html",
+                "html_index",
             ]:
                 output_path = feature_outputs.get(feature_type, {}).get(key)
                 if output_path and os.path.exists(output_path):
@@ -345,7 +354,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
-        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, and descriptive feature co-occurrence tables."
+        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB and PlasmidFinder analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures."
     )
     lines.append("")
 
