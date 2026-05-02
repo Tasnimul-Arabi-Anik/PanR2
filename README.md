@@ -91,12 +91,19 @@ PanR2 keeps the installed command as `panr`, while the implementation lives in t
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
+PanR2 can also run ABRicate internally from assembly FASTA files:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-abricate --abricate-dbs ncbi,vfdb,plasmidfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
 ### Required Arguments
 | Argument | Description |
 |----------|-------------|
 | `--ncbi-dir` | Directory containing `ncbi_clean.csv` from FetchM |
-| `--abricate-dir` | Directory containing Abricate summary `.tab` or `.csv` files |
 | `--output-dir` | Directory to store merged results and visualizations |
+
+`--abricate-dir` is required for analysis-only mode. It is not required when `--run-abricate` is used with the `ncbi` database.
 
 ### Optional Arguments
 | Argument | Type | Default | Description |
@@ -104,6 +111,12 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-di
 | `--genep` | float | `10.0` | Minimum % gene presence to include in heatmap |
 | `--nseq` | int | `1` | Minimum number of sequences required per group in heatmaps |
 | `--format` | str | `tiff` | Output format for figures (`tiff`, `svg`, `png`, `pdf`) |
+| `--sequence-dir` | path | optional | Directory containing assembly FASTA files for integrated tool runners |
+| `--run-abricate` | flag | off | Run ABRicate internally before PanR2 analysis |
+| `--abricate-dbs` | str | `ncbi` | Comma-separated ABRicate databases to run, for example `ncbi,vfdb,plasmidfinder` |
+| `--abricate-bin` | path | `abricate` | ABRicate executable name or path |
+| `--abricate-summary-metric` | str | `identity` | Metric used in generated ABRicate summary matrices (`identity` or `coverage`) |
+| `--force-tool-run` | flag | off | Re-run integrated tools even when raw result files already exist |
 | `--min-identity` | float | `0.0` | Minimum ABRicate identity percentage to treat a gene call as present |
 | `--drop-unmatched-accessions` | flag | off | Drop NCBI rows with no matching ABRicate summary row |
 | `--min-samples-per-group` | int | `5` | Minimum samples per group required for correlation analyses |
@@ -131,6 +144,9 @@ panr --ncbi-dir ./data/ncbi_clean.csv --abricate-dir ./data/abricate --output-di
 
 # Apply analysis filtering before plotting
 panr --ncbi-dir ./data/ncbi --abricate-dir ./data/abricate --output-dir ./output_filtered --min-identity 90 --drop-unmatched-accessions
+
+# Run ABRicate inside PanR2, then analyze AMR, VFDB, and PlasmidFinder outputs
+panr --ncbi-dir ./data/metadata_output --sequence-dir ./data/sequence --run-abricate --abricate-dbs ncbi,vfdb,plasmidfinder --output-dir ./output_integrated --min-identity 90
 ```
 
 ---
@@ -143,6 +159,11 @@ PanR2 generates a comprehensive set of outputs organized in the following direct
 
 ```
 output/
+├── tool_results/                      # Raw outputs from integrated upstream tools
+│   └── abricate/
+│       ├── ncbi/
+│       ├── vfdb/
+│       └── plasmidfinder/
 ├── ncbi/                              # AMR/resistome tables, merged data, and figures
 │   ├── analysis/                      # Panresistome summary tables and compact plots
 │   ├── figures/                       # AMR static and interactive figures
@@ -180,6 +201,7 @@ output/
 #### 1. Input QC (`qc/` directory)
 - **`panr2_input_qc.csv`** - Machine-readable input checks with `PASS`, `WARN`, `FAIL`, and `INFO` statuses
 - **`panr2_input_qc_summary.txt`** - Human-readable summary of input checks
+- **`panr2_tool_manifest.csv`** and **`panr2_tool_manifest.json`** - Tool versions, selected databases, database dates/counts where available, and raw output paths for integrated runs
 - **`panr2_unmatched_accessions.csv`** - Accessions present in only one of the NCBI or ABRicate inputs
 - **`*_filter_report.csv`** - Row and ARG-call counts before and after optional analysis filters
 

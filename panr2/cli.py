@@ -31,6 +31,7 @@ from panr2.plots import (
 )
 from panr2.qc import write_input_qc_report
 from panr2.report import write_report
+from panr2.runners import run_abricate_databases
 from panr2.stats import combined_correlation_analysis, correlation_scatterplot_analysis
 
 
@@ -40,7 +41,7 @@ PANR2_VERSION = "0.1.3-dev"
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", force_tool_run=False):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -60,6 +61,31 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         raise ValueError("--cooccurrence-min-prevalence must be between 0 and 100.")
     if cooccurrence_top_n < 1:
         raise ValueError("--cooccurrence-top-n must be at least 1.")
+
+    tool_manifest = {}
+    if run_abricate:
+        if not sequence_dir:
+            raise ValueError("--sequence-dir is required when --run-abricate is used.")
+        selected_dbs = abricate_dbs or ["ncbi"]
+        abricate_run = run_abricate_databases(
+            sequence_dir,
+            output_dir,
+            selected_dbs,
+            abricate_bin=abricate_bin,
+            summary_metric=abricate_summary_metric,
+            force=force_tool_run,
+        )
+        tool_manifest = abricate_run.get("manifest", {})
+        generated_dirs = abricate_run["database_dirs"]
+        if not abricate_dir and "ncbi" in generated_dirs:
+            abricate_dir = generated_dirs["ncbi"]
+        if not vfdb_dir and "vfdb" in generated_dirs:
+            vfdb_dir = generated_dirs["vfdb"]
+        if not plasmidfinder_dir and "plasmidfinder" in generated_dirs:
+            plasmidfinder_dir = generated_dirs["plasmidfinder"]
+
+    if not abricate_dir:
+        raise ValueError("--abricate-dir is required unless --run-abricate includes the ncbi database.")
     
     # Define paths
     ncbi_clean_path = os.path.join(ncbi_dir, "ncbi_clean.csv")
@@ -292,6 +318,12 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                     "isfinder_dir": isfinder_dir or "not provided",
                     "integronfinder_dir": integronfinder_dir or "not provided",
                     "iceberg_dir": iceberg_dir or "not provided",
+                    "sequence_dir": sequence_dir or "not provided",
+                    "run_abricate": run_abricate,
+                    "abricate_dbs": ",".join(abricate_dbs or []) if abricate_dbs else "not provided",
+                    "abricate_summary_metric": abricate_summary_metric,
+                    "tool_manifest_json": tool_manifest.get("json", "not available"),
+                    "tool_manifest_csv": tool_manifest.get("csv", "not available"),
                 },
                 panr2_version=PANR2_VERSION,
                 feature_outputs=optional_feature_outputs,
@@ -312,8 +344,14 @@ def run_cli():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Process NCBI and Abricate data.")
     parser.add_argument("--ncbi-dir", required=True, help="Directory containing ncbi_clean.csv.")
-    parser.add_argument("--abricate-dir", required=True, help="Directory containing Abricate summary CSV or TAB files.")
+    parser.add_argument("--abricate-dir", help="Directory containing Abricate summary CSV or TAB files. Required unless --run-abricate is used with the ncbi database.")
     parser.add_argument("--output-dir", required=True, help="Base output directory.")
+    parser.add_argument("--sequence-dir", help="Directory containing assembly FASTA files used by integrated tool runners.")
+    parser.add_argument("--run-abricate", action="store_true", help="Run ABRicate internally before PanR2 analysis.")
+    parser.add_argument("--abricate-dbs", default="ncbi", help="Comma-separated ABRicate databases to run when --run-abricate is used, for example ncbi,vfdb,plasmidfinder.")
+    parser.add_argument("--abricate-bin", default="abricate", help="ABRicate executable name or path.")
+    parser.add_argument("--abricate-summary-metric", default="identity", choices=["identity", "coverage"], help="Metric used in generated ABRicate summary matrices.")
+    parser.add_argument("--force-tool-run", action="store_true", help="Re-run integrated tools even when result files already exist.")
     parser.add_argument("--genep", type=float, default=10.0, help="Minimum %% gene presence to include in heatmap.")
     parser.add_argument("--nseq", type=int, default=1, help="Minimum number of sequences required per group in heatmaps.")
     parser.add_argument("--format", default="tiff", choices=["tiff", "svg", "png", "pdf"], help="Output format for figures (tiff, svg, png, pdf).")
@@ -334,6 +372,7 @@ def run_cli():
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args()
+    abricate_dbs = [db.strip() for db in args.abricate_dbs.split(",") if db.strip()]
     
     # Run the main function
     main(
@@ -357,6 +396,12 @@ def run_cli():
         isfinder_dir=args.isfinder_dir,
         integronfinder_dir=args.integronfinder_dir,
         iceberg_dir=args.iceberg_dir,
+        sequence_dir=args.sequence_dir,
+        run_abricate=args.run_abricate,
+        abricate_dbs=abricate_dbs,
+        abricate_bin=args.abricate_bin,
+        abricate_summary_metric=args.abricate_summary_metric,
+        force_tool_run=args.force_tool_run,
     )
 
 

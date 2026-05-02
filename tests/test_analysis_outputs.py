@@ -212,6 +212,80 @@ class PanRAnalysisOutputTests(unittest.TestCase):
                     self.assertTrue(Path(outputs["presence_heatmap_html"]).exists())
                     self.assertTrue(Path(outputs["html_index"]).exists())
 
+    def test_integrated_abricate_runner_feeds_panr2_analysis(self):
+        script = """#!/usr/bin/env python3
+import sys
+
+args = sys.argv[1:]
+if args == ["--version"]:
+    print("abricate 1.0-test")
+    sys.exit(0)
+if args == ["--list"]:
+    print("DATABASE\\tSEQUENCES\\tDBTYPE\\tDATE")
+    print("ncbi\\t2\\tnucl\\t2026-May-02")
+    sys.exit(0)
+if args[:2] == ["--db", "ncbi"]:
+    print("#FILE\\tSEQUENCE\\tSTART\\tEND\\tSTRAND\\tGENE\\tCOVERAGE\\tCOVERAGE_MAP\\tGAPS\\t%COVERAGE\\t%IDENTITY\\tDATABASE\\tACCESSION\\tPRODUCT\\tRESISTANCE")
+    for path in args[2:]:
+        if "GCF_000001.1" in path:
+            print(f"{path}\\tcontig1\\t1\\t100\\t+\\tblaA\\t1-100/100\\t=\\t0/0\\t100.00\\t96.00\\tncbi\\tACC001\\tbeta lactamase\\tbeta-lactam")
+        elif "GCA_000002.1" in path:
+            print(f"{path}\\tcontig1\\t1\\t100\\t+\\ttetB\\t1-100/100\\t=\\t0/0\\t100.00\\t94.00\\tncbi\\tACC002\\ttetracycline efflux\\ttetracycline")
+        elif "GCF_000003.1" in path:
+            pass
+        elif "GCA_000004.1" in path:
+            print(f"{path}\\tcontig1\\t1\\t100\\t+\\tblaA\\t1-100/100\\t=\\t0/0\\t100.00\\t95.00\\tncbi\\tACC001\\tbeta lactamase\\tbeta-lactam")
+            print(f"{path}\\tcontig2\\t1\\t100\\t+\\ttetB\\t1-100/100\\t=\\t0/0\\t100.00\\t93.00\\tncbi\\tACC002\\ttetracycline efflux\\ttetracycline")
+    sys.exit(0)
+if args and args[0] == "--summary":
+    print("#FILE\\tNUM_FOUND\\tblaA\\ttetB")
+    print("GCF_000001.1_genomic.fna\\t1\\t96.0\\t0")
+    print("GCA_000002.1_genomic.fna\\t1\\t0\\t94.0")
+    print("GCF_000003.1_genomic.fna\\t0\\t0\\t0")
+    print("GCA_000004.1_genomic.fna\\t2\\t95.0\\t93.0")
+    sys.exit(0)
+print("unexpected arguments: " + " ".join(args), file=sys.stderr)
+sys.exit(2)
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_abricate = tmp_path / "abricate"
+            fake_abricate.write_text(script)
+            fake_abricate.chmod(0o755)
+            sequence_dir = tmp_path / "sequence"
+            sequence_dir.mkdir()
+            for accession in ["GCF_000001.1", "GCA_000002.1", "GCF_000003.1", "GCA_000004.1"]:
+                (sequence_dir / f"{accession}_genomic.fna").write_text(">contig1\nATGC\n")
+
+            output_dir = tmp_path / "panr2_output"
+            self.panr.main(
+                str(REPO_ROOT / "tests" / "fixtures" / "ncbi"),
+                None,
+                str(output_dir),
+                "png",
+                1,
+                0,
+                min_identity=90,
+                min_samples_per_group=2,
+                core_threshold=75,
+                rare_threshold=25,
+                top_n=10,
+                cooccurrence_min_prevalence=0,
+                cooccurrence_top_n=10,
+                sequence_dir=str(sequence_dir),
+                run_abricate=True,
+                abricate_dbs=["ncbi"],
+                abricate_bin=str(fake_abricate),
+            )
+
+            manifest = pd.read_csv(output_dir / "qc" / "panr2_tool_manifest.csv")
+            report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
+            self.assertEqual(manifest.iloc[0]["tool"], "abricate")
+            self.assertEqual(manifest.iloc[0]["database"], "ncbi")
+            self.assertTrue((output_dir / "tool_results" / "abricate" / "ncbi" / "ncbi_results.tab").exists())
+            self.assertTrue((output_dir / "ncbi" / "analysis" / "ncbi_gene_prevalence_summary.csv").exists())
+            self.assertIn("## Integrated Tool Runs", report_text)
+
 
 if __name__ == "__main__":
     unittest.main()
