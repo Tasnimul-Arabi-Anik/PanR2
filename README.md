@@ -109,7 +109,7 @@ IntegronFinder can also be run internally when installed:
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-integronfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
-User-provided ICE/IME/CIME tables can be converted into ICEberg-style PanR2 analysis inputs:
+User-provided ICE/IME/CIME tables can be converted into ICEberg-style PanR2 analysis inputs. PanR2 does not run an ICEberg annotation program directly; it converts existing ICE/IME/CIME annotation tables into PanR2-compatible feature tables:
 
 ```bash
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-table-dir <ICE_TABLE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
@@ -260,6 +260,7 @@ output/
 
 #### 3. Optional Database-Named Feature Analysis
 - **`vfdb/analysis/vfdb_feature_summary.csv`** - VFDB feature prevalence and identity summaries
+- **`vfdb/analysis/vfdb_qc_summary.csv`** - VFDB sample/feature QC metrics, zero-feature sample counts, unmatched sample counts, and top feature list
 - **`vfdb/analysis/vfdb_category_summary.csv`** - Virulence product/category summaries
 - **`vfdb/analysis/vfdb_geographic_summary.csv`** - Descriptive VFDB feature burden by metadata group
 - **`vfdb/analysis/vfdb_temporal_summary.csv`** - Descriptive VFDB feature burden by collection year
@@ -270,6 +271,7 @@ output/
 - **`vfdb/analysis/vfdb_group_pairwise_tests.csv`** - VFDB pairwise group comparisons where sample sizes permit
 - **`vfdb/figures/`** - VFDB static figures, burden-by-group plots, interactive HTML files under `html_files/`, and `index.html` navigation
 - **`plasmidfinder/analysis/plasmidfinder_feature_summary.csv`** - PlasmidFinder replicon prevalence and identity summaries
+- **`plasmidfinder/analysis/plasmidfinder_qc_summary.csv`** - PlasmidFinder sample/feature QC metrics, zero-feature sample counts, unmatched sample counts, and top feature list
 - **`plasmidfinder/analysis/plasmidfinder_category_summary.csv`** - Plasmid replicon/category summaries
 - **`plasmidfinder/analysis/plasmidfinder_geographic_summary.csv`** - Descriptive plasmid replicon burden by metadata group
 - **`plasmidfinder/analysis/plasmidfinder_temporal_summary.csv`** - Descriptive plasmid replicon burden by collection year
@@ -280,7 +282,7 @@ output/
 - **`plasmidfinder/analysis/plasmidfinder_group_pairwise_tests.csv`** - PlasmidFinder pairwise group comparisons where sample sizes permit
 - **`plasmidfinder/figures/`** - PlasmidFinder static figures, burden-by-group plots, interactive HTML files under `html_files/`, and `index.html` navigation
 
-The same database-named output pattern is used for `mobileelementfinder/`, `isfinder/`, `integronfinder/`, and `iceberg/`. Each optional mobile genetic element database writes `analysis/`, `figures/`, and `merged_output/` folders with feature summaries, product/category summaries, sample burden, geographic and temporal summaries, co-occurrence tables, group-burden comparisons, static plots, interactive HTML plots, and an `index.html` figure browser.
+The same database-named output pattern is used for `mobileelementfinder/`, `isfinder/`, `integronfinder/`, and `iceberg/`. Each optional mobile genetic element database writes `analysis/`, `figures/`, and `merged_output/` folders with feature summaries, product/category summaries, sample burden, per-database QC summaries, unmatched-sample reports, geographic and temporal summaries, co-occurrence tables, group-burden comparisons, static plots, interactive HTML plots, and an `index.html` figure browser.
 
 VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots.
 

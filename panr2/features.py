@@ -552,6 +552,15 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
         raise ValueError(f"{feature_type} summary must contain #FILE or #File column")
 
     summary_df["Assembly Accession"] = extract_assembly_accessions(summary_df[file_col])
+    if summary_df["Assembly Accession"].isna().all():
+        raise ValueError(
+            f"No GCF_ or GCA_ assembly accessions were found in the {feature_type} summary file column. "
+            "PanR2 preserves assembly version suffixes when present; ensure feature result filenames contain matching accessions."
+        )
+    ncbi_accessions = set(ncbi_df.get("Assembly Accession", pd.Series(dtype=object)).dropna().astype(str))
+    summary_accessions = set(summary_df["Assembly Accession"].dropna().astype(str))
+    unmatched_ncbi = sorted(ncbi_accessions - summary_accessions)
+    unmatched_summary = sorted(summary_accessions - ncbi_accessions)
     merged_df = ncbi_df.merge(summary_df, on="Assembly Accession", how="left").fillna("0")
     feature_cols = _feature_columns(merged_df)
     if not feature_cols:
@@ -619,6 +628,27 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     sample_burden_path = os.path.join(analysis_dir, f"{feature_type}_sample_burden.csv")
     sample_burden.to_csv(sample_burden_path, index=False)
 
+    samples_with_feature = int((sample_burden[f"{feature_type}_feature_count"] > 0).sum())
+    zero_feature_samples = int((sample_burden[f"{feature_type}_feature_count"] == 0).sum())
+    qc_summary = pd.DataFrame([
+        {"metric": "metadata_samples", "value": int(len(ncbi_df)), "detail": "Rows in ncbi_clean.csv."},
+        {"metric": "summary_rows", "value": int(len(summary_df)), "detail": f"Rows in {feature_type} summary input."},
+        {"metric": "samples_with_at_least_one_feature", "value": samples_with_feature, "detail": f"Samples carrying >=1 {feature_type} feature after filtering."},
+        {"metric": "samples_with_zero_features", "value": zero_feature_samples, "detail": f"Samples carrying zero {feature_type} features after filtering."},
+        {"metric": "total_feature_calls", "value": int((numeric > 0).sum().sum()), "detail": "Positive sample-feature calls after filtering."},
+        {"metric": "unique_features", "value": int(len(feature_summary)), "detail": "Unique detected features after filtering."},
+        {"metric": "unmatched_metadata_samples", "value": int(len(unmatched_ncbi)), "detail": "NCBI metadata accessions without matching feature summary rows."},
+        {"metric": "unmatched_feature_summary_samples", "value": int(len(unmatched_summary)), "detail": "Feature summary accessions without matching NCBI metadata."},
+        {"metric": "top_20_features", "value": ";".join(feature_summary.head(20)["feature_id"].astype(str).tolist()) if not feature_summary.empty else "", "detail": "Top detected features by prevalence."},
+    ])
+    qc_summary_path = os.path.join(analysis_dir, f"{feature_type}_qc_summary.csv")
+    qc_summary.to_csv(qc_summary_path, index=False)
+    unmatched_path = os.path.join(analysis_dir, f"{feature_type}_unmatched_samples.csv")
+    pd.DataFrame(
+        [{"source": "ncbi_without_feature_summary", "Assembly Accession": acc} for acc in unmatched_ncbi]
+        + [{"source": "feature_summary_without_ncbi", "Assembly Accession": acc} for acc in unmatched_summary]
+    ).to_csv(unmatched_path, index=False)
+
     geographic_summary_path, geographic_html_path = _write_feature_geographic_summary(feature_type, mode, analysis_dir, figures_dir, tidy, sample_burden)
     temporal_summary_path, temporal_html_path = _write_feature_temporal_summary(feature_type, mode, analysis_dir, figures_dir, sample_burden)
     plot_paths = _write_feature_plots(feature_type, mode, figures_dir, fig_format, tidy, feature_summary, category_summary, sample_burden, sample_col)
@@ -636,6 +666,8 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
         "feature_summary": feature_summary_path,
         "category_summary": category_summary_path,
         "sample_burden": sample_burden_path,
+        "qc_summary": qc_summary_path,
+        "unmatched_samples": unmatched_path,
         "geographic_summary": geographic_summary_path,
         "temporal_summary": temporal_summary_path,
         "geographic_burden_html": geographic_html_path,

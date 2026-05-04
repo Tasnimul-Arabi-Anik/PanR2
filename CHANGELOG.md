@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Per-database optional feature QC summaries and unmatched-sample reports for VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg-style analyses.
+- Explicit assembly accession normalization helpers that preserve GCF/GCA version suffixes by default.
 - Full multi-database workflow validation tests covering NCBI AMR, VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg, QC outputs, reports, static figures, and interactive HTML outputs.
 - Larger 10-sample synthetic multi-database integration fixture to exercise group-level summaries and continent-level analyses without requiring external tools or large datasets.
 - ICEberg table-converter workflow for user-provided ICE/IME/CIME CSV/TSV/TAB annotations with PanR2-compatible feature table conversion and manifest tracking.
@@ -25,6 +27,8 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- IntegronFinder table selection now prefers detailed `.integrons` outputs, then tabular files, and uses `.summary` files only as a logged fallback.
+- Documentation and reports now describe ICEberg support as an ICE/IME/CIME table-conversion workflow rather than a direct ICEberg runner.
 - VFDB and PlasmidFinder outputs now mirror the `ncbi/` folder shape with `analysis/`, `figures/`, `merged_output/`, and interactive HTML figure indexes.
 - AMR/resistome outputs now live under `ncbi/`, leaving top-level output organized as `ncbi/`, `vfdb/`, `plasmidfinder/`, `qc/`, and `report/`.
 - Optional VFDB and PlasmidFinder outputs now use database-named folders (`vfdb/` and `plasmidfinder/`).

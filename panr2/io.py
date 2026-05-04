@@ -24,9 +24,27 @@ def read_table_auto(path):
     sep = "\t" if path.endswith(".tab") else ","
     return pd.read_csv(path, sep=sep)
 
-def extract_assembly_accessions(file_series):
-    """Extract GCF/GCA assembly accessions from ABRicate file paths."""
-    return file_series.astype(str).str.extract(r"((?:GCF|GCA)_\d+(?:\.\d+)?)")[0]
+def normalize_assembly_accession(value, preserve_version=True):
+    """Return a normalized GCF/GCA accession while preserving versions by default."""
+    match = pd.Series([value]).astype(str).str.extract(r"((?:GCF|GCA)_\d+(?:\.\d+)?)")[0].iloc[0]
+    if pd.isna(match):
+        return None
+    if preserve_version:
+        return match
+    return str(match).split(".")[0]
+
+def extract_assembly_accessions(file_series, preserve_version=True):
+    """Extract GCF/GCA assembly accessions from file paths or sample names.
+
+    Version suffixes such as `.1` are retained by default. Use
+    ``preserve_version=False`` only when intentionally performing
+    version-insensitive matching.
+    """
+    pattern = r"((?:GCF|GCA)_\d+(?:\.\d+)?)"
+    accessions = file_series.astype(str).str.extract(pattern)[0]
+    if not preserve_version:
+        accessions = accessions.astype(str).str.split(".").str[0].where(accessions.notna())
+    return accessions
 
 def unique_input_files(files):
     """Return one file per basename, preferring CSV over TAB when both exist."""
@@ -108,4 +126,3 @@ def convert_to_tidy_format(df):
     except Exception as e:
         logging.error(f"Error converting to tidy format: {e}")
         raise
-

@@ -7,6 +7,8 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 
 import pandas as pd
 
+from panr2.io import extract_assembly_accessions, normalize_assembly_accession
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -226,6 +228,13 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertEqual(int(min_identity["after"]), 3)
         self.assertEqual(int(min_identity["removed"]), 3)
 
+    def test_accession_normalization_preserves_versions_by_default(self):
+        values = pd.Series(["/data/GCF_000123456.1_genomic.fna", "GCA_000987654"])
+        accessions = extract_assembly_accessions(values)
+        self.assertEqual(accessions.tolist(), ["GCF_000123456.1", "GCA_000987654"])
+        self.assertEqual(normalize_assembly_accession("GCF_000123456.1"), "GCF_000123456.1")
+        self.assertEqual(normalize_assembly_accession("GCF_000123456.1", preserve_version=False), "GCF_000123456")
+
     def test_comprehensive_analysis_outputs_expected_tables(self):
         with tempfile.TemporaryDirectory() as tmp:
             tidy = self.build_tidy_df(tmp, min_identity=80)
@@ -321,9 +330,13 @@ class PanRAnalysisOutputTests(unittest.TestCase):
             plasmid_pairs = pd.read_csv(plasmid["top_feature_pairs"])
             vf_group = pd.read_csv(vfdb["group_burden_summary"])
             plasmid_group = pd.read_csv(plasmid["group_burden_summary"])
+            vf_qc = pd.read_csv(vfdb["qc_summary"])
+            plasmid_qc = pd.read_csv(plasmid["qc_summary"])
 
             for outputs in [vfdb, plasmid]:
                 self.assertTrue(Path(outputs["feature_prevalence_plot"]).exists())
+                self.assertTrue(Path(outputs["qc_summary"]).exists())
+                self.assertTrue(Path(outputs["unmatched_samples"]).exists())
                 self.assertTrue(Path(outputs["category_prevalence_plot"]).exists())
                 self.assertTrue(Path(outputs["presence_heatmap"]).exists())
                 self.assertTrue(Path(outputs["identity_distribution_plot"]).exists())
@@ -346,6 +359,8 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertIn("jaccard_index", plasmid_pairs.columns)
         self.assertIn("grouping_variable", vf_group.columns)
         self.assertIn("grouping_variable", plasmid_group.columns)
+        self.assertIn("samples_with_at_least_one_feature", set(vf_qc["metric"]))
+        self.assertIn("unmatched_metadata_samples", set(plasmid_qc["metric"]))
 
     def test_optional_mobile_element_feature_analysis(self):
         databases = [
@@ -636,6 +651,7 @@ sys.exit(2)
             self.assertTrue((output_dir / "tool_results" / "iceberg" / "panr2_inputs" / "iceberg_results.tab").exists())
             self.assertTrue((output_dir / "iceberg" / "figures" / "index.html").exists())
             self.assertIn("ICEberg", report_text)
+            self.assertIn("does not run an ICEberg annotation program directly", report_text)
 
     def test_full_fixture_workflow_outputs_all_database_reports(self):
         database_dirs = {
@@ -650,6 +666,8 @@ sys.exit(2)
             "analysis/{db}_feature_summary.csv",
             "analysis/{db}_category_summary.csv",
             "analysis/{db}_sample_burden.csv",
+            "analysis/{db}_qc_summary.csv",
+            "analysis/{db}_unmatched_samples.csv",
             "analysis/{db}_feature_cooccurrence_matrix.csv",
             "analysis/{db}_top_feature_pairs.csv",
             "analysis/{db}_group_burden_summary.csv",
@@ -756,8 +774,10 @@ sys.exit(2)
                     feature_summary = pd.read_csv(output_dir / db / "analysis" / f"{db}_feature_summary.csv")
                     group_summary = pd.read_csv(output_dir / db / "analysis" / f"{db}_group_burden_summary.csv")
                     overall_tests = pd.read_csv(output_dir / db / "analysis" / f"{db}_group_overall_tests.csv")
+                    qc_summary = pd.read_csv(output_dir / db / "analysis" / f"{db}_qc_summary.csv")
                     self.assertGreaterEqual(len(feature_summary), 4)
                     self.assertGreaterEqual(int(feature_summary["present_samples"].max()), 5)
+                    self.assertIn("top_20_features", set(qc_summary["metric"]))
                     self.assertIn("Continent", set(group_summary["grouping_variable"]))
                     self.assertIn("Continent", set(overall_tests["grouping_variable"]))
                     self.assertTrue((output_dir / db / "figures" / f"{db}_mean_burden_by_continent.png").exists())

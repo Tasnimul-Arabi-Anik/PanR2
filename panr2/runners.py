@@ -301,7 +301,24 @@ def _find_integronfinder_table(raw_dir, prefix):
             lower = name.lower()
             if prefix in name and (lower.endswith(".integrons") or lower.endswith(".summary") or lower.endswith(".tsv") or lower.endswith(".tab") or lower.endswith(".csv")):
                 candidates.append(os.path.join(root, name))
-    return sorted(candidates)[0] if candidates else None
+    if not candidates:
+        return None
+
+    def priority(path):
+        lower = path.lower()
+        if lower.endswith(".integrons"):
+            return 0
+        if lower.endswith((".tsv", ".tab", ".csv")):
+            return 1
+        if lower.endswith(".summary"):
+            return 2
+        return 3
+
+    selected = sorted(candidates, key=lambda path: (priority(path), path))[0]
+    logging.info("Selected IntegronFinder table for %s: %s", prefix, selected)
+    if priority(selected) == 2:
+        logging.warning("Using IntegronFinder summary file for %s because no detailed .integrons/TSV/TAB/CSV table was found.", prefix)
+    return selected
 
 
 def _integron_feature_id(row):

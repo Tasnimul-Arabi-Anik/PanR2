@@ -260,6 +260,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             feature_summary = _read_csv(outputs.get("feature_summary", ""))
             category_summary = _read_csv(outputs.get("category_summary", ""))
             sample_burden = _read_csv(outputs.get("sample_burden", ""))
+            feature_qc = _read_csv(outputs.get("qc_summary", ""))
             geographic_summary = _read_csv(outputs.get("geographic_summary", ""))
             temporal_summary = _read_csv(outputs.get("temporal_summary", ""))
             top_pairs = _read_csv(outputs.get("top_feature_pairs", ""))
@@ -276,7 +277,15 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             lines.append(
                 f"The {label} module detected {feature_count} feature(s), with {carrying_samples} sample(s) carrying at least one {label} feature."
             )
+            if feature_type == "iceberg":
+                lines.append("")
+                lines.append(
+                    "The ICEberg module is treated as ICEberg-style feature analysis. PanR2 converts user-provided ICE/IME/CIME annotation tables or ABRicate-style ICEberg inputs into database-specific summaries; it does not run an ICEberg annotation program directly."
+                )
             lines.append("")
+            lines.append(f"### {label} QC Summary")
+            lines.append(_markdown_table(feature_qc, ["metric", "value", "detail"], max_rows=25))
+            lines.append(f"### {label} Top Features")
             lines.append(_markdown_table(feature_summary, ["feature_id", "feature_category", "present_samples", "prevalence_percentage", "mean_identity", "min_identity", "max_identity"], max_rows=20))
             lines.append(f"### {label} Categories")
             lines.append(_markdown_table(category_summary, ["feature_category", "present_samples", "prevalence_percentage", "unique_features"], max_rows=20))
@@ -363,6 +372,8 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
                 "feature_summary",
                 "category_summary",
                 "sample_burden",
+                "qc_summary",
+                "unmatched_samples",
                 "geographic_summary",
                 "temporal_summary",
                 "feature_cooccurrence_matrix",
@@ -405,7 +416,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
-        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit."
+        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg-style analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, database-specific QC summaries, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit. ICEberg-style analysis uses user-provided ICE/IME/CIME annotations or ABRicate-style inputs converted to PanR2 feature tables; PanR2 does not run an ICEberg annotation program directly."
     )
     lines.append("")
 
