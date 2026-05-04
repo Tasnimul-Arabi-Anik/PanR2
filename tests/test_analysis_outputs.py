@@ -40,6 +40,181 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         tidy = tidy.merge(results, left_on="Gene", right_on="GENE", how="left").drop(columns=["GENE"])
         return tidy
 
+    def write_larger_fixture(self, root):
+        root = Path(root)
+        accessions = [f"GCF_10000{i}.1" for i in range(1, 11)]
+        sample_rows = [
+            (accessions[0], "SAMN100001", "United States", "North America", "Northern America", "2020", "clinical"),
+            (accessions[1], "SAMN100002", "United States", "North America", "Northern America", "2021", "clinical"),
+            (accessions[2], "SAMN100003", "Canada", "North America", "Northern America", "2022", "environmental"),
+            (accessions[3], "SAMN100004", "Mexico", "North America", "Central America", "2023", "food"),
+            (accessions[4], "SAMN100005", "Mexico", "North America", "Central America", "2024", "clinical"),
+            (accessions[5], "SAMN100006", "Bangladesh", "Asia", "Southern Asia", "2020", "clinical"),
+            (accessions[6], "SAMN100007", "Bangladesh", "Asia", "Southern Asia", "2021", "food"),
+            (accessions[7], "SAMN100008", "India", "Asia", "Southern Asia", "2022", "clinical"),
+            (accessions[8], "SAMN100009", "India", "Asia", "Southern Asia", "2023", "environmental"),
+            (accessions[9], "SAMN100010", "Thailand", "Asia", "South-eastern Asia", "2024", "clinical"),
+        ]
+        ncbi_dir = root / "ncbi"
+        ncbi_dir.mkdir(parents=True)
+        ncbi_lines = [
+            "Assembly Accession,Assembly BioSample Accession,Organism Name,Geographic Location,Continent,Subcontinent,Collection Date,Host,Isolation Source,Submitter,Assembly Level,Genome Representation,RefSeq Category"
+        ]
+        for accession, biosample, country, continent, subcontinent, year, source in sample_rows:
+            ncbi_lines.append(
+                f"{accession},{biosample},Example bacterium,{country},{continent},{subcontinent},{year},Homo sapiens,{source},Example Lab,Complete Genome,Full,na"
+            )
+        (ncbi_dir / "ncbi_clean.csv").write_text("\n".join(ncbi_lines) + "\n")
+
+        def write_abricate_pair(db, features, hit_map, metadata, include_resistance=False):
+            db_dir = root / db
+            db_dir.mkdir(parents=True, exist_ok=True)
+            summary_lines = ["#FILE\tNUM_FOUND\t" + "\t".join(features)]
+            result_header = "#FILE\tSEQUENCE\tSTART\tEND\tGENE\tCOVERAGE\tCOVERAGE_MAP\tGAPS\t%COVERAGE\t%IDENTITY\tDATABASE\tACCESSION\tPRODUCT"
+            if include_resistance:
+                result_header += "\tRESISTANCE"
+            result_lines = [result_header]
+            for sample_index, accession in enumerate(accessions, start=1):
+                calls = hit_map.get(accession, {})
+                values = [str(calls.get(feature, 0)) for feature in features]
+                found = sum(1 for value in values if float(value) > 0)
+                file_path = f"/synthetic/{accession}.fna"
+                summary_lines.append(f"{file_path}\t{found}\t" + "\t".join(values))
+                for feature_index, feature in enumerate(features, start=1):
+                    identity = calls.get(feature, 0)
+                    if float(identity) <= 0:
+                        continue
+                    product, category = metadata[feature]
+                    start = 100 + feature_index * 100
+                    end = start + 799
+                    fields = [
+                        file_path,
+                        f"contig{sample_index}",
+                        str(start),
+                        str(end),
+                        feature,
+                        "1-800/800",
+                        "=",
+                        "0/0",
+                        "100.00",
+                        str(identity),
+                        db,
+                        f"{db.upper()}{feature_index:03d}",
+                        product,
+                    ]
+                    if include_resistance:
+                        fields.append(category)
+                    result_lines.append("\t".join(fields))
+            (db_dir / f"{db}_summary.tab").write_text("\n".join(summary_lines) + "\n")
+            (db_dir / f"{db}_results.tab").write_text("\n".join(result_lines) + "\n")
+            return db_dir
+
+        def calls(patterns):
+            return {accessions[index]: values for index, values in patterns.items()}
+
+        ncbi_hits = calls({
+            0: {"blaA": 97.5, "tetB": 95.0},
+            1: {"blaA": 96.1, "sul1": 94.0},
+            2: {"tetB": 93.5},
+            3: {"blaA": 95.2, "qnrS": 92.0},
+            4: {"blaA": 98.0, "tetB": 91.0, "sul1": 93.0},
+            5: {"tetB": 96.0, "sul1": 95.5},
+            6: {"blaA": 94.0, "qnrS": 93.2},
+            7: {"tetB": 97.1, "qnrS": 94.4},
+            8: {"sul1": 96.3},
+            9: {"blaA": 95.8, "tetB": 92.6, "qnrS": 91.5},
+        })
+        write_abricate_pair(
+            "abricate",
+            ["blaA", "tetB", "sul1", "qnrS"],
+            ncbi_hits,
+            {
+                "blaA": ("beta-lactamase", "beta-lactam"),
+                "tetB": ("tetracycline efflux pump", "tetracycline"),
+                "sul1": ("sulfonamide resistance protein", "sulfonamide"),
+                "qnrS": ("quinolone resistance protein", "quinolone"),
+            },
+            include_resistance=True,
+        )
+
+        feature_specs = {
+            "vfdb": (
+                ["espA", "stx2", "fimH", "iutA"],
+                {
+                    "espA": ("type III secretion protein", "virulence"),
+                    "stx2": ("Shiga toxin", "virulence"),
+                    "fimH": ("type 1 fimbrial adhesin", "virulence"),
+                    "iutA": ("aerobactin receptor", "virulence"),
+                },
+            ),
+            "plasmidfinder": (
+                ["IncFIB", "IncI1", "IncX3", "ColRNAI"],
+                {
+                    "IncFIB": ("IncFIB plasmid replicon", "plasmid"),
+                    "IncI1": ("IncI1 plasmid replicon", "plasmid"),
+                    "IncX3": ("IncX3 plasmid replicon", "plasmid"),
+                    "ColRNAI": ("ColRNAI plasmid replicon", "plasmid"),
+                },
+            ),
+            "mobileelementfinder": (
+                ["Tn3", "IS26", "IS6100", "Tn21"],
+                {
+                    "Tn3": ("Tn3-family transposon", "mge"),
+                    "IS26": ("IS6-family insertion sequence", "mge"),
+                    "IS6100": ("IS6-family insertion sequence", "mge"),
+                    "Tn21": ("Tn21-family transposon", "mge"),
+                },
+            ),
+            "isfinder": (
+                ["IS26", "ISEcp1", "IS6100", "IS903"],
+                {
+                    "IS26": ("IS6-family insertion sequence", "mge"),
+                    "ISEcp1": ("ISEcp1 insertion sequence", "mge"),
+                    "IS6100": ("IS6-family insertion sequence", "mge"),
+                    "IS903": ("IS5-family insertion sequence", "mge"),
+                },
+            ),
+            "integronfinder": (
+                ["complete_integron_intI1", "attC1", "CALIN", "In0"],
+                {
+                    "complete_integron_intI1": ("class 1 complete integron", "mge"),
+                    "attC1": ("attC recombination site", "mge"),
+                    "CALIN": ("cluster of attC sites lacking integrase", "mge"),
+                    "In0": ("integron integrase without cassette", "mge"),
+                },
+            ),
+            "iceberg": (
+                ["ICEKp1", "IME1", "CIME1", "Tn916"],
+                {
+                    "ICEKp1": ("integrative conjugative element", "mge"),
+                    "IME1": ("integrative mobilizable element", "mge"),
+                    "CIME1": ("cis-mobilizable element", "mge"),
+                    "Tn916": ("conjugative transposon", "mge"),
+                },
+            ),
+        }
+        shared_patterns = [
+            {0: 96.0, 1: 94.0},
+            {0: 95.0, 2: 92.5},
+            {1: 93.0},
+            {0: 94.5, 3: 91.0},
+            {0: 96.5, 1: 92.0, 2: 94.0},
+            {1: 95.5, 2: 93.0},
+            {0: 93.0, 3: 92.5},
+            {1: 96.0, 3: 94.0},
+            {2: 95.0},
+            {0: 94.0, 1: 92.0, 3: 91.5},
+        ]
+        dirs = {"ncbi": ncbi_dir, "abricate": root / "abricate"}
+        for db, (features, metadata) in feature_specs.items():
+            hit_map = {}
+            for sample_index, pattern in enumerate(shared_patterns):
+                hit_map[accessions[sample_index]] = {
+                    features[feature_index]: identity for feature_index, identity in pattern.items()
+                }
+            dirs[db] = write_abricate_pair(db, features, hit_map, metadata)
+        return dirs
+
     def test_filter_report_tracks_removed_identity_calls(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.build_tidy_df(tmp, min_identity=90)
@@ -531,6 +706,62 @@ sys.exit(2)
                     for relative_path in required_feature_outputs:
                         expected = output_dir / db / relative_path.format(db=db)
                         self.assertTrue(expected.exists(), str(expected))
+
+    def test_larger_fixture_workflow_exercises_group_statistics(self):
+        optional_databases = [
+            "vfdb",
+            "plasmidfinder",
+            "mobileelementfinder",
+            "isfinder",
+            "integronfinder",
+            "iceberg",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fixture_dirs = self.write_larger_fixture(tmp_path / "fixture")
+            output_dir = tmp_path / "panr2_output"
+            self.panr.main(
+                str(fixture_dirs["ncbi"]),
+                str(fixture_dirs["abricate"]),
+                str(output_dir),
+                "png",
+                1,
+                0,
+                min_identity=90,
+                min_samples_per_group=5,
+                core_threshold=70,
+                rare_threshold=30,
+                top_n=10,
+                cooccurrence_min_prevalence=0,
+                cooccurrence_top_n=10,
+                vfdb_dir=str(fixture_dirs["vfdb"]),
+                plasmidfinder_dir=str(fixture_dirs["plasmidfinder"]),
+                mobileelementfinder_dir=str(fixture_dirs["mobileelementfinder"]),
+                isfinder_dir=str(fixture_dirs["isfinder"]),
+                integronfinder_dir=str(fixture_dirs["integronfinder"]),
+                iceberg_dir=str(fixture_dirs["iceberg"]),
+            )
+
+            report_path = sorted((output_dir / "report").glob("*_panr2_report.md"))[0]
+            report_text = report_path.read_text()
+            ncbi_burden = pd.read_csv(output_dir / "ncbi" / "analysis" / "abricate_sample_resistome_burden.csv")
+            self.assertEqual(len(ncbi_burden), 10)
+            self.assertIn("North America", set(ncbi_burden["Continent"]))
+            self.assertIn("Asia", set(ncbi_burden["Continent"]))
+            self.assertTrue((output_dir / "ncbi" / "figures" / "html_files" / "Continent_correlation_plot.html").exists())
+            self.assertIn("## Optional Database Feature Analysis", report_text)
+
+            for db in optional_databases:
+                with self.subTest(database=db):
+                    feature_summary = pd.read_csv(output_dir / db / "analysis" / f"{db}_feature_summary.csv")
+                    group_summary = pd.read_csv(output_dir / db / "analysis" / f"{db}_group_burden_summary.csv")
+                    overall_tests = pd.read_csv(output_dir / db / "analysis" / f"{db}_group_overall_tests.csv")
+                    self.assertGreaterEqual(len(feature_summary), 4)
+                    self.assertGreaterEqual(int(feature_summary["present_samples"].max()), 5)
+                    self.assertIn("Continent", set(group_summary["grouping_variable"]))
+                    self.assertIn("Continent", set(overall_tests["grouping_variable"]))
+                    self.assertTrue((output_dir / db / "figures" / f"{db}_mean_burden_by_continent.png").exists())
+                    self.assertTrue((output_dir / db / "figures" / "html_files" / f"{db}_mean_burden_by_continent.html").exists())
 
 
 if __name__ == "__main__":
