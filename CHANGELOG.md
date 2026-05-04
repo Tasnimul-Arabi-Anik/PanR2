@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Full multi-database workflow validation tests covering NCBI AMR, VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg, QC outputs, reports, static figures, and interactive HTML outputs.
+- Larger 10-sample synthetic multi-database integration fixture to exercise group-level summaries and continent-level analyses without requiring external tools or large datasets.
 - ICEberg table-converter workflow for user-provided ICE/IME/CIME CSV/TSV/TAB annotations with PanR2-compatible feature table conversion and manifest tracking.
 - Integrated IntegronFinder runner mode with raw output preservation, PanR2-compatible feature table conversion, and manifest tracking.
 - Integrated MobileElementFinder runner mode with raw CSV preservation, PanR2-compatible feature table conversion, and manifest tracking.
