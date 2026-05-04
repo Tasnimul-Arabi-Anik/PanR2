@@ -462,6 +462,76 @@ sys.exit(2)
             self.assertTrue((output_dir / "iceberg" / "figures" / "index.html").exists())
             self.assertIn("ICEberg", report_text)
 
+    def test_full_fixture_workflow_outputs_all_database_reports(self):
+        database_dirs = {
+            "vfdb": "vfdb",
+            "plasmidfinder": "plasmidfinder",
+            "mobileelementfinder": "mobileelementfinder",
+            "isfinder": "isfinder",
+            "integronfinder": "integronfinder",
+            "iceberg": "iceberg",
+        }
+        required_feature_outputs = [
+            "analysis/{db}_feature_summary.csv",
+            "analysis/{db}_category_summary.csv",
+            "analysis/{db}_sample_burden.csv",
+            "analysis/{db}_feature_cooccurrence_matrix.csv",
+            "analysis/{db}_top_feature_pairs.csv",
+            "analysis/{db}_group_burden_summary.csv",
+            "analysis/{db}_group_overall_tests.csv",
+            "merged_output/{db}_merged.csv",
+            "merged_output/{db}_tidy.csv",
+            "figures/{db}_feature_prevalence.png",
+            "figures/{db}_category_prevalence.png",
+            "figures/{db}_presence_heatmap.png",
+            "figures/{db}_identity_distribution.png",
+            "figures/{db}_feature_cooccurrence_heatmap.png",
+            "figures/html_files/{db}_feature_prevalence.html",
+            "figures/html_files/{db}_category_prevalence.html",
+            "figures/html_files/{db}_presence_heatmap.html",
+            "figures/html_files/{db}_identity_distribution.html",
+            "figures/html_files/{db}_feature_cooccurrence_heatmap.html",
+            "figures/index.html",
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / "panr2_output"
+            self.panr.main(
+                str(REPO_ROOT / "tests" / "fixtures" / "ncbi"),
+                str(REPO_ROOT / "tests" / "fixtures" / "abricate"),
+                str(output_dir),
+                "png",
+                1,
+                0,
+                min_identity=90,
+                min_samples_per_group=2,
+                core_threshold=75,
+                rare_threshold=25,
+                top_n=10,
+                cooccurrence_min_prevalence=0,
+                cooccurrence_top_n=10,
+                vfdb_dir=str(REPO_ROOT / "tests" / "fixtures" / "vfdb"),
+                plasmidfinder_dir=str(REPO_ROOT / "tests" / "fixtures" / "plasmidfinder"),
+                mobileelementfinder_dir=str(REPO_ROOT / "tests" / "fixtures" / "mobileelementfinder"),
+                isfinder_dir=str(REPO_ROOT / "tests" / "fixtures" / "isfinder"),
+                integronfinder_dir=str(REPO_ROOT / "tests" / "fixtures" / "integronfinder"),
+                iceberg_dir=str(REPO_ROOT / "tests" / "fixtures" / "iceberg"),
+            )
+
+            report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
+            self.assertTrue((output_dir / "report" / "ncbi_panr2_report.html").exists())
+            self.assertTrue((output_dir / "qc" / "panr2_input_qc.csv").exists())
+            self.assertTrue((output_dir / "ncbi" / "analysis" / "ncbi_gene_prevalence_summary.csv").exists())
+            self.assertTrue((output_dir / "ncbi" / "figures" / "index.html").exists())
+            self.assertIn("## Optional Database Feature Analysis", report_text)
+
+            for db in database_dirs:
+                with self.subTest(database=db):
+                    self.assertIn(db, report_text)
+                    for relative_path in required_feature_outputs:
+                        expected = output_dir / db / relative_path.format(db=db)
+                        self.assertTrue(expected.exists(), str(expected))
+
 
 if __name__ == "__main__":
     unittest.main()
