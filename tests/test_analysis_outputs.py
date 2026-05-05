@@ -724,6 +724,46 @@ sys.exit(2)
 
         with tempfile.TemporaryDirectory() as tmp:
             output_dir = Path(tmp) / "panr2_output"
+            (output_dir / "qc").mkdir(parents=True)
+            (output_dir / "ani" / "analysis").mkdir(parents=True)
+            (output_dir / "quast" / "analysis").mkdir(parents=True)
+            (output_dir / "qc" / "qc_master_report.csv").write_text(
+                "Assembly Accession,sequence_file,qc_master_status,qc_master_fail_reasons,qc_master_warning_reasons,checkm2_completeness,checkm2_contamination,quast_n50,quast_num_contigs,ani_cluster,ani_cluster_representative,ani_closest_genome,ani_closest_ani,ani_species_consistency_status\n"
+                "GCF_000001.1,GCF_000001.1.fna,PASS,,,99.1,0.5,120000,18,ANI_CLUSTER_0001,GCF_000001.1,GCA_000002.1,99.95,PASS\n"
+                "GCA_000002.1,GCA_000002.1.fna,PASS,,,98.4,0.8,110000,21,ANI_CLUSTER_0001,GCF_000001.1,GCF_000001.1,99.95,PASS\n"
+                "GCF_000003.1,GCF_000003.1.fna,WARN,,ani_species_warning:93.2<95,92.0,1.5,35000,180,ANI_CLUSTER_0002,GCF_000003.1,GCA_000004.1,93.2,WARN\n"
+                "GCA_000004.1,GCA_000004.1.fna,FAIL,max_contigs:420>300,,88.0,4.5,24000,420,ANI_CLUSTER_0003,GCA_000004.1,GCF_000003.1,93.2,WARN\n"
+            )
+            (output_dir / "qc" / "excluded_for_panr2.csv").write_text(
+                "Assembly Accession,qc_master_status,qc_master_fail_reasons\n"
+                "GCA_000004.1,FAIL,max_contigs:420>300\n"
+            )
+            (output_dir / "ani" / "analysis" / "closest_genome.csv").write_text(
+                "genome,closest_genome,closest_ani,species_consistency_status\n"
+                "GCF_000001.1,GCA_000002.1,99.95,PASS\n"
+                "GCA_000002.1,GCF_000001.1,99.95,PASS\n"
+                "GCF_000003.1,GCA_000004.1,93.2,WARN\n"
+                "GCA_000004.1,GCF_000003.1,93.2,WARN\n"
+            )
+            (output_dir / "ani" / "analysis" / "duplicate_clusters.csv").write_text(
+                "ani_cluster,representative,genome,cluster_size,duplicate_threshold\n"
+                "ANI_CLUSTER_0001,GCF_000001.1,GCF_000001.1,2,99.9\n"
+                "ANI_CLUSTER_0001,GCF_000001.1,GCA_000002.1,2,99.9\n"
+                "ANI_CLUSTER_0002,GCF_000003.1,GCF_000003.1,1,99.9\n"
+                "ANI_CLUSTER_0003,GCA_000004.1,GCA_000004.1,1,99.9\n"
+            )
+            (output_dir / "ani" / "analysis" / "ani_outliers.csv").write_text(
+                "genome,closest_genome,closest_ani,reason\n"
+                "GCF_000003.1,GCA_000004.1,93.2,closest_ani_below_95\n"
+                "GCA_000004.1,GCF_000003.1,93.2,closest_ani_below_95\n"
+            )
+            (output_dir / "quast" / "analysis" / "assembly_qc.csv").write_text(
+                "assembly_accession,quast_assembly,quast_num_contigs,quast_total_length,quast_largest_contig,quast_n50,quast_gc_percent,quast_ns_per_100kbp\n"
+                "GCF_000001.1,GCF_000001.1.fna,18,3900000,700000,120000,39.1,0\n"
+                "GCA_000002.1,GCA_000002.1.fna,21,3910000,690000,110000,39.2,0\n"
+                "GCF_000003.1,GCF_000003.1.fna,180,3700000,120000,35000,38.5,5\n"
+                "GCA_000004.1,GCA_000004.1.fna,420,3600000,80000,24000,38.3,10\n"
+            )
             self.panr.main(
                 str(REPO_ROOT / "tests" / "fixtures" / "ncbi"),
                 str(REPO_ROOT / "tests" / "fixtures" / "abricate"),
@@ -770,8 +810,12 @@ sys.exit(2)
             self.assertTrue((output_dir / "cross_database" / "figures" / "html_files" / "cross_database_feature_network.html").exists())
             self.assertTrue((output_dir / "cross_database" / "figures" / "plot_readability_warnings.csv").exists())
             self.assertTrue((output_dir / "temporal" / "analysis" / "temporal_feature_trends.csv").exists())
+            self.assertTrue((output_dir / "panresistome_context" / "analysis" / "qc_context_sample_burden.csv").exists())
+            self.assertTrue((output_dir / "panresistome_context" / "analysis" / "duplicate_cluster_summary.csv").exists())
+            self.assertTrue((output_dir / "panresistome_context" / "analysis" / "burden_by_ani_cluster.csv").exists())
             self.assertIn("## Optional Database Feature Analysis", report_text)
             self.assertIn("## Cross-Database Comparative Genomics", report_text)
+            self.assertIn("## PanResistome QC, ANI, and Assembly Context", report_text)
             self.assertIn("## Citations and Software Versions", report_text)
             self.assertIn("plasmid localization", report_text)
 
@@ -779,6 +823,8 @@ sys.exit(2)
             amr_mge = pd.read_csv(output_dir / "cross_database" / "analysis" / "amr_mge_associations.csv")
             integrated_burden = pd.read_csv(output_dir / "cross_database" / "analysis" / "sample_integrated_feature_burden.csv")
             temporal_trends = pd.read_csv(output_dir / "temporal" / "analysis" / "temporal_feature_trends.csv")
+            qc_context = pd.read_csv(output_dir / "panresistome_context" / "analysis" / "qc_context_sample_burden.csv")
+            duplicate_summary = pd.read_csv(output_dir / "panresistome_context" / "analysis" / "duplicate_cluster_summary.csv")
             dashboard_text = (output_dir / "report" / "index.html").read_text()
             self.assertIn("phi_coefficient", cross_pairs.columns)
             self.assertIn("q_value", cross_pairs.columns)
@@ -799,8 +845,13 @@ sys.exit(2)
             self.assertIn("p_value", amr_mge.columns)
             self.assertIn("q_value", amr_mge.columns)
             self.assertIn("total_mobileome_count", integrated_burden.columns)
+            self.assertIn("qc_master_status", qc_context.columns)
+            self.assertIn("amr_feature_count", qc_context.columns)
+            self.assertIn("mean_amr_feature_count", duplicate_summary.columns)
             self.assertIn("Recommended Outputs To Inspect First", dashboard_text)
             self.assertIn("sample/genome", dashboard_text)
+            self.assertIn("PanResistome QC / ANI / QUAST context", dashboard_text)
+            self.assertIn("Feature burden by ANI cluster", dashboard_text)
 
             for db in database_dirs:
                 with self.subTest(database=db):

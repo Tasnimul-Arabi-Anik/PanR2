@@ -38,7 +38,8 @@ def _section_links(output_dir, links):
     return "<ul>" + "\n".join(items) + "</ul>"
 
 
-def _module_status(feature_outputs, cross_database_outputs, temporal_outputs):
+def _module_status(feature_outputs, cross_database_outputs, temporal_outputs, panresistome_context_outputs=None):
+    panresistome_context_outputs = panresistome_context_outputs or {}
     modules = [{"module": "amr", "label": MODULE_LABELS["amr"], "status": "used"}]
     for key in ["vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "mlst", "defensefinder", "prophage"]:
         modules.append({
@@ -61,21 +62,27 @@ def _module_status(feature_outputs, cross_database_outputs, temporal_outputs):
         "label": "Advanced temporal trends",
         "status": "used" if temporal_outputs else "not generated",
     })
+    modules.append({
+        "module": "panresistome_context",
+        "label": "PanResistome QC / ANI / QUAST context",
+        "status": "used" if panresistome_context_outputs else "not detected",
+    })
     return modules
 
 
-def write_dashboard(output_dir, base_name, feature_outputs=None, cross_database_outputs=None, citation_outputs=None, temporal_outputs=None, panr2_version="unknown"):
+def write_dashboard(output_dir, base_name, feature_outputs=None, cross_database_outputs=None, citation_outputs=None, temporal_outputs=None, panresistome_context_outputs=None, panr2_version="unknown"):
     """Write the top-level HTML dashboard users should open first."""
     feature_outputs = feature_outputs or {}
     cross_database_outputs = cross_database_outputs or {}
     citation_outputs = citation_outputs or {}
     temporal_outputs = temporal_outputs or {}
+    panresistome_context_outputs = panresistome_context_outputs or {}
     report_dir = os.path.join(output_dir, "report")
     os.makedirs(report_dir, exist_ok=True)
     dashboard_path = os.path.join(report_dir, "index.html")
 
     module_rows = []
-    for row in _module_status(feature_outputs, cross_database_outputs, temporal_outputs):
+    for row in _module_status(feature_outputs, cross_database_outputs, temporal_outputs, panresistome_context_outputs):
         status_class = "used" if row["status"] == "used" else "missing"
         module_rows.append(
             f"<tr><td>{html.escape(row['label'])}</td><td class='{status_class}'>{html.escape(row['status'])}</td></tr>"
@@ -84,12 +91,16 @@ def write_dashboard(output_dir, base_name, feature_outputs=None, cross_database_
     recommended = [
         ("qc/panr2_input_qc_summary.txt", "QC summary"),
         ("qc/metadata_bias_warning.txt", "Metadata bias warning"),
+        ("qc/qc_master_report.csv", "PanResistome QC master report"),
+        ("panresistome_context/analysis/qc_context_sample_burden.csv", "QC context with feature burden"),
+        ("panresistome_context/analysis/burden_by_ani_cluster.csv", "Feature burden by ANI cluster"),
         ("cross_database/analysis/amr_mge_associations.csv", "AMR-MGE associations"),
         ("cross_database/analysis/amr_plasmid_associations.csv", "AMR-plasmid associations"),
         ("cross_database/analysis/cross_database_top_associations.csv", "Top cross-database associations"),
         ("cross_database/figures/html_files/cross_database_feature_network.html", "Cross-database network"),
         ("temporal/analysis/temporal_feature_trends.csv", "Temporal feature trends"),
         ("mlst/analysis/st_feature_burden_summary.csv", "MLST feature-burden summary"),
+        ("panresistome_context/analysis/duplicate_cluster_summary.csv", "Representative and duplicate clusters"),
         ("report/citations.md", "Citations"),
         ("report/software_versions.csv", "Software versions"),
     ]
@@ -163,8 +174,30 @@ def write_dashboard(output_dir, base_name, feature_outputs=None, cross_database_
         ('qc/metadata_completeness_report.csv', 'Metadata completeness'),
         ('qc/metadata_group_sample_sizes.csv', 'Metadata group sample sizes'),
         ('qc/metadata_bias_warning.txt', 'Metadata bias warning'),
+        ('qc/qc_master_report.csv', 'PanResistome QC master report'),
+        ('qc/excluded_for_panr2.csv', 'Samples excluded before PanR2'),
         (f'report/{base_name}_panr2_report.md', 'Journal-style Markdown report'),
         (f'report/{base_name}_panr2_report.html', 'Journal-style HTML report'),
+      ])}
+    </section>
+    <section>
+      <h2>PanResistome QC, ANI, And Assembly Context</h2>
+      <p>These panels summarize heavy-tool outputs generated upstream by PanResistome. PanR2 uses them for comparative reporting without requiring FastANI, skani, QUAST, CheckM2, GTDB-Tk, Mash, or other external tools to be installed in the PanR2 environment.</p>
+      {_section_links(output_dir, [
+        ('panresistome_context/analysis/qc_context_sample_burden.csv', 'QC context with PanR2 feature burden'),
+        ('panresistome_context/analysis/qc_master_status_summary.csv', 'QC master status summary'),
+        ('panresistome_context/analysis/qc_feature_correlation_summary.csv', 'QC metric vs feature-burden correlations'),
+        ('panresistome_context/analysis/species_consistency_summary.csv', 'ANI species-consistency summary'),
+        ('panresistome_context/analysis/duplicate_cluster_summary.csv', 'Duplicate cluster summary'),
+        ('panresistome_context/analysis/representative_samples.csv', 'Representative samples'),
+        ('panresistome_context/analysis/burden_by_ani_cluster.csv', 'Feature burden by ANI cluster'),
+        ('panresistome_context/analysis/panresistome_context_manifest.csv', 'Detected PanResistome context files'),
+        ('ani/analysis/closest_genome.csv', 'Closest genome by ANI'),
+        ('ani/analysis/duplicate_clusters.csv', 'Raw ANI duplicate clusters'),
+        ('ani/analysis/ani_outliers.csv', 'ANI outliers'),
+        ('quast/analysis/assembly_qc.csv', 'QUAST assembly QC'),
+        ('assembly_qc/analysis/panr2_quast_summary.csv', 'PanR2-compatible QUAST summary'),
+        ('ani/analysis/panr2_ani_summary.csv', 'PanR2-compatible ANI summary'),
       ])}
     </section>
     <section>

@@ -4,6 +4,9 @@
 
 ### Added
 - `--sample-map` support for mapping local sample IDs or filenames to `Assembly Accession` across ABRicate summaries, MLST, DefenseFinder, prophage, ICEberg-style tables, and PanR2-compatible feature inputs, with per-source QC diagnostics.
+- PanResistome context analysis under `panresistome_context/analysis/`, merging upstream QC master, QUAST, and ANI/dereplication outputs with PanR2 feature-burden tables.
+- PanResistome QC/ANI/QUAST dashboard and report sections covering QC status, AMR burden versus QC metrics, species-consistency screening, duplicate clusters, and representative genomes.
+- Formal PanR2 feature-table input contract in `docs/panr2_input_contract.md` for standardized PanResistome-to-PanR2 handoffs.
 - FDR-adjusted q-values for temporal Mann-Kendall, Spearman, logistic feature-presence, and linear burden trend tests.
 - Built-in MLST, DefenseFinder, prophage, and sample-map fixtures in `panr validate-demo`.
 - Example input templates under `examples/input_templates/` for sample maps, MLST, DefenseFinder, prophage, and ICEberg-style tables.
@@ -53,6 +56,7 @@
 ### Changed
 - Citation output now includes more formal references for VFDB, PlasmidFinder, MobileElementFinder, IntegronFinder, MLST/PubMLST, and DefenseFinder.
 - Documentation now separates recommended stable usage, sample naming/sample-map behavior, and biological interpretation limits.
+- Documentation now explicitly states the long-term split: PanResistome runs heavy bioinformatics tools, while PanR2 analyzes standardized output tables.
 - Cross-database association matrices now keep metadata samples with zero detected features, so `n00` contingency counts include feature-negative genomes.
 - Reports and dashboards now state that sample/genome-level co-occurrence does not prove physical linkage, plasmid localization, horizontal transfer, transfer direction, phenotype, or causality.
 - `environment.yml` now includes optional MLST and DefenseFinder dependencies for integrated-tool environments.

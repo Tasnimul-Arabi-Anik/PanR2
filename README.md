@@ -206,6 +206,8 @@ For publication-oriented analyses, the most reliable workflow is:
 4. Provide `--sample-map` whenever tool outputs use local sample names instead of GCF/GCA assembly accessions.
 5. Run PanR2 for metadata-linked summaries, cross-database associations, temporal trends, figures, dashboard output, citations, and journal-style reporting.
 
+PanR2 and PanResistome share a formal feature-table contract documented in [`docs/panr2_input_contract.md`](docs/panr2_input_contract.md). In short, PanResistome should run heavyweight tools such as CheckM2, GTDB-Tk, QUAST, FastANI/skani, Mash, ABRicate, MLST, DefenseFinder, MobileElementFinder, and IntegronFinder, then export standardized tables. PanR2 should remain the lightweight statistical/reporting layer that reads those tables.
+
 ### Sample Naming And Sample Map
 
 PanR2 preserves assembly accession versions such as `GCF_000123456.1`. If all inputs contain matching GCF/GCA accessions, no sample map is needed. If files or tool outputs use local names such as `sample_001.fna`, provide:
@@ -402,6 +404,8 @@ output/
 ├── temporal/                          # Advanced temporal trend tables and HTML plots
 │   ├── analysis/
 │   └── figures/
+├── panresistome_context/              # Optional PanResistome QC/ANI/QUAST summaries if upstream files are present
+│   └── analysis/
 ├── qc/                                # Shared input validation and filter reports
 └── report/                            # Dashboard, journal-style report, citations, and methods text
 ```
@@ -478,7 +482,21 @@ Cross-database co-occurrence is sample/genome-level only. It does not prove phys
 - **`temporal_burden_trends.csv`** - Linear and Mann-Kendall trend summaries for per-sample feature burdens, including FDR q-values
 - **`temporal_top_feature_trends.html`** - Interactive yearly prevalence trends for selected features
 
-#### 6. Written Report (`report/` directory)
+#### 6. PanResistome QC/ANI/QUAST Context (`panresistome_context/` directory)
+When PanResistome outputs are present in the PanR2 output directory, PanR2 writes lightweight comparative context summaries without requiring those heavy tools to be installed:
+
+- **`qc_context_sample_burden.csv`** - PanResistome QC master metrics merged with PanR2 feature-burden values
+- **`qc_master_status_summary.csv`** - PASS/WARN/FAIL counts from the upstream combined QC decision engine
+- **`qc_feature_correlation_summary.csv`** - Correlations between QC metrics such as completeness, contamination, N50, contig count, ANI, and feature-burden metrics
+- **`species_consistency_summary.csv`** - FastANI/skani species-consistency screening summary
+- **`duplicate_cluster_summary.csv`** - Near-duplicate ANI cluster and representative-genome summary
+- **`representative_samples.csv`** - Representative genomes selected from near-duplicate ANI clusters
+- **`burden_by_ani_cluster.csv`** - AMR, virulence, plasmid, and mobileome burden by ANI cluster
+- **`panresistome_context_manifest.csv`** - PanResistome QC/ANI/QUAST files detected by PanR2
+
+These outputs support checks such as AMR burden versus completeness/contamination, plasmid or MGE burden by ANI cluster, species-mismatch review, duplicate-cluster review, and representative-genome selection. They are descriptive screening summaries and should be interpreted with the upstream PanResistome QC reports.
+
+#### 7. Written Report (`report/` directory)
 - **`index.html`** - Top-level dashboard linking QC, metadata completeness, AMR, optional database outputs, cross-database outputs, temporal trends, figures, citations, and software versions
 - **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables
 - **`*_panr2_report.html`** - Simple HTML rendering of the Markdown report
@@ -486,19 +504,19 @@ Cross-database co-occurrence is sample/genome-level only. It does not prove phys
 - **`citations.md`** and **`citations.bib`** - Run-specific citation files for PanR2 and detected tools/databases
 - **`software_versions.csv`** - PanR2, Python package, and integrated-tool versions when available
 
-#### 7. NCBI/AMR Static Visualizations
+#### 8. NCBI/AMR Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
 - **`Resistance_percentage_by_Antibiotics.{format}`** - Bar plot of resistance by antibiotic classes
 
-#### 8. Heatmaps (`ncbi/figures/heatmap/` directory)
+#### 9. Heatmaps (`ncbi/figures/heatmap/` directory)
 - **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
-#### 9. Mean ARG Analysis (`ncbi/figures/mean_ARG/` directory)
+#### 10. Mean ARG Analysis (`ncbi/figures/mean_ARG/` directory)
 - **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
-#### 10. Interactive HTML Visualizations (`ncbi/figures/html_files/` directory)
+#### 11. Interactive HTML Visualizations (`ncbi/figures/html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
 - **`Resistance_gene_geographic_distribution.html`** - Geographic distribution map
 - **`Resistance_gene_frequency_boxplot.html`** - Interactive frequency analysis
@@ -511,7 +529,7 @@ Cross-database co-occurrence is sample/genome-level only. It does not prove phys
 - **`Geographic_Location_correlation_plot.html`** - Location-based correlations
 - **`Subcontinent_correlation_plot.html`** - Subcontinental correlation patterns
 
-#### 11. Statistical Analysis (`ncbi/figures/Stat_analysis/` directory)
+#### 12. Statistical Analysis (`ncbi/figures/Stat_analysis/` directory)
 - **`combined_geographic_correlation_summary.csv`** - Geographic correlation statistics
 - **`combined_overall_tests.csv`** - Overall statistical test results
 - **`combined_pairwise_comparisons.csv`** - Pairwise comparison results

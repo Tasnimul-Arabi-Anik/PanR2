@@ -96,7 +96,7 @@ def _feature_label(feature_type):
     return labels.get(feature_type.lower(), feature_type.replace("_", " ").title())
 
 
-def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None, cross_database_outputs=None, citation_outputs=None, temporal_outputs=None):
+def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None, cross_database_outputs=None, citation_outputs=None, temporal_outputs=None, panresistome_context_outputs=None):
     """Write a deterministic journal-style PanR2 report."""
     options = options or {}
     input_files = input_files or {}
@@ -104,6 +104,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
     cross_database_outputs = cross_database_outputs or {}
     citation_outputs = citation_outputs or {}
     temporal_outputs = temporal_outputs or {}
+    panresistome_context_outputs = panresistome_context_outputs or {}
     report_dir = os.path.join(output_dir, "report")
     os.makedirs(report_dir, exist_ok=True)
     ncbi_output_dir = ncbi_output_dir or output_dir
@@ -190,6 +191,57 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         )
         lines.append("")
         lines.append(_markdown_table(tool_manifest, ["tool", "version", "database", "database_sequences", "database_date", "results", "summary", "status"], max_rows=30))
+
+    if panresistome_context_outputs:
+        qc_context = _read_csv(panresistome_context_outputs.get("qc_context_sample_burden", ""))
+        qc_status = _read_csv(panresistome_context_outputs.get("qc_master_status_summary", ""))
+        species_summary = _read_csv(panresistome_context_outputs.get("species_consistency_summary", ""))
+        duplicate_summary = _read_csv(panresistome_context_outputs.get("duplicate_cluster_summary", ""))
+        cluster_burden = _read_csv(panresistome_context_outputs.get("burden_by_ani_cluster", ""))
+        correlations = _read_csv(panresistome_context_outputs.get("qc_feature_correlation_summary", ""))
+        representatives = _read_csv(panresistome_context_outputs.get("representative_samples", ""))
+        manifest = _read_csv(panresistome_context_outputs.get("panresistome_context_manifest", ""))
+
+        lines.append("## PanResistome QC, ANI, and Assembly Context")
+        lines.append("")
+        lines.append(
+            "PanResistome is treated as the heavy execution layer for genome download, assembly QC, CheckM2, GTDB-Tk, QUAST, ANI/sketching, and external annotation tools. "
+            "PanR2 summarizes those standardized outputs when they are present, but does not require those external bioinformatics tools to run."
+        )
+        lines.append("")
+        if not qc_status.empty:
+            status_parts = [f"{row['sample_count']} {row['qc_master_status']}" for _, row in qc_status.iterrows() if "sample_count" in row and "qc_master_status" in row]
+            if status_parts:
+                lines.append(f"The PanResistome QC master report classified samples as {_sentence_list(status_parts)}.")
+                lines.append("")
+        lines.append("### QC Master Status")
+        lines.append(_markdown_table(qc_status, ["qc_master_status", "sample_count"], max_rows=10))
+        lines.append("### QC Context and Feature Burden")
+        lines.append(
+            "This table links upstream QC metrics and ANI cluster assignments with PanR2 feature burden values, allowing checks such as AMR burden versus completeness, contamination, assembly fragmentation, or ANI cluster."
+        )
+        lines.append("")
+        lines.append(_markdown_table(qc_context, ["Assembly Accession", "sequence_file", "qc_master_status", "checkm2_completeness", "checkm2_contamination", "quast_n50", "quast_num_contigs", "ani_cluster", "ani_closest_genome", "ani_closest_ani", "amr_feature_count", "plasmid_feature_count", "total_mobileome_count"], max_rows=20))
+        lines.append("### QC Metric and Feature-Burden Correlations")
+        lines.append(_markdown_table(correlations, ["qc_metric", "burden_metric", "n_samples", "pearson_r", "spearman_r"], max_rows=20))
+        lines.append("### ANI Species-Consistency Screen")
+        lines.append(
+            "ANI species-consistency summaries are screening-level checks based on the thresholds selected in PanResistome. Low closest-neighbor ANI can indicate mislabeled samples, mixed datasets, or missing close references."
+        )
+        lines.append("")
+        lines.append(_markdown_table(species_summary, ["ani_species_consistency_status", "sample_count", "ani_outlier_count"], max_rows=10))
+        lines.append("### Near-Duplicate and Representative Genome Clusters")
+        lines.append(
+            "Duplicate clusters support dereplication and representative-genome selection. Representative-only analyses can reduce overcounting when many near-identical assemblies are present."
+        )
+        lines.append("")
+        lines.append(_markdown_table(duplicate_summary, ["ani_cluster", "representative", "cluster_size", "qc_pass_samples", "qc_warn_samples", "qc_fail_samples", "mean_amr_feature_count", "mean_plasmid_feature_count", "mean_total_mobileome_count"], max_rows=20))
+        lines.append("### Feature Burden by ANI Cluster")
+        lines.append(_markdown_table(cluster_burden, ["ani_cluster", "representative", "sample_count", "qc_pass_samples", "qc_warn_samples", "qc_fail_samples", "mean_amr_feature_count", "mean_vfdb_feature_count", "mean_plasmid_feature_count", "mean_total_mobileome_count"], max_rows=20))
+        lines.append("### Representative Samples")
+        lines.append(_markdown_table(representatives, ["ani_cluster", "representative", "genome", "cluster_size", "qc_master_status", "amr_feature_count", "total_mobileome_count"], max_rows=20))
+        lines.append("### Detected PanResistome Context Files")
+        lines.append(_markdown_table(manifest, ["context", "path"], max_rows=20))
 
     lines.append("## Filtering and Analysis Parameters")
     lines.append("")
@@ -468,6 +520,23 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             output_path = cross_database_outputs.get(key)
             if output_path and isinstance(output_path, str) and os.path.exists(output_path):
                 lines.append(f"- `{os.path.relpath(output_path, output_dir)}`")
+    if panresistome_context_outputs:
+        lines.append("")
+        lines.append("PanResistome QC, ANI, assembly, and representative-genome context outputs include:")
+        lines.append("")
+        for key in [
+            "qc_context_sample_burden",
+            "qc_master_status_summary",
+            "qc_feature_correlation_summary",
+            "species_consistency_summary",
+            "duplicate_cluster_summary",
+            "representative_samples",
+            "burden_by_ani_cluster",
+            "panresistome_context_manifest",
+        ]:
+            output_path = panresistome_context_outputs.get(key)
+            if output_path and isinstance(output_path, str) and os.path.exists(output_path):
+                lines.append(f"- `{os.path.relpath(output_path, output_dir)}`")
     lines.append("")
 
     lines.append("## Interpretive Notes and Limitations")
@@ -545,6 +614,13 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         )
         lines.append("")
 
+    if panresistome_context_outputs:
+        lines.append(
+            "For PanResistome context analysis, PanR2 read upstream QC master, QUAST, and ANI/dereplication outputs when present, merged them with PanR2 sample-burden tables by normalized sample or assembly accession, and generated QC/ANI summaries for interpretation. "
+            "These summaries are descriptive screening outputs; they do not replace tool-specific QC review or taxonomy validation."
+        )
+        lines.append("")
+
     if citation_outputs:
         lines.append("## Citations and Software Versions")
         lines.append("")
@@ -613,6 +689,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         cross_database_outputs=cross_database_outputs,
         citation_outputs=citation_outputs,
         temporal_outputs=temporal_outputs,
+        panresistome_context_outputs=panresistome_context_outputs,
         panr2_version=panr2_version,
     )
     return {"markdown": md_path, "html": html_path, "methods": methods_path, **dashboard_outputs}

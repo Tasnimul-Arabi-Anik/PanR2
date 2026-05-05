@@ -27,6 +27,7 @@ from panr2.io import (
 )
 from panr2.metadata import write_metadata_reports
 from panr2.mlst import analyze_mlst, finalize_mlst_analysis, run_mlst
+from panr2.panresistome_context import generate_panresistome_context_outputs
 from panr2.plots import (
     analyze_gene_presence,
     generate_comparison_heatmap,
@@ -643,6 +644,11 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
             if mlst_outputs:
                 mlst_outputs = finalize_mlst_analysis(output_dir, mlst_outputs, cross_database_outputs)
                 optional_feature_outputs["mlst"] = mlst_outputs
+            panresistome_context_outputs = generate_panresistome_context_outputs(
+                output_dir,
+                base_name,
+                cross_database_outputs=cross_database_outputs,
+            )
             
             # Analyze gene prevalence and generate figures
             analyze_gene_presence(tidy_df, figures_dir, base_name, fig_format)
@@ -795,6 +801,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 cross_database_outputs=cross_database_outputs,
                 citation_outputs=citation_outputs,
                 temporal_outputs=temporal_outputs,
+                panresistome_context_outputs=panresistome_context_outputs,
             )
 
         except Exception as e:
