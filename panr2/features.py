@@ -7,7 +7,7 @@ import plotly.express as px
 import seaborn as sns
 from scipy.stats import kruskal, mannwhitneyu
 
-from panr2.io import read_table_auto, resolve_sample_accessions, unique_input_files, write_sample_map_qc
+from panr2.io import normalize_metadata_aliases, read_table_auto, resolve_sample_accessions, unique_input_files, write_sample_map_qc
 
 
 FEATURE_LABELS = {
@@ -230,7 +230,7 @@ def _write_feature_plots(feature_type, mode, figures_dir, fig_format, tidy, feat
 def _write_feature_geographic_summary(feature_type, mode, analysis_dir, figures_dir, tidy, sample_burden):
     count_col = f"{feature_type}_feature_count"
     rows = []
-    for geo_col in ["Geographic Location", "Continent", "Subcontinent"]:
+    for geo_col in ["Geographic Location", "Country", "Continent", "Subcontinent", "Host_SD", "Sample_Type_SD", "Isolation_Source_SD", "Environment_Medium_SD"]:
         if geo_col not in sample_burden.columns or count_col not in sample_burden.columns:
             continue
         for region, sub_df in sample_burden.groupby(geo_col, dropna=False):
@@ -409,7 +409,29 @@ def _write_feature_group_analysis(feature_type, mode, analysis_dir, figures_dir,
     if "Collection Date" in df.columns:
         df["Collection Year"] = pd.to_numeric(df["Collection Date"], errors="coerce").astype("Int64").astype(str).replace("<NA>", "Unknown")
 
-    group_cols = [col for col in ["Geographic Location", "Continent", "Subcontinent", "Collection Year"] if col in df.columns]
+    group_cols = [
+        col for col in [
+            "Geographic Location",
+            "Country",
+            "Continent",
+            "Subcontinent",
+            "Collection Year",
+            "Host_SD",
+            "Host_Rank",
+            "Host_Genus",
+            "Host_Species",
+            "Sample_Type_SD",
+            "Sample_Type_SD_Broad",
+            "Isolation_Source_SD",
+            "Isolation_Source_SD_Broad",
+            "Environment_Medium_SD",
+            "Environment_Medium_SD_Broad",
+            "Environment_Broad_Scale_SD",
+            "Environment_Local_Scale_SD",
+            "Host_Disease_SD",
+            "Host_Health_State_SD",
+        ] if col in df.columns
+    ]
     summary_rows = []
     overall_rows = []
     pairwise_rows = []
@@ -542,7 +564,7 @@ def _write_feature_html_index(feature_type, mode, figures_dir):
 def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, feature_type, mode, min_identity=0.0, fig_format="png", sample_map=None):
     """Analyze an optional ABRicate-style database such as VFDB or PlasmidFinder."""
     summary_path, results_path = find_abricate_feature_files(feature_dir)
-    ncbi_df = pd.read_csv(ncbi_clean_path)
+    ncbi_df = normalize_metadata_aliases(pd.read_csv(ncbi_clean_path))
     summary_df = _read_feature_table(summary_path)
     results_df = _read_feature_table(results_path) if results_path else pd.DataFrame()
 
@@ -625,7 +647,38 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     feature_summary.to_csv(feature_summary_path, index=False)
     category_summary.to_csv(category_summary_path, index=False)
 
-    sample_meta_cols = [col for col in ["Assembly Accession", "Assembly BioSample Accession", "Geographic Location", "Continent", "Subcontinent", "Collection Date"] if col in merged_df.columns]
+    sample_meta_cols = [
+        col for col in [
+            "Assembly Accession",
+            "Assembly BioSample Accession",
+            "Organism Name",
+            "Genus",
+            "Species",
+            "Geographic Location",
+            "Country",
+            "Continent",
+            "Subcontinent",
+            "Collection Date",
+            "Collection_Year",
+            "Collection Year",
+            "Host",
+            "Host_SD",
+            "Host_Rank",
+            "Host_Genus",
+            "Host_Species",
+            "Sample_Type_SD",
+            "Sample_Type_SD_Broad",
+            "Isolation Source",
+            "Isolation_Source_SD",
+            "Isolation_Source_SD_Broad",
+            "Environment_Medium_SD",
+            "Environment_Medium_SD_Broad",
+            "Environment_Broad_Scale_SD",
+            "Environment_Local_Scale_SD",
+            "Host_Disease_SD",
+            "Host_Health_State_SD",
+        ] if col in merged_df.columns
+    ]
     sample_burden = merged_df[sample_meta_cols].copy() if sample_meta_cols else merged_df[["Assembly Accession"]].copy()
     sample_burden[f"{feature_type}_feature_count"] = (numeric > 0).sum(axis=1).astype(int)
     sample_burden_path = os.path.join(analysis_dir, f"{feature_type}_sample_burden.csv")

@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from panr2.io import extract_assembly_accessions, read_table_auto
+from panr2.io import extract_assembly_accessions, normalize_metadata_aliases, read_table_auto
 
 
 def write_input_qc_report(ncbi_clean_path, abricate_summary_file, abricate_results_file, output_dir):
@@ -31,7 +31,7 @@ def write_input_qc_report(ncbi_clean_path, abricate_summary_file, abricate_resul
     ]
     required_results_cols = ["GENE", "RESISTANCE"]
 
-    ncbi_df = read_table_auto(ncbi_clean_path)
+    ncbi_df = normalize_metadata_aliases(read_table_auto(ncbi_clean_path))
     summary_df = read_table_auto(abricate_summary_file)
     results_df = read_table_auto(abricate_results_file)
 
@@ -141,4 +141,3 @@ def write_input_qc_report(ncbi_clean_path, abricate_summary_file, abricate_resul
 
     logging.info(f"Input QC report saved to {checks_path}")
     return checks_path
-

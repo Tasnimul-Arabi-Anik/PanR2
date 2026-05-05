@@ -6,12 +6,12 @@ PanR2 is a comprehensive Python-based tool for analyzing panresistome data (Glob
 It enables robust statistical analysis, including group-wise comparisons, summary statistics, and correlation assessments, to support meaningful interpretation of resistome data. Given sufficient sequencing data, PanR2 can help identify local resistance spread, compare resistance patterns between regions or over time, and detect signals of emerging resistance epidemics. This makes it a valuable tool for surveillance, epidemiology, and public health research.
 
 **Prerequisites:**
-- `ncbi_clean.csv` from [FetchM](https://github.com/Tasnimul-Arabi-Anik/FetchM)
+- `ncbi_clean.csv` from [FetchM2](https://github.com/Tasnimul-Arabi-Anik/FetchM2), PanResistome, or a FetchM-compatible metadata workflow
 - Summary files in `.tab` (preferred) or `.csv` format from [Abricate](https://github.com/tseemann/abricate)
 
 ### Key Features:
-- Merges and analyzes NCBI and Abricate outputs
-- Calculates gene presence/absence across multiple categories (continent, location, subcontinent, collection date)
+- Merges and analyzes standardized metadata and ABRicate outputs
+- Calculates gene presence/absence across multiple categories, including geography, collection year/date, host, sample type, isolation source, environment, and organism metadata when present
 - Performs comprehensive statistical tests and correlation analyses
 - Generates multiple visualization types: heatmaps, bar plots, boxplots, lollipop plots, and correlation plots
 - Creates interactive HTML visualizations for enhanced data exploration
@@ -200,7 +200,7 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --prophage-
 
 For publication-oriented analyses, the most reliable workflow is:
 
-1. Use FetchM/PanResistome or another external workflow to download assemblies, run QC, run annotation tools, and capture tool/database versions.
+1. Use FetchM2/PanResistome or another external workflow to download assemblies, run QC, run annotation tools, and capture tool/database versions.
 2. Keep heavy tools and databases outside PanR2 where possible.
 3. Convert each tool output into PanR2-compatible database folders or table inputs.
 4. Provide `--sample-map` whenever tool outputs use local sample names instead of GCF/GCA assembly accessions.
@@ -241,7 +241,7 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 ### Required Arguments
 | Argument | Description |
 |----------|-------------|
-| `--ncbi-dir` | Directory containing `ncbi_clean.csv` from FetchM |
+| `--ncbi-dir` | Directory containing standardized `ncbi_clean.csv` from FetchM2, PanResistome, or a FetchM-compatible workflow |
 | `--output-dir` | Directory to store merged results and visualizations |
 
 `--abricate-dir` is required for analysis-only mode. It is not required when `--run-abricate` is used with the `ncbi` database.
@@ -418,7 +418,7 @@ output/
 - **`panr2_tool_manifest.csv`** and **`panr2_tool_manifest.json`** - Tool versions, selected databases, database dates/counts where available, and raw output paths for integrated runs
 - **`panr2_unmatched_accessions.csv`** - Accessions present in only one of the NCBI or ABRicate inputs
 - **`*_filter_report.csv`** - Row and ARG-call counts before and after optional analysis filters
-- **`metadata_completeness_report.csv`** - Completeness, missingness, and status for geography, host/source, organism, and FetchM-style standardized metadata fields
+- **`metadata_completeness_report.csv`** - Completeness, missingness, and status for geography, host/source, environment, disease/health, organism, and FetchM2-style standardized metadata fields
 - **`metadata_group_sample_sizes.csv`** - Per-group sample counts and underpowered-group flags for metadata-driven analyses
 - **`metadata_bias_warning.txt`** - Human-readable warnings for incomplete or biased metadata fields
 - **`sample_map_qc_<source>.csv`** and **`sample_map_qc_<source>_summary.txt`** - Sample-map matching diagnostics for each mapped input source

@@ -28,3 +28,9 @@ Every feature-like tool output should be convertible to these columns:
 PanResistome should run heavy tools and export PanR2-ready tables. PanR2 should read these tables, merge them with metadata, and generate statistics, figures, dashboards, citations, and manuscript-style reports without requiring the external tools to be installed.
 
 This split keeps the analysis layer installable with Python while still allowing comprehensive genomics workflows when users run the full PanResistome execution layer.
+
+## Metadata Input
+
+PanR2 accepts the legacy `ncbi_clean.csv` name for compatibility, but the preferred upstream source is FetchM2 through PanResistome. When FetchM2 columns are present, PanR2 preserves and analyzes richer standardized fields such as `Country`, `Continent`, `Subcontinent`, `Collection_Year`, `Host_SD`, host taxonomy columns, `Sample_Type_SD`, `Isolation_Source_SD`, `Environment_Medium_SD`, `Environment_Broad_Scale_SD`, `Environment_Local_Scale_SD`, `Host_Disease_SD`, and metadata audit/status fields.
+
+PanR2 also fills older aliases such as `Geographic Location`, `Collection Date`, `Host`, and `Isolation Source` from FetchM2 fields so existing workflows and figures remain compatible.

@@ -4,6 +4,9 @@ panr2:
 fetchm:
   name: FetchM
   url: https://github.com/Tasnimul-Arabi-Anik/FetchM
+fetchm2:
+  name: FetchM2
+  url: https://github.com/Tasnimul-Arabi-Anik/FetchM2
 abricate:
   name: ABRicate
   url: https://github.com/tseemann/abricate

@@ -2,6 +2,8 @@ import os
 
 import pandas as pd
 
+from panr2.io import normalize_metadata_aliases
+
 
 METADATA_REPORT_COLUMNS = [
     "Assembly Accession",
@@ -10,26 +12,49 @@ METADATA_REPORT_COLUMNS = [
     "Genus",
     "Species",
     "TaxID",
+    "Country",
     "Geographic Location",
     "Continent",
     "Subcontinent",
+    "Collection_Year",
+    "Collection Year",
     "Collection Date",
     "Host",
+    "Host_Original",
+    "Host_Cleaned",
     "Host_SD",
+    "Host_TaxID",
     "Host_Rank",
+    "Host_Superkingdom",
+    "Host_Phylum",
     "Host_Genus",
     "Host_Species",
     "Host_Class",
     "Host_Order",
+    "Host_Family",
+    "Host_Common_Name",
+    "Host_Context_SD",
+    "Host_Match_Method",
+    "Host_Confidence",
+    "Host_Review_Status",
     "Host_Anatomical_Site_SD",
     "Host_Age_Group_SD",
     "Host_Production_Context_SD",
+    "Host_Disease_SD",
+    "Host_Health_State_SD",
     "Isolation Source",
+    "Isolation_Source_SD_Broad",
     "Isolation_Source_SD",
+    "Isolation_Site_SD",
     "Sample_Type_SD",
+    "Sample_Type_SD_Broad",
     "Environment_Medium_SD",
+    "Environment_Medium_SD_Broad",
     "Environment_Broad_Scale_SD",
     "Environment_Local_Scale_SD",
+    "Metadata Fetch Status",
+    "Metadata Fetch Reason",
+    "Metadata Matched Attribute Names",
 ]
 
 
@@ -52,7 +77,7 @@ def write_metadata_reports(ncbi_clean_path, output_dir, min_group_size=5):
             handle.write("Metadata completeness could not be assessed because ncbi_clean.csv was not available.\n")
         return {"metadata_completeness": completeness_path, "metadata_group_sample_sizes": group_sizes_path, "metadata_bias_warning": warning_path}
 
-    df = pd.read_csv(ncbi_clean_path)
+    df = normalize_metadata_aliases(pd.read_csv(ncbi_clean_path))
     total = len(df)
     rows = []
     group_rows = []

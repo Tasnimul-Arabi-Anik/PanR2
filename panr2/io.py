@@ -6,6 +6,13 @@ import pandas as pd
 
 SEQUENCE_SUFFIXES = (".fasta", ".fna", ".fa", ".fas")
 
+METADATA_ALIAS_SOURCES = {
+    "Geographic Location": ["Country", "geographic_location", "country"],
+    "Collection Date": ["Collection_Year", "Collection Year", "collection_year"],
+    "Host": ["Host_SD", "Host_Cleaned", "Host_Original", "host"],
+    "Isolation Source": ["Isolation_Source_SD", "Sample_Type_SD", "Environment_Medium_SD", "isolation_source"],
+}
+
 
 def convert_tab_to_csv(tab_file, csv_file):
     """Convert a .tab file to .csv format.
@@ -25,7 +32,57 @@ def convert_tab_to_csv(tab_file, csv_file):
 def read_table_auto(path):
     """Read CSV or TAB input based on file extension."""
     sep = "\t" if path.endswith((".tab", ".tsv")) else ","
-    return pd.read_csv(path, sep=sep)
+    try:
+        return pd.read_csv(path, sep=sep)
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
+
+
+def normalize_metadata_aliases(df):
+    """Add legacy PanR2 metadata columns from richer FetchM2-style fields when needed."""
+    if df is None or df.empty:
+        return df
+    metadata = df.copy()
+    for target, sources in METADATA_ALIAS_SOURCES.items():
+        if target not in metadata.columns:
+            metadata[target] = ""
+        target_values = metadata[target].fillna("").astype(str).str.strip()
+        for source in sources:
+            if source not in metadata.columns:
+                continue
+            source_values = metadata[source].fillna("").astype(str).str.strip()
+            missing = target_values.eq("") | target_values.str.lower().isin({"nan", "none", "0"})
+            if missing.any():
+                metadata.loc[missing, target] = source_values.loc[missing]
+                target_values = metadata[target].fillna("").astype(str).str.strip()
+    if "Collection Date" in metadata.columns:
+        extracted = metadata["Collection Date"].astype(str).str.extract(r"(\d{4})", expand=False)
+        metadata["Collection Date"] = extracted.fillna(metadata["Collection Date"].astype(str))
+    if "Collection_Year" in metadata.columns and "Collection Year" not in metadata.columns:
+        metadata["Collection Year"] = metadata["Collection_Year"]
+    if "Country" in metadata.columns and "Geographic Location" not in metadata.columns:
+        metadata["Geographic Location"] = metadata["Country"]
+    if "Organism Taxonomic ID" in metadata.columns:
+        if "TaxID" not in metadata.columns:
+            metadata["TaxID"] = metadata["Organism Taxonomic ID"]
+        else:
+            missing_taxid = metadata["TaxID"].fillna("").astype(str).str.strip().eq("")
+            metadata.loc[missing_taxid, "TaxID"] = metadata.loc[missing_taxid, "Organism Taxonomic ID"]
+    if "Organism Name" in metadata.columns:
+        organism = metadata["Organism Name"].fillna("").astype(str).str.strip()
+        genus = organism.str.split().str[0].replace({"nan": "", "None": "", "0": ""})
+        species = organism.str.split().str[:2].str.join(" ").replace({"nan": "", "None": "", "0": ""})
+        if "Genus" not in metadata.columns:
+            metadata["Genus"] = genus
+        else:
+            missing_genus = metadata["Genus"].fillna("").astype(str).str.strip().eq("")
+            metadata.loc[missing_genus, "Genus"] = genus.loc[missing_genus]
+        if "Species" not in metadata.columns:
+            metadata["Species"] = species
+        else:
+            missing_species = metadata["Species"].fillna("").astype(str).str.strip().eq("")
+            metadata.loc[missing_species, "Species"] = species.loc[missing_species]
+    return metadata
 
 
 def _sample_key_variants(value):
@@ -153,7 +210,7 @@ def unique_input_files(files):
 def load_and_merge_data(ncbi_clean_path, abricate_summary_file, sample_map=None, sample_map_qc_dir=None, sample_map_source="abricate"):
     """Load and merge NCBI and Abricate data."""
     try:
-        ncbi_clean_df = pd.read_csv(ncbi_clean_path)
+        ncbi_clean_df = normalize_metadata_aliases(pd.read_csv(ncbi_clean_path))
         abricate_summary_df = pd.read_csv(abricate_summary_file)
         
         # Extract Assembly Accession from the ABRicate file column.

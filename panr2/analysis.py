@@ -38,11 +38,13 @@ def generate_comprehensive_analysis_outputs(
         df["RESISTANCE"] = "Unknown"
     df["RESISTANCE"] = df["RESISTANCE"].fillna("Unknown").replace({"": "Unknown", "0": "Unknown"})
 
-    sample_col = "Assembly BioSample Accession" if "Assembly BioSample Accession" in df.columns else "Assembly Accession"
+    sample_col = "Assembly Accession" if "Assembly Accession" in df.columns else "Assembly BioSample Accession"
     sample_meta_cols = [
         col for col in [
             "Assembly Accession", "Assembly BioSample Accession", "Organism Name", "Geographic Location",
-            "Continent", "Subcontinent", "Collection Date", "Host", "Isolation Source", "NUM_FOUND"
+            "Country", "Continent", "Subcontinent", "Collection Date", "Collection_Year", "Collection Year",
+            "Host", "Host_SD", "Host_Rank", "Host_Genus", "Host_Species", "Isolation Source",
+            "Isolation_Source_SD", "Sample_Type_SD", "Environment_Medium_SD", "NUM_FOUND"
         ]
         if col in df.columns
     ]
@@ -276,4 +278,3 @@ def generate_comprehensive_analysis_outputs(
         "class_cooccurrence_matrix": class_cooc_matrix_path,
         "top_class_pairs": class_cooc_pairs_path,
     }
-

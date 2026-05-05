@@ -18,6 +18,11 @@ CITATION_REGISTRY = {
         "citation": "FetchM metadata standardization workflow.",
         "url": "https://github.com/Tasnimul-Arabi-Anik/FetchM",
     },
+    "fetchm2": {
+        "name": "FetchM2",
+        "citation": "FetchM2 metadata standardization, audit, and sequence-download workflow.",
+        "url": "https://github.com/Tasnimul-Arabi-Anik/FetchM2",
+    },
     "abricate": {
         "name": "ABRicate",
         "citation": "Seemann T. ABRicate: mass screening of contigs for antimicrobial resistance or virulence genes. GitHub repository.",
@@ -103,13 +108,37 @@ def _read_tool_manifest(output_dir):
     return pd.DataFrame()
 
 
+def _metadata_engine_from_input(input_files):
+    ncbi_clean = input_files.get("ncbi_clean")
+    if not ncbi_clean:
+        return ""
+    metadata_dir = os.path.dirname(ncbi_clean)
+    engine_path = os.path.join(metadata_dir, "metadata_engine.txt")
+    if os.path.exists(engine_path):
+        try:
+            with open(engine_path, encoding="utf-8") as handle:
+                return handle.read().strip().lower()
+        except OSError:
+            return ""
+    if os.path.exists(os.path.join(metadata_dir, "fetchm2_clean.csv")):
+        return "fetchm2"
+    try:
+        cols = pd.read_csv(ncbi_clean, nrows=1).columns
+        if any(col in cols for col in ["Host_SD", "Collection_Year", "Metadata Fetch Status", "Host_Review_Status"]):
+            return "fetchm2"
+    except Exception:
+        return ""
+    return ""
+
+
 def _selected_citation_keys(options=None, feature_outputs=None, input_files=None, output_dir=None):
     options = options or {}
     feature_outputs = feature_outputs or {}
     input_files = input_files or {}
     keys = {"panr2", "python"}
     if input_files.get("ncbi_clean") or options.get("ncbi_dir"):
-        keys.add("fetchm")
+        engine = _metadata_engine_from_input(input_files)
+        keys.add("fetchm2" if engine == "fetchm2" else "fetchm")
     if options.get("abricate_dir") or options.get("run_abricate") or input_files.get("abricate_summary"):
         keys.update({"abricate", "ncbi"})
     for feature_type in feature_outputs:

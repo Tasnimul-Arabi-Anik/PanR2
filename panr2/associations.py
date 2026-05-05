@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import fisher_exact
 
+from panr2.io import normalize_metadata_aliases
 from panr2.viz import crowding_warning_row, label_map, label_warning_rows, plot_style_config
 
 
@@ -38,25 +39,44 @@ DATABASE_COLORS = {
 }
 
 METADATA_COLUMNS = [
+    "Country",
     "Geographic Location",
     "Continent",
     "Subcontinent",
+    "Collection_Year",
     "Collection Date",
     "Collection Year",
     "Host",
+    "Host_Original",
+    "Host_Cleaned",
     "Host_SD",
+    "Host_TaxID",
     "Host_Rank",
+    "Host_Superkingdom",
+    "Host_Phylum",
     "Host_Genus",
     "Host_Species",
     "Host_Class",
     "Host_Order",
+    "Host_Family",
+    "Host_Common_Name",
+    "Host_Context_SD",
+    "Host_Match_Method",
+    "Host_Confidence",
+    "Host_Review_Status",
     "Host_Anatomical_Site_SD",
     "Host_Age_Group_SD",
     "Host_Production_Context_SD",
+    "Host_Disease_SD",
+    "Host_Health_State_SD",
     "Isolation Source",
     "Isolation_Source_SD",
+    "Isolation_Source_SD_Broad",
+    "Isolation_Site_SD",
     "Sample_Type_SD",
+    "Sample_Type_SD_Broad",
     "Environment_Medium_SD",
+    "Environment_Medium_SD_Broad",
     "Environment_Broad_Scale_SD",
     "Environment_Local_Scale_SD",
     "Organism Name",
@@ -91,6 +111,7 @@ def _fdr_bh(p_values):
 
 
 def _sample_metadata(df):
+    df = normalize_metadata_aliases(df)
     columns = [col for col in ["Assembly Accession", "Assembly BioSample Accession"] + METADATA_COLUMNS if col in df.columns]
     if "Assembly Accession" not in columns:
         return pd.DataFrame()

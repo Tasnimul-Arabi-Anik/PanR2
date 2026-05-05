@@ -6,7 +6,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 
-from panr2.io import resolve_sample_accessions, write_sample_map_qc
+from panr2.io import normalize_metadata_aliases, resolve_sample_accessions, write_sample_map_qc
 from panr2.runners import find_sequence_files, write_tool_manifest
 
 
@@ -110,7 +110,7 @@ def run_mlst(sequence_dir, output_dir, mlst_bin="mlst", force=False):
 def analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format="png", sample_map=None):
     mlst = read_mlst_tables(mlst_dir, sample_map=sample_map)
     write_sample_map_qc(output_dir, "mlst", mlst["sample"], mlst["Assembly Accession"], sample_map)
-    ncbi = pd.read_csv(ncbi_clean_path, dtype=str)
+    ncbi = normalize_metadata_aliases(pd.read_csv(ncbi_clean_path, dtype=str))
     merged = ncbi.merge(mlst, on="Assembly Accession", how="left")
 
     base_dir = os.path.join(output_dir, "mlst")
@@ -132,13 +132,25 @@ def analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format="png", sample
 
     merged.to_csv(merged_path, index=False)
     sample_summary = merged[[
-        col for col in ["Assembly Accession", "Assembly BioSample Accession", "scheme", "st", "sequence_type", "Geographic Location", "Continent", "Collection Date", "Organism Name"]
+        col for col in [
+            "Assembly Accession", "Assembly BioSample Accession", "scheme", "st", "sequence_type",
+            "Geographic Location", "Country", "Continent", "Subcontinent", "Collection Date", "Collection_Year",
+            "Host_SD", "Host_Rank", "Host_Genus", "Host_Species", "Sample_Type_SD", "Isolation_Source_SD",
+            "Environment_Medium_SD", "Organism Name", "Genus", "Species"
+        ]
         if col in merged.columns
     ]].copy()
     sample_summary.to_csv(summary_path, index=False)
 
     rows = []
-    for meta_col in ["Geographic Location", "Continent", "Subcontinent", "Host", "Host_SD", "Isolation Source", "Isolation_Source_SD", "Sample_Type_SD", "Organism Name", "Species"]:
+    for meta_col in [
+        "Geographic Location", "Country", "Continent", "Subcontinent", "Collection Date", "Collection_Year",
+        "Host", "Host_SD", "Host_Rank", "Host_Genus", "Host_Species", "Isolation Source",
+        "Isolation_Source_SD", "Isolation_Source_SD_Broad", "Sample_Type_SD", "Sample_Type_SD_Broad",
+        "Environment_Medium_SD", "Environment_Medium_SD_Broad", "Environment_Broad_Scale_SD",
+        "Environment_Local_Scale_SD", "Host_Disease_SD", "Host_Health_State_SD", "Organism Name",
+        "Genus", "Species"
+    ]:
         if meta_col not in merged.columns:
             continue
         for (group, sequence_type), sub_df in merged.dropna(subset=["sequence_type"]).groupby([meta_col, "sequence_type"], dropna=False):
@@ -150,7 +162,15 @@ def analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format="png", sample
             })
     pd.DataFrame(rows).to_csv(metadata_path, index=False)
 
-    tidy = merged.dropna(subset=["sequence_type"])[["Assembly Accession", "Assembly BioSample Accession", "sequence_type"]].copy()
+    tidy_cols = [
+        col for col in [
+            "Assembly Accession", "Assembly BioSample Accession", "sequence_type", "Geographic Location",
+            "Country", "Continent", "Subcontinent", "Collection Date", "Collection_Year", "Host_SD",
+            "Host_Rank", "Host_Genus", "Host_Species", "Sample_Type_SD", "Isolation_Source_SD",
+            "Environment_Medium_SD", "Organism Name", "Genus", "Species"
+        ] if col in merged.columns
+    ]
+    tidy = merged.dropna(subset=["sequence_type"])[tidy_cols].copy()
     tidy["feature_id"] = tidy["sequence_type"]
     tidy["presence"] = 1
     tidy["identity"] = 100.0

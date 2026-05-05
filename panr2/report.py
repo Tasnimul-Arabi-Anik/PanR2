@@ -171,7 +171,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
 
     lines.append("## Input Data and Quality Control")
     lines.append("")
-    lines.append(f"NCBI metadata input: `{input_files.get('ncbi_clean', 'not recorded')}`")
+    lines.append(f"Standardized metadata input: `{input_files.get('ncbi_clean', 'not recorded')}`")
     lines.append(f"ABRicate summary input: `{input_files.get('abricate_summary', 'not recorded')}`")
     lines.append(f"ABRicate results input: `{input_files.get('abricate_results', 'not recorded')}`")
     lines.append("")
@@ -600,7 +600,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
     lines.append("## Methods Summary")
     lines.append("")
     lines.append(
-        "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
+        "PanR2 merged standardized sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
         "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg-style, MLST, DefenseFinder, and prophage-style analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, database-specific QC summaries, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots where applicable, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit. ICEberg-style analysis uses user-provided ICE/IME/CIME annotations or ABRicate-style inputs converted to PanR2 feature tables; PanR2 does not run an ICEberg annotation program directly."
@@ -675,7 +675,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
     with open(methods_path, "w") as handle:
         handle.write(
             "PanR2 methods summary\n\n"
-            "PanR2 merged NCBI metadata with ABRicate antimicrobial resistance gene outputs by assembly accession. "
+            "PanR2 merged standardized genome metadata, including FetchM2-compatible fields when present, with ABRicate antimicrobial resistance gene outputs by assembly accession. "
             "ARG calls were filtered according to user-specified identity and sample inclusion thresholds, converted to tidy presence/absence format, and summarized by sample, gene, resistance class, resistome prevalence category, and co-occurrence. "
             "Core, accessory, and rare ARG classifications used the prevalence thresholds recorded in the report. "
             "Geographic and temporal summaries were generated when sample-size requirements were met.\n"

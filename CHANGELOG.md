@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- FetchM2 metadata compatibility across PanR2 metadata loading, QC, optional feature summaries, MLST summaries, cross-database association metadata, dashboard links, and citation selection.
+- FetchM2/FetchM alias normalization for geography, collection date/year, host, isolation source, sample type, environment, disease/health, organism taxonomy, and metadata audit fields when present in `ncbi_clean.csv`.
 - `--sample-map` support for mapping local sample IDs or filenames to `Assembly Accession` across ABRicate summaries, MLST, DefenseFinder, prophage, ICEberg-style tables, and PanR2-compatible feature inputs, with per-source QC diagnostics.
 - PanResistome context analysis under `panresistome_context/analysis/`, merging upstream QC master, QUAST, and ANI/dereplication outputs with PanR2 feature-burden tables.
 - PanResistome QC/ANI/QUAST dashboard and report sections covering QC status, AMR burden versus QC metrics, species-consistency screening, duplicate clusters, and representative genomes.
@@ -22,7 +24,7 @@
 - Cross-database comparative genomics module that builds a unified AMR/VFDB/plasmid/MGE/integron/ICE sample-by-feature matrix and writes co-occurrence, Jaccard, phi-correlation, Fisher exact-test, odds-ratio, and FDR-adjusted association outputs.
 - Focused cross-database association tables for AMR-mobileome, AMR-plasmid, AMR-integron, AMR-virulence, and plasmid-mobileome relationships.
 - Integrated burden outputs for AMR, virulence, plasmid, mobileome, total feature count, and mobility-associated AMR scoring.
-- Metadata-driven feature enrichment outputs and metadata completeness/bias reports for geography, host/source, organism, and FetchM-style standardized metadata fields.
+- Metadata-driven feature enrichment outputs and metadata completeness/bias reports for geography, host/source, organism, and FetchM/FetchM2-style standardized metadata fields.
 - Cross-database heatmaps, integrated feature presence heatmaps, interactive association network output, and cross-database figure manifest.
 - Run-specific citation outputs (`citations.md`, `citations.bib`) and `software_versions.csv`.
 - Utility subcommands: `panr doctor`, `panr setup-db`, `panr install-info`, and `panr citations`.
@@ -54,6 +56,7 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- AMR prevalence denominators now prefer `Assembly Accession` over BioSample accessions, preventing paired GCA/GCF records from inflating prevalence above 100%.
 - Legacy static/interactive plot generation is now non-fatal, so journal reports, dashboards, citations, and PanResistome context outputs are still written if an optional legacy figure fails on a real-world table shape.
 - Citation output now includes more formal references for VFDB, PlasmidFinder, MobileElementFinder, IntegronFinder, MLST/PubMLST, and DefenseFinder.
 - Documentation now separates recommended stable usage, sample naming/sample-map behavior, and biological interpretation limits.

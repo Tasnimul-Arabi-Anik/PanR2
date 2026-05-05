@@ -10,7 +10,8 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 
 import pandas as pd
 
-from panr2.io import extract_assembly_accessions, normalize_assembly_accession
+from panr2.citations import write_citation_outputs
+from panr2.io import extract_assembly_accessions, normalize_assembly_accession, normalize_metadata_aliases
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +25,45 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         cls.ncbi_clean = REPO_ROOT / "tests" / "fixtures" / "ncbi" / "ncbi_clean.csv"
         cls.summary_tab = REPO_ROOT / "tests" / "fixtures" / "abricate" / "ncbi_summary.tab"
         cls.results_tab = REPO_ROOT / "tests" / "fixtures" / "abricate" / "ncbi_results.tab"
+
+    def test_fetchm2_metadata_aliases_are_normalized(self):
+        df = pd.DataFrame({
+            "Assembly Accession": ["GCF_000001.1"],
+            "Country": ["Bangladesh"],
+            "Collection_Year": [2024],
+            "Organism Name": ["Klebsiella oxytoca"],
+            "Organism Taxonomic ID": [571],
+            "Host_SD": ["Homo sapiens"],
+            "Isolation_Source_SD": ["blood"],
+        })
+        normalized = normalize_metadata_aliases(df)
+        self.assertEqual(normalized.loc[0, "Geographic Location"], "Bangladesh")
+        self.assertEqual(normalized.loc[0, "Collection Date"], "2024")
+        self.assertEqual(normalized.loc[0, "Host"], "Homo sapiens")
+        self.assertEqual(normalized.loc[0, "Isolation Source"], "blood")
+        self.assertEqual(normalized.loc[0, "Collection Year"], 2024)
+        self.assertEqual(normalized.loc[0, "Genus"], "Klebsiella")
+        self.assertEqual(normalized.loc[0, "Species"], "Klebsiella oxytoca")
+        self.assertEqual(normalized.loc[0, "TaxID"], 571)
+
+    def test_fetchm2_citation_selected_from_metadata_engine(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            metadata_dir = tmpdir / "metadata_output"
+            metadata_dir.mkdir()
+            ncbi_clean = metadata_dir / "ncbi_clean.csv"
+            ncbi_clean.write_text(
+                "Assembly Accession,Country,Collection_Year,Host_SD\n"
+                "GCF_000001.1,Bangladesh,2024,Homo sapiens\n"
+            )
+            (metadata_dir / "metadata_engine.txt").write_text("fetchm2\n")
+            outputs = write_citation_outputs(
+                str(tmpdir),
+                input_files={"ncbi_clean": str(ncbi_clean)},
+                panr2_version="test",
+            )
+            text = Path(outputs["citations_md"]).read_text()
+            self.assertIn("FetchM2", text)
 
     def build_tidy_df(self, tmpdir, min_identity=80):
         tmpdir = Path(tmpdir)
