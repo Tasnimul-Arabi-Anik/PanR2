@@ -6,6 +6,9 @@ import shutil
 import subprocess
 from datetime import datetime
 
+import pandas as pd
+
+from panr2.io import resolve_sample_accessions, write_sample_map_qc
 
 SEQUENCE_EXTENSIONS = (".fa", ".fna", ".fasta", ".fas")
 
@@ -488,7 +491,7 @@ def _find_table_files(table_dir):
     return paths
 
 
-def convert_iceberg_tables(table_dir, output_dir):
+def convert_iceberg_tables(table_dir, output_dir, sample_map=None):
     """Convert user-provided ICE/IME/CIME tables into ABRicate-style files."""
     table_paths = _find_table_files(table_dir)
     if not table_paths:
@@ -502,6 +505,8 @@ def convert_iceberg_tables(table_dir, output_dir):
     results_rows = []
     feature_ids = []
     by_sample = {}
+    original_samples = []
+    resolved_samples = []
 
     for table_path in table_paths:
         for row in _read_delimited_table(table_path):
@@ -509,6 +514,10 @@ def convert_iceberg_tables(table_dir, output_dir):
                 "file", "#file", "assembly_file", "assembly", "assembly_accession",
                 "genome", "genome_id", "sample", "sample_id", "isolate"
             ], os.path.basename(table_path))
+            resolved_sample = resolve_sample_accessions(pd.Series([str(sample)]), sample_map=sample_map).iloc[0]
+            sample_value = str(resolved_sample or sample)
+            original_samples.append(str(sample))
+            resolved_samples.append(sample_value)
             feature_id = _clean_feature_id(_first_value(row, [
                 "ice_id", "element_id", "element", "mge_id", "name", "id", "accession", "gene"
             ], "iceberg_feature"))
@@ -525,12 +534,12 @@ def convert_iceberg_tables(table_dir, output_dir):
             accession = _first_value(row, ["accession", "ice_accession", "reference", "reference_id"], feature_id)
             product = _first_value(row, ["description", "product", "annotation", "element_type", "type"], element_type)
 
-            sample_key = _sample_prefix(str(sample))
-            by_sample.setdefault(sample_key, {"file": str(sample), "features": {}})
+            sample_key = _sample_prefix(sample_value)
+            by_sample.setdefault(sample_key, {"file": sample_value, "features": {}})
             feature_ids.append(feature_id)
             by_sample[sample_key]["features"][feature_id] = max(identity, by_sample[sample_key]["features"].get(feature_id, 0.0))
             results_rows.append({
-                "#FILE": str(sample),
+                "#FILE": sample_value,
                 "SEQUENCE": contig,
                 "START": start,
                 "END": end,
@@ -583,6 +592,7 @@ def convert_iceberg_tables(table_dir, output_dir):
         }],
     }
     manifest_paths = write_tool_manifest(output_dir, manifest)
+    write_sample_map_qc(output_dir, "iceberg", pd.Series(original_samples), pd.Series(resolved_samples), sample_map)
     logging.info("ICEberg table converter manifest saved to %s", manifest_paths["json"])
     return {"feature_dir": feature_dir, "manifest": manifest_paths, "source_tables": table_paths}
 

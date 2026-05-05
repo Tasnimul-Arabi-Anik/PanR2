@@ -1,0 +1,3 @@
+sample_id	contig	start	end	ice_id	type	identity	coverage	description
+sample_001	contig1	100	5000	ICEKp1	ICE	95.0	90.0	Klebsiella integrative conjugative element
+sample_002	contig2	200	4200	IME1	IME	93.0	88.0	integrative mobilizable element

@@ -778,9 +778,14 @@ sys.exit(2)
             cross_pairs = pd.read_csv(output_dir / "cross_database" / "analysis" / "cross_database_top_associations.csv")
             amr_mge = pd.read_csv(output_dir / "cross_database" / "analysis" / "amr_mge_associations.csv")
             integrated_burden = pd.read_csv(output_dir / "cross_database" / "analysis" / "sample_integrated_feature_burden.csv")
+            temporal_trends = pd.read_csv(output_dir / "temporal" / "analysis" / "temporal_feature_trends.csv")
             dashboard_text = (output_dir / "report" / "index.html").read_text()
             self.assertIn("phi_coefficient", cross_pairs.columns)
             self.assertIn("q_value", cross_pairs.columns)
+            if not temporal_trends.empty:
+                self.assertIn("mann_kendall_q_value", temporal_trends.columns)
+                self.assertIn("spearman_q_value", temporal_trends.columns)
+                self.assertIn("logistic_q_value", temporal_trends.columns)
             exact_pair = amr_mge[
                 ((amr_mge["feature_1"] == "AMR:blaA") & (amr_mge["feature_2"] == "MGE:Tn3"))
                 | ((amr_mge["feature_1"] == "MGE:Tn3") & (amr_mge["feature_2"] == "AMR:blaA"))
@@ -871,22 +876,29 @@ sys.exit(2)
             mlst_dir.mkdir()
             defense_dir.mkdir()
             prophage_dir.mkdir()
+            sample_map = tmp_path / "sample_map.csv"
+            sample_map.write_text(
+                "sample_id,Assembly Accession\n"
+                "sampleA,GCF_000001.1\n"
+                "sampleB,GCA_000002.1\n"
+                "sampleD,GCA_000004.1\n"
+            )
             (mlst_dir / "mlst.tsv").write_text(
-                "GCF_000001.1.fna\tescherichia_coli\t11\tabc1\n"
-                "GCA_000002.1.fna\tescherichia_coli\t22\tabc2\n"
-                "GCA_000004.1.fna\tescherichia_coli\t11\tabc1\n"
+                "sampleA.fna\tescherichia_coli\t11\tabc1\n"
+                "sampleB.fna\tescherichia_coli\t22\tabc2\n"
+                "sampleD.fna\tescherichia_coli\t11\tabc1\n"
             )
             (defense_dir / "defense.tsv").write_text(
-                "assembly_accession\tsystem\tsystem_type\tgene_name\tscore\n"
-                "GCF_000001.1\tRM_type_I\trestriction_modification\thsds\t100\n"
-                "GCA_000004.1\tRM_type_I\trestriction_modification\thsds\t100\n"
-                "GCA_000002.1\tCRISPR_Cas\tcrispr_cas\tcas9\t100\n"
+                "sample_id\tsystem\tsystem_type\tgene_name\tscore\n"
+                "sampleA\tRM_type_I\trestriction_modification\thsds\t100\n"
+                "sampleD\tRM_type_I\trestriction_modification\thsds\t100\n"
+                "sampleB\tCRISPR_Cas\tcrispr_cas\tcas9\t100\n"
             )
             (prophage_dir / "prophage.tsv").write_text(
-                "assembly_accession\tcontig\tstart\tend\tprophage_id\ttype\tscore\n"
-                "GCF_000001.1\tcontig1\t10\t5000\tpp1\tintact\t100\n"
-                "GCA_000004.1\tcontig2\t50\t6000\tpp1\tintact\t100\n"
-                "GCA_000002.1\tcontig3\t100\t2500\tpp2\tquestionable\t100\n"
+                "sample_id\tcontig\tstart\tend\tprophage_id\ttype\tscore\n"
+                "sampleA\tcontig1\t10\t5000\tpp1\tintact\t100\n"
+                "sampleD\tcontig2\t50\t6000\tpp1\tintact\t100\n"
+                "sampleB\tcontig3\t100\t2500\tpp2\tquestionable\t100\n"
             )
             output_dir = tmp_path / "panr2_output"
             self.panr.main(
@@ -906,6 +918,7 @@ sys.exit(2)
                 mlst_dir=str(mlst_dir),
                 defensefinder_dir=str(defense_dir),
                 prophage_dir=str(prophage_dir),
+                sample_map_path=str(sample_map),
             )
 
             self.assertTrue((output_dir / "mlst" / "analysis" / "sample_mlst_summary.csv").exists())
@@ -918,6 +931,8 @@ sys.exit(2)
             self.assertIn("MLST:escherichia_coli:ST11", matrix.columns)
             self.assertIn("DEFENSE:RM_type_I", matrix.columns)
             self.assertIn("PROPHAGE:pp1", matrix.columns)
+            sample_map_qc = pd.read_csv(output_dir / "qc" / "sample_map_qc_mlst.csv")
+            self.assertIn("mapped_by_sample_map", set(sample_map_qc["mapping_status"]))
             citations = (output_dir / "report" / "citations.md").read_text()
             self.assertIn("MLST", citations)
             self.assertIn("DefenseFinder", citations)
@@ -925,6 +940,21 @@ sys.exit(2)
             report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
             self.assertIn("Advanced Temporal Trends", report_text)
             self.assertIn("DefenseFinder features", report_text)
+
+    def test_validate_demo_includes_new_comparative_modules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / "validate_demo"
+            exit_code = self.panr.run_cli(["validate-demo", "--output-dir", str(output_dir), "--format", "png"])
+
+            self.assertEqual(exit_code, 0)
+            dashboard = (output_dir / "report" / "index.html").read_text()
+            self.assertTrue((output_dir / "mlst" / "analysis" / "sample_mlst_summary.csv").exists())
+            self.assertTrue((output_dir / "defensefinder" / "analysis" / "defensefinder_feature_summary.csv").exists())
+            self.assertTrue((output_dir / "prophage" / "analysis" / "prophage_feature_summary.csv").exists())
+            self.assertTrue((output_dir / "qc" / "sample_map_qc_mlst.csv").exists())
+            self.assertIn("MLST", dashboard)
+            self.assertIn("DefenseFinder", dashboard)
+            self.assertIn("Prophage", dashboard)
 
 
 if __name__ == "__main__":

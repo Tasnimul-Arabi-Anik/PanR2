@@ -394,13 +394,13 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         lines.append("## Advanced Temporal Trends")
         lines.append("")
         lines.append(
-            "Temporal trend summaries use available collection years only. Feature trends include Mann-Kendall trend statistics, Spearman correlation across yearly prevalence, and a logistic feature-presence slope when enough variation is available. Burden trends use per-sample linear regression and Mann-Kendall summaries."
+            "Temporal trend summaries use available collection years only. Feature trends include Mann-Kendall trend statistics, Spearman correlation across yearly prevalence, and a logistic feature-presence slope when enough variation is available, with FDR-adjusted q-values for multiple testing. Burden trends use per-sample linear regression and Mann-Kendall summaries. These temporal tests are screening-level summaries; missing years, uneven sampling, repeated tied prevalence values, and changing surveillance intensity can strongly affect interpretation."
         )
         lines.append("")
         lines.append("### Feature-Level Temporal Trends")
-        lines.append(_markdown_table(feature_trends, ["feature", "database", "years_observed", "first_year", "last_year", "mann_kendall_trend", "mann_kendall_p_value", "spearman_r", "logistic_odds_ratio_per_year", "logistic_p_value"], max_rows=20))
+        lines.append(_markdown_table(feature_trends, ["feature", "database", "years_observed", "first_year", "last_year", "mann_kendall_trend", "mann_kendall_p_value", "mann_kendall_q_value", "spearman_r", "spearman_q_value", "logistic_odds_ratio_per_year", "logistic_q_value"], max_rows=20))
         lines.append("### Burden-Level Temporal Trends")
-        lines.append(_markdown_table(burden_trends, ["burden_metric", "years_observed", "linear_slope_per_year", "linear_r_value", "linear_p_value", "mann_kendall_trend", "mann_kendall_p_value"], max_rows=20))
+        lines.append(_markdown_table(burden_trends, ["burden_metric", "years_observed", "linear_slope_per_year", "linear_r_value", "linear_p_value", "linear_burden_q_value", "mann_kendall_trend", "mann_kendall_q_value"], max_rows=20))
 
     lines.append("## Geographic and Temporal Patterns")
     lines.append("")

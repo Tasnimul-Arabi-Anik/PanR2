@@ -6,7 +6,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 
-from panr2.io import extract_assembly_accessions
+from panr2.io import resolve_sample_accessions, write_sample_map_qc
 from panr2.runners import find_sequence_files, write_tool_manifest
 
 
@@ -42,7 +42,7 @@ def _read_mlst_table(path):
     return out
 
 
-def read_mlst_tables(mlst_dir):
+def read_mlst_tables(mlst_dir, sample_map=None):
     if not os.path.isdir(mlst_dir):
         raise FileNotFoundError(f"MLST directory not found: {mlst_dir}")
     frames = []
@@ -54,7 +54,7 @@ def read_mlst_tables(mlst_dir):
     if not frames:
         raise FileNotFoundError(f"No MLST CSV/TSV/TAB outputs found in {mlst_dir}")
     mlst = pd.concat(frames, ignore_index=True)
-    mlst["Assembly Accession"] = extract_assembly_accessions(mlst["sample"]).fillna(mlst["sample"].astype(str))
+    mlst["Assembly Accession"] = resolve_sample_accessions(mlst["sample"], sample_map=sample_map).fillna(mlst["sample"].astype(str))
     mlst["scheme"] = mlst["scheme"].fillna("unknown_scheme").astype(str)
     mlst["st"] = mlst["st"].fillna("unknown").astype(str)
     mlst["sequence_type"] = mlst["scheme"] + ":ST" + mlst["st"].str.replace("^ST", "", regex=True)
@@ -107,8 +107,9 @@ def run_mlst(sequence_dir, output_dir, mlst_bin="mlst", force=False):
     return {"mlst_dir": raw_dir, "raw_table": raw_path, "manifest": manifest_paths}
 
 
-def analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format="png"):
-    mlst = read_mlst_tables(mlst_dir)
+def analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format="png", sample_map=None):
+    mlst = read_mlst_tables(mlst_dir, sample_map=sample_map)
+    write_sample_map_qc(output_dir, "mlst", mlst["sample"], mlst["Assembly Accession"], sample_map)
     ncbi = pd.read_csv(ncbi_clean_path, dtype=str)
     merged = ncbi.merge(mlst, on="Assembly Accession", how="left")
 

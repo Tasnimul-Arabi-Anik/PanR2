@@ -7,7 +7,7 @@ import plotly.express as px
 import seaborn as sns
 from scipy.stats import kruskal, mannwhitneyu
 
-from panr2.io import extract_assembly_accessions, read_table_auto, unique_input_files
+from panr2.io import read_table_auto, resolve_sample_accessions, unique_input_files, write_sample_map_qc
 
 
 FEATURE_LABELS = {
@@ -539,7 +539,7 @@ def _write_feature_html_index(feature_type, mode, figures_dir):
         handle.write(index)
     return path
 
-def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, feature_type, mode, min_identity=0.0, fig_format="png"):
+def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, feature_type, mode, min_identity=0.0, fig_format="png", sample_map=None):
     """Analyze an optional ABRicate-style database such as VFDB or PlasmidFinder."""
     summary_path, results_path = find_abricate_feature_files(feature_dir)
     ncbi_df = pd.read_csv(ncbi_clean_path)
@@ -553,11 +553,12 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     else:
         raise ValueError(f"{feature_type} summary must contain #FILE or #File column")
 
-    summary_df["Assembly Accession"] = extract_assembly_accessions(summary_df[file_col])
+    summary_df["Assembly Accession"] = resolve_sample_accessions(summary_df[file_col], sample_map=sample_map)
+    write_sample_map_qc(output_dir, feature_type, summary_df[file_col], summary_df["Assembly Accession"], sample_map)
     if summary_df["Assembly Accession"].isna().all():
         raise ValueError(
-            f"No GCF_ or GCA_ assembly accessions were found in the {feature_type} summary file column. "
-            "PanR2 preserves assembly version suffixes when present; ensure feature result filenames contain matching accessions."
+            f"No GCF_ or GCA_ assembly accessions were found in the {feature_type} summary file column and no sample-map entries matched. "
+            "PanR2 preserves assembly version suffixes when present; ensure feature result filenames contain matching accessions or pass --sample-map."
         )
     ncbi_accessions = set(ncbi_df.get("Assembly Accession", pd.Series(dtype=object)).dropna().astype(str))
     summary_accessions = set(summary_df["Assembly Accession"].dropna().astype(str))

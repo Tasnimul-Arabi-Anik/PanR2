@@ -97,7 +97,7 @@ From a source checkout, run the bundled small fixture to confirm the CLI, merge 
 panr validate-demo --output-dir test_output --format png
 ```
 
-The validation command writes a complete small multi-database run and creates the main dashboard at `test_output/report/index.html`.
+The validation command writes a complete small multi-database run, including MLST, DefenseFinder, prophage table inputs, sample-map matching, temporal trends, and the main dashboard at `test_output/report/index.html`.
 
 You can also run the equivalent explicit command:
 
@@ -196,6 +196,40 @@ User-provided prophage or viral-region tables can be converted into PanR2 featur
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --prophage-dir <PROPHAGE_TABLE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
+### Recommended Stable Workflow
+
+For publication-oriented analyses, the most reliable workflow is:
+
+1. Use FetchM/PanResistome or another external workflow to download assemblies, run QC, run annotation tools, and capture tool/database versions.
+2. Keep heavy tools and databases outside PanR2 where possible.
+3. Convert each tool output into PanR2-compatible database folders or table inputs.
+4. Provide `--sample-map` whenever tool outputs use local sample names instead of GCF/GCA assembly accessions.
+5. Run PanR2 for metadata-linked summaries, cross-database associations, temporal trends, figures, dashboard output, citations, and journal-style reporting.
+
+### Sample Naming And Sample Map
+
+PanR2 preserves assembly accession versions such as `GCF_000123456.1`. If all inputs contain matching GCF/GCA accessions, no sample map is needed. If files or tool outputs use local names such as `sample_001.fna`, provide:
+
+```bash
+panr --sample-map sample_map.csv ...
+```
+
+The sample map may be CSV or TSV and must contain:
+
+```csv
+sample_id,Assembly Accession
+sample_001,GCF_000123456.1
+sample_002,GCA_000987654.1
+```
+
+PanR2 uses this map for ABRicate summaries, MLST outputs, DefenseFinder/prophage tables, ICEberg-style tables, and other PanR2-compatible feature inputs. Mapping diagnostics are written to `qc/sample_map_qc_<source>.csv` and `qc/sample_map_qc_<source>_summary.txt`.
+
+Example templates are available under `examples/input_templates/`.
+
+### Biological Interpretation Limits
+
+Cross-database association outputs are sample/genome-level screening analyses. They do not prove physical linkage, plasmid localization, horizontal transfer, transfer direction, phenotype, shared regulation, or causality. Temporal trend outputs are also screening-level summaries and depend on metadata completeness, collection-year balance, sampling intensity, and repeated tied prevalence values.
+
 User-provided ICE/IME/CIME tables can be converted into ICEberg-style PanR2 analysis inputs. PanR2 does not run an ICEberg annotation program directly; it converts existing ICE/IME/CIME annotation tables into PanR2-compatible feature tables:
 
 ```bash
@@ -263,6 +297,7 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 | `--mlst-dir` | path | optional | Directory containing MLST TSV/CSV output |
 | `--defensefinder-dir` | path | optional | Directory containing DefenseFinder tables or PanR2-compatible summary/results files |
 | `--prophage-dir` | path | optional | Directory containing prophage/viral-region tables or PanR2-compatible summary/results files |
+| `--sample-map` | path | optional | CSV/TSV mapping local sample IDs or filenames to `Assembly Accession` |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 
@@ -382,6 +417,7 @@ output/
 - **`metadata_completeness_report.csv`** - Completeness, missingness, and status for geography, host/source, organism, and FetchM-style standardized metadata fields
 - **`metadata_group_sample_sizes.csv`** - Per-group sample counts and underpowered-group flags for metadata-driven analyses
 - **`metadata_bias_warning.txt`** - Human-readable warnings for incomplete or biased metadata fields
+- **`sample_map_qc_<source>.csv`** and **`sample_map_qc_<source>_summary.txt`** - Sample-map matching diagnostics for each mapped input source
 
 #### 2. NCBI/AMR Panresistome Analysis (`ncbi/` directory)
 - **`*_sample_resistome_burden.csv`** - Per-sample ARG burden, resistance class count, and identity summary
@@ -438,8 +474,8 @@ MLST-specific outputs include `mlst/analysis/sample_mlst_summary.csv`, `mlst/ana
 Cross-database co-occurrence is sample/genome-level only. It does not prove physical linkage, plasmid localization, horizontal transfer, shared regulation, phenotype, or causality.
 
 #### 5. Advanced Temporal Trends (`temporal/` directory)
-- **`temporal_feature_trends.csv`** - Feature-level Mann-Kendall, Spearman, and logistic presence trend summaries by collection year
-- **`temporal_burden_trends.csv`** - Linear and Mann-Kendall trend summaries for per-sample feature burdens
+- **`temporal_feature_trends.csv`** - Feature-level Mann-Kendall, Spearman, and logistic presence trend summaries by collection year, including FDR q-values
+- **`temporal_burden_trends.csv`** - Linear and Mann-Kendall trend summaries for per-sample feature burdens, including FDR q-values
 - **`temporal_top_feature_trends.html`** - Interactive yearly prevalence trends for selected features
 
 #### 6. Written Report (`report/` directory)

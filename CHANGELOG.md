@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `--sample-map` support for mapping local sample IDs or filenames to `Assembly Accession` across ABRicate summaries, MLST, DefenseFinder, prophage, ICEberg-style tables, and PanR2-compatible feature inputs, with per-source QC diagnostics.
+- FDR-adjusted q-values for temporal Mann-Kendall, Spearman, logistic feature-presence, and linear burden trend tests.
+- Built-in MLST, DefenseFinder, prophage, and sample-map fixtures in `panr validate-demo`.
+- Example input templates under `examples/input_templates/` for sample maps, MLST, DefenseFinder, prophage, and ICEberg-style tables.
+- Stronger stabilization tests covering sample-map merging, MLST/DefenseFinder/prophage conversion, temporal q-values, validation-demo outputs, and zero-feature sample retention.
 - Top-level `report/index.html` dashboard linking QC, metadata completeness, database-specific outputs, cross-database outputs, temporal trends, figures, citations, and software versions.
 - MLST support through `--mlst-dir` and optional `--run-mlst`, with ST metadata summaries, ST feature-burden summaries, MLST participation in cross-database matrices as `MLST:<scheme>:ST<type>`, doctor checks, citations, and software-version reporting.
 - DefenseFinder support through `--defensefinder-dir` and optional `--run-defensefinder`, including conversion of DefenseFinder tables into PanR2-compatible feature inputs and cross-database prefixes as `DEFENSE:<feature>`.
@@ -46,6 +51,8 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- Citation output now includes more formal references for VFDB, PlasmidFinder, MobileElementFinder, IntegronFinder, MLST/PubMLST, and DefenseFinder.
+- Documentation now separates recommended stable usage, sample naming/sample-map behavior, and biological interpretation limits.
 - Cross-database association matrices now keep metadata samples with zero detected features, so `n00` contingency counts include feature-negative genomes.
 - Reports and dashboards now state that sample/genome-level co-occurrence does not prove physical linkage, plasmid localization, horizontal transfer, transfer direction, phenotype, or causality.
 - `environment.yml` now includes optional MLST and DefenseFinder dependencies for integrated-tool environments.

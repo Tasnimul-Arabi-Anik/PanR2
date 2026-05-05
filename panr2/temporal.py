@@ -9,6 +9,20 @@ from scipy.stats import linregress, norm, spearmanr
 from panr2.associations import build_unified_feature_matrix
 
 
+def _fdr_bh(p_values):
+    indexed = [(i, p) for i, p in enumerate(p_values) if pd.notna(p)]
+    q_values = [np.nan] * len(p_values)
+    if not indexed:
+        return q_values
+    indexed.sort(key=lambda item: item[1])
+    m = len(indexed)
+    running = 1.0
+    for rank, (original_index, p_value) in reversed(list(enumerate(indexed, start=1))):
+        running = min(running, (float(p_value) * m) / rank)
+        q_values[original_index] = min(running, 1.0)
+    return q_values
+
+
 def _extract_years(metadata):
     if metadata is None or metadata.empty:
         return pd.Series(dtype="float64")
@@ -135,6 +149,9 @@ def write_temporal_trends(output_dir, base_name, amr_tidy_df, feature_outputs=No
         })
     feature_df = pd.DataFrame(feature_rows)
     if not feature_df.empty:
+        feature_df["mann_kendall_q_value"] = _fdr_bh(feature_df["mann_kendall_p_value"].tolist())
+        feature_df["spearman_q_value"] = _fdr_bh(feature_df["spearman_p_value"].tolist())
+        feature_df["logistic_q_value"] = _fdr_bh(feature_df["logistic_p_value"].tolist())
         feature_df = feature_df.sort_values(["mann_kendall_p_value", "mean_prevalence", "feature"], ascending=[True, False, True])
     feature_df.to_csv(feature_path, index=False)
 
@@ -168,7 +185,11 @@ def write_temporal_trends(output_dir, base_name, amr_tidy_df, feature_outputs=No
             "mann_kendall_p_value": mk_p,
             "mann_kendall_trend": mk_trend,
         })
-    pd.DataFrame(burden_rows).to_csv(burden_path, index=False)
+    burden_df = pd.DataFrame(burden_rows)
+    if not burden_df.empty:
+        burden_df["linear_burden_q_value"] = _fdr_bh(burden_df["linear_p_value"].tolist())
+        burden_df["mann_kendall_q_value"] = _fdr_bh(burden_df["mann_kendall_p_value"].tolist())
+    burden_df.to_csv(burden_path, index=False)
 
     if not feature_df.empty:
         top_features = feature_df.head(20)["feature"].tolist()

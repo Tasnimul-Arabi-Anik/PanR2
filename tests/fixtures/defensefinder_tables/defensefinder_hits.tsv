@@ -1,0 +1,4 @@
+sample_id	system	system_type	gene_name	score
+sampleA	RM_type_I	restriction_modification	hsdS	100
+sampleB	CRISPR_Cas	CRISPR-Cas	cas9	100
+sampleD	RM_type_I	restriction_modification	hsdS	100

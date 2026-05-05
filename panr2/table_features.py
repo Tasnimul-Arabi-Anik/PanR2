@@ -4,6 +4,9 @@ import shutil
 import subprocess
 from datetime import datetime
 
+import pandas as pd
+
+from panr2.io import resolve_sample_accessions, write_sample_map_qc
 from panr2.runners import (
     _clean_feature_id,
     _find_table_files,
@@ -64,12 +67,14 @@ def _write_abricate_style(feature_type, database_name, rows, output_dir):
     }
 
 
-def _convert_generic_tables(table_dir, output_dir, feature_type, database_name, feature_candidates, category_candidates):
+def _convert_generic_tables(table_dir, output_dir, feature_type, database_name, feature_candidates, category_candidates, sample_map=None):
     table_paths = _find_table_files(table_dir)
     if not table_paths:
         raise FileNotFoundError(f"No CSV/TSV/TAB tables found in {table_dir}")
 
     rows = []
+    original_samples = []
+    resolved_samples = []
     for table_path in table_paths:
         for source_row in _read_delimited_table(table_path):
             sample = _first_value(source_row, [
@@ -84,8 +89,11 @@ def _convert_generic_tables(table_dir, output_dir, feature_type, database_name, 
             coverage = _float_or_default(_first_value(source_row, [
                 "coverage", "perc_coverage", "percent_coverage", "%coverage", "%_coverage",
             ], 100.0), 100.0)
+            resolved_sample = resolve_sample_accessions(pd.Series([str(sample)]), sample_map=sample_map).iloc[0]
+            original_samples.append(str(sample))
+            resolved_samples.append(str(resolved_sample or sample))
             rows.append({
-                "#FILE": str(sample),
+                "#FILE": str(resolved_sample or sample),
                 "SEQUENCE": _first_value(source_row, ["contig", "sequence", "replicon", "chromosome"], "contig"),
                 "START": _first_value(source_row, ["start", "pos_beg", "begin", "left"], "0"),
                 "END": _first_value(source_row, ["end", "pos_end", "stop", "right"], "0"),
@@ -100,10 +108,11 @@ def _convert_generic_tables(table_dir, output_dir, feature_type, database_name, 
 
     if not rows:
         raise ValueError(f"No {feature_type} features found in {table_dir}")
+    write_sample_map_qc(output_dir, feature_type, pd.Series(original_samples), pd.Series(resolved_samples), sample_map)
     return _write_abricate_style(feature_type, database_name, rows, output_dir)
 
 
-def convert_defensefinder_tables(table_dir, output_dir):
+def convert_defensefinder_tables(table_dir, output_dir, sample_map=None):
     """Convert DefenseFinder-style TSV/CSV outputs into PanR2 feature inputs."""
     return _convert_generic_tables(
         table_dir,
@@ -115,10 +124,11 @@ def convert_defensefinder_tables(table_dir, output_dir):
             "hit_id", "sys_id", "protein_in_syst", "feature", "id",
         ],
         ["system_type", "subtype", "type", "system", "product", "description"],
+        sample_map=sample_map,
     )
 
 
-def convert_prophage_tables(table_dir, output_dir):
+def convert_prophage_tables(table_dir, output_dir, sample_map=None):
     """Convert prophage/viral-region TSV/CSV outputs into PanR2 feature inputs."""
     return _convert_generic_tables(
         table_dir,
@@ -130,6 +140,7 @@ def convert_prophage_tables(table_dir, output_dir):
             "name", "type", "completeness", "id", "feature",
         ],
         ["type", "completeness", "category", "tool", "product", "description"],
+        sample_map=sample_map,
     )
 
 

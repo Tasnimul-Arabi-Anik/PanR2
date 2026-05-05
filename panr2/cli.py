@@ -21,6 +21,7 @@ from panr2.io import (
     convert_tab_to_csv,
     convert_to_tidy_format,
     load_and_merge_data,
+    read_sample_map,
     save_merged_data,
     unique_input_files,
 )
@@ -359,6 +360,10 @@ def _run_subcommand(argv):
             isfinder_dir=os.path.join(fixtures, "isfinder"),
             integronfinder_dir=os.path.join(fixtures, "integronfinder"),
             iceberg_dir=os.path.join(fixtures, "iceberg"),
+            mlst_dir=os.path.join(fixtures, "mlst"),
+            defensefinder_dir=os.path.join(fixtures, "defensefinder_tables"),
+            prophage_dir=os.path.join(fixtures, "prophage_tables"),
+            sample_map_path=os.path.join(fixtures, "sample_map.csv"),
         )
         print(f"Validation demo written to {args.output_dir}")
         print(f"Open {os.path.join(args.output_dir, 'report', 'index.html')}")
@@ -366,7 +371,7 @@ def _run_subcommand(argv):
     raise ValueError(f"Unknown PanR2 subcommand: {command}")
 
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, mlst_dir=None, defensefinder_dir=None, prophage_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, run_mlst_tool=False, mlst_bin="mlst", run_defensefinder_tool=False, defensefinder_bin="defense-finder", iceberg_table_dir=None, force_tool_run=False, run_cross_database=True, cross_database_max_features=300, plot_style="publication", label_max_length=None, run_temporal_trends=True):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, mlst_dir=None, defensefinder_dir=None, prophage_dir=None, sample_map_path=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, run_mlst_tool=False, mlst_bin="mlst", run_defensefinder_tool=False, defensefinder_bin="defense-finder", iceberg_table_dir=None, force_tool_run=False, run_cross_database=True, cross_database_max_features=300, plot_style="publication", label_max_length=None, run_temporal_trends=True):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -386,6 +391,8 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         raise ValueError("--cooccurrence-min-prevalence must be between 0 and 100.")
     if cooccurrence_top_n < 1:
         raise ValueError("--cooccurrence-top-n must be at least 1.")
+
+    sample_map = read_sample_map(sample_map_path) if sample_map_path else {}
 
     tool_manifest = {}
     if run_abricate:
@@ -461,7 +468,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         if not defensefinder_dir:
             defensefinder_dir = defensefinder_run["feature_dir"]
     if iceberg_table_dir:
-        iceberg_run = convert_iceberg_tables(iceberg_table_dir, output_dir)
+        iceberg_run = convert_iceberg_tables(iceberg_table_dir, output_dir, sample_map=sample_map)
         tool_manifest = iceberg_run.get("manifest", tool_manifest)
         if not iceberg_dir:
             iceberg_dir = iceberg_run["feature_dir"]
@@ -502,12 +509,12 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
     optional_feature_outputs = {}
     mlst_outputs = {}
     if mlst_dir:
-        mlst_outputs = analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format=fig_format)
+        mlst_outputs = analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format=fig_format, sample_map=sample_map)
         optional_feature_outputs["mlst"] = mlst_outputs
     if defensefinder_dir and not _has_abricate_feature_files(defensefinder_dir):
-        defensefinder_dir = convert_defensefinder_tables(defensefinder_dir, output_dir)["feature_dir"]
+        defensefinder_dir = convert_defensefinder_tables(defensefinder_dir, output_dir, sample_map=sample_map)["feature_dir"]
     if prophage_dir and not _has_abricate_feature_files(prophage_dir):
-        prophage_dir = convert_prophage_tables(prophage_dir, output_dir)["feature_dir"]
+        prophage_dir = convert_prophage_tables(prophage_dir, output_dir, sample_map=sample_map)["feature_dir"]
     optional_database_specs = [
         ("vfdb", vfdb_dir, "virulence"),
         ("plasmidfinder", plasmidfinder_dir, "plasmid"),
@@ -528,6 +535,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 mode,
                 min_identity=min_identity,
                 fig_format=fig_format,
+                sample_map=sample_map,
             )
     
     for abricate_summary_file in abricate_summary_files:
@@ -547,7 +555,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 continue
 
             # Load, filter, and merge data
-            merged_df = load_and_merge_data(ncbi_clean_path, abricate_summary_file)
+            merged_df = load_and_merge_data(ncbi_clean_path, abricate_summary_file, sample_map=sample_map, sample_map_qc_dir=output_dir, sample_map_source="abricate")
             output_filename = f"ncbi_{os.path.basename(abricate_summary_file)}"
             base_name = os.path.basename(abricate_summary_file).replace("_summary.csv", "")
             merged_df = apply_analysis_filters(
@@ -742,6 +750,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 "mlst_dir": mlst_dir or "not provided",
                 "defensefinder_dir": defensefinder_dir or "not provided",
                 "prophage_dir": prophage_dir or "not provided",
+                "sample_map": sample_map_path or "not provided",
                 "sequence_dir": sequence_dir or "not provided",
                 "run_abricate": run_abricate,
                 "abricate_dbs": ",".join(abricate_dbs or []) if abricate_dbs else "not provided",
@@ -856,6 +865,7 @@ def run_cli(argv=None):
     parser.add_argument("--mlst-dir", help="Optional directory containing mlst TSV/CSV output.")
     parser.add_argument("--defensefinder-dir", help="Optional directory containing DefenseFinder tables or PanR2-compatible DefenseFinder summary/results files.")
     parser.add_argument("--prophage-dir", help="Optional directory containing prophage/viral-region tables or PanR2-compatible prophage summary/results files.")
+    parser.add_argument("--sample-map", help="Optional CSV/TSV mapping sample_id values to Assembly Accession for filenames or tool outputs without GCF/GCA accessions.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args(argv)
@@ -920,6 +930,7 @@ def run_cli(argv=None):
         mlst_dir=args.mlst_dir,
         defensefinder_dir=args.defensefinder_dir,
         prophage_dir=args.prophage_dir,
+        sample_map_path=args.sample_map,
         sequence_dir=args.sequence_dir,
         run_abricate=args.run_abricate,
         abricate_dbs=abricate_dbs,

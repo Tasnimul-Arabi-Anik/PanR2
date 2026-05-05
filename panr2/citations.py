@@ -20,7 +20,7 @@ CITATION_REGISTRY = {
     },
     "abricate": {
         "name": "ABRicate",
-        "citation": "Seemann T. ABRicate: mass screening of contigs for antimicrobial resistance or virulence genes.",
+        "citation": "Seemann T. ABRicate: mass screening of contigs for antimicrobial resistance or virulence genes. GitHub repository.",
         "url": "https://github.com/tseemann/abricate",
     },
     "ncbi": {
@@ -30,17 +30,17 @@ CITATION_REGISTRY = {
     },
     "vfdb": {
         "name": "VFDB",
-        "citation": "Virulence Factor Database used for virulence-associated feature annotation.",
+        "citation": "Chen L, Yang J, Yu J, et al. VFDB: a reference database for bacterial virulence factors. Nucleic Acids Research. 2005;33(Database issue):D325-D328.",
         "url": "http://www.mgc.ac.cn/VFs/",
     },
     "plasmidfinder": {
         "name": "PlasmidFinder",
-        "citation": "PlasmidFinder database/tool for plasmid replicon detection.",
+        "citation": "Carattoli A, Zankari E, Garcia-Fernandez A, et al. In silico detection and typing of plasmids using PlasmidFinder and plasmid multilocus sequence typing. Antimicrobial Agents and Chemotherapy. 2014;58(7):3895-3903.",
         "url": "https://cge.food.dtu.dk/services/PlasmidFinder/",
     },
     "mobileelementfinder": {
         "name": "MobileElementFinder",
-        "citation": "MobileElementFinder for mobile genetic element annotation.",
+        "citation": "Johansson MHK, Bortolaia V, Tansirichaiya S, et al. Detection of mobile genetic elements associated with antibiotic resistance in Salmonella enterica using a newly developed web tool: MobileElementFinder. Journal of Antimicrobial Chemotherapy. 2021;76(1):101-109.",
         "url": "https://bitbucket.org/genomicepidemiology/mobileelementfinder/",
     },
     "isfinder": {
@@ -50,7 +50,7 @@ CITATION_REGISTRY = {
     },
     "integronfinder": {
         "name": "IntegronFinder",
-        "citation": "IntegronFinder for detection of integrons in bacterial genomes.",
+        "citation": "Cury J, Jove T, Touchon M, Neron B, Rocha EPC. Identification and analysis of integrons and cassette arrays in bacterial genomes. Nucleic Acids Research. 2016;44(10):4539-4550.",
         "url": "https://github.com/gem-pasteur/Integron_Finder",
     },
     "iceberg": {
@@ -60,17 +60,17 @@ CITATION_REGISTRY = {
     },
     "mlst": {
         "name": "MLST",
-        "citation": "MLST sequence typing and PubMLST-compatible schemes used for strain typing.",
+        "citation": "Seemann T. mlst: scan contig files against PubMLST typing schemes. GitHub repository.",
         "url": "https://github.com/tseemann/mlst",
     },
     "pubmlst": {
         "name": "PubMLST",
-        "citation": "PubMLST typing schemes used by the MLST annotation workflow.",
+        "citation": "Jolley KA, Bray JE, Maiden MCJ. Open-access bacterial population genomics: BIGSdb software, the PubMLST.org website and their applications. Wellcome Open Research. 2018;3:124.",
         "url": "https://pubmlst.org/",
     },
     "defensefinder": {
         "name": "DefenseFinder",
-        "citation": "DefenseFinder for annotation of prokaryotic antiviral defense systems.",
+        "citation": "Tesson F, Herve A, Mordret E, et al. Systematic and quantitative view of the antiviral arsenal of prokaryotes. Nature Communications. 2022;13:2561.",
         "url": "https://github.com/mdmparis/defense-finder",
     },
     "prophage": {
@@ -115,6 +115,8 @@ def _selected_citation_keys(options=None, feature_outputs=None, input_files=None
     for feature_type in feature_outputs:
         if feature_type in CITATION_REGISTRY:
             keys.add(feature_type)
+        if feature_type == "mlst":
+            keys.add("pubmlst")
         if feature_type in {"vfdb", "plasmidfinder", "isfinder", "iceberg"}:
             keys.add("abricate")
     if output_dir:
