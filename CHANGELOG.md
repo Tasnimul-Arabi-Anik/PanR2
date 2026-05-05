@@ -54,6 +54,7 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- Legacy static/interactive plot generation is now non-fatal, so journal reports, dashboards, citations, and PanResistome context outputs are still written if an optional legacy figure fails on a real-world table shape.
 - Citation output now includes more formal references for VFDB, PlasmidFinder, MobileElementFinder, IntegronFinder, MLST/PubMLST, and DefenseFinder.
 - Documentation now separates recommended stable usage, sample naming/sample-map behavior, and biological interpretation limits.
 - Documentation now explicitly states the long-term split: PanResistome runs heavy bioinformatics tools, while PanR2 analyzes standardized output tables.

@@ -90,6 +90,15 @@ def _command_version(command, version_args):
     return "found", executable, "version unavailable"
 
 
+def _safe_optional_output(label, func, *args, **kwargs):
+    """Run a noncritical legacy plot/stat step without aborting reporting."""
+    try:
+        return func(*args, **kwargs)
+    except Exception as exc:
+        logging.warning("Skipping optional output %s: %s", label, exc)
+        return None
+
+
 def _list_abricate_databases(abricate_path):
     databases = []
     if not abricate_path:
@@ -651,59 +660,59 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
             )
             
             # Analyze gene prevalence and generate figures
-            analyze_gene_presence(tidy_df, figures_dir, base_name, fig_format)
+            _safe_optional_output("gene_presence_plots", analyze_gene_presence, tidy_df, figures_dir, base_name, fig_format)
             
 
             # Generate boxplot for gene identity
-            generate_gene_identity_boxplot(tidy_file, figures_dir, fig_format)
+            _safe_optional_output("gene_identity_boxplot", generate_gene_identity_boxplot, tidy_file, figures_dir, fig_format)
             # Generate interactive boxplot for gene identity
-            generate_gene_identity_boxplot_plotly(tidy_file, figures_dir)
+            _safe_optional_output("gene_identity_boxplot_html", generate_gene_identity_boxplot_plotly, tidy_file, figures_dir)
 
             
             # Create subdirectory 'mean_ARG' inside figures_dir
             mean_ARG_dir = os.path.join(figures_dir, "mean_ARG")
             os.makedirs(mean_ARG_dir, exist_ok=True)
                 # Generate mean ARG based on different groups
-            generate_mean_arg_lollipop(tidy_file, mean_ARG_dir, fig_format, group_by="Geographic Location")
-            generate_mean_arg_lollipop(tidy_file, mean_ARG_dir, fig_format, group_by="Collection Date")
-            generate_mean_arg_lollipop(tidy_file, mean_ARG_dir, fig_format, group_by="Continent")
-            generate_mean_arg_lollipop(tidy_file, mean_ARG_dir, fig_format, group_by="Subcontinent")
+            _safe_optional_output("mean_arg_by_geographic_location", generate_mean_arg_lollipop, tidy_file, mean_ARG_dir, fig_format, group_by="Geographic Location")
+            _safe_optional_output("mean_arg_by_collection_date", generate_mean_arg_lollipop, tidy_file, mean_ARG_dir, fig_format, group_by="Collection Date")
+            _safe_optional_output("mean_arg_by_continent", generate_mean_arg_lollipop, tidy_file, mean_ARG_dir, fig_format, group_by="Continent")
+            _safe_optional_output("mean_arg_by_subcontinent", generate_mean_arg_lollipop, tidy_file, mean_ARG_dir, fig_format, group_by="Subcontinent")
 
 
             # Generate barplots for resistance compariosn
-            generate_resistance_barplot(tidy_file, figures_dir, fig_format)
+            _safe_optional_output("resistance_barplot", generate_resistance_barplot, tidy_file, figures_dir, fig_format)
 
             # Create subdirectory 'heatmap' inside figures_dir
             heatmap_dir = os.path.join(figures_dir, "heatmap")
             os.makedirs(heatmap_dir, exist_ok=True)
                 # Generate country comparison heatmap
-            generate_comparison_heatmap(tidy_file, heatmap_dir, fig_format, group_col="Geographic Location", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
-            generate_comparison_heatmap(tidy_file, heatmap_dir, fig_format, group_col="Collection Date", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
-            generate_comparison_heatmap(tidy_file, heatmap_dir, fig_format, group_col="Continent", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
-            generate_comparison_heatmap(tidy_file, heatmap_dir, fig_format, group_col="Subcontinent", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
+            _safe_optional_output("heatmap_by_geographic_location", generate_comparison_heatmap, tidy_file, heatmap_dir, fig_format, group_col="Geographic Location", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
+            _safe_optional_output("heatmap_by_collection_date", generate_comparison_heatmap, tidy_file, heatmap_dir, fig_format, group_col="Collection Date", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
+            _safe_optional_output("heatmap_by_continent", generate_comparison_heatmap, tidy_file, heatmap_dir, fig_format, group_col="Continent", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
+            _safe_optional_output("heatmap_by_subcontinent", generate_comparison_heatmap, tidy_file, heatmap_dir, fig_format, group_col="Subcontinent", resistance_col="RESISTANCE", genep_threshold=genep, nseq_threshold=nseq)
             
 
             # Plotly plots
             # Generate interactive heatmap with multiple grouping options
-            generate_comparison_heatmap_plotly(tidy_file, figures_dir)
+            _safe_optional_output("interactive_comparison_heatmap", generate_comparison_heatmap_plotly, tidy_file, figures_dir)
             # Generate geographic resistance map
-            generate_geographic_resistance_map_plotly(tidy_file, figures_dir)
+            _safe_optional_output("geographic_resistance_map", generate_geographic_resistance_map_plotly, tidy_file, figures_dir)
             # Generate mean ARG resistance analysis box plot
-            mean_Arg_resistance_analysis_plotly(tidy_file, figures_dir)
+            _safe_optional_output("mean_arg_resistance_analysis_html", mean_Arg_resistance_analysis_plotly, tidy_file, figures_dir)
             # Generate interactive lollipop plot with dropdown for group selection
-            generate_mean_arg_lollipop_plotly(tidy_file, figures_dir)
+            _safe_optional_output("mean_arg_lollipop_html", generate_mean_arg_lollipop_plotly, tidy_file, figures_dir)
 
 
             # Generate correlation scatterplot analysis
             print("Generating Geographic Location analysis...")
-            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Geographic Location", min_samples_per_group=min_samples_per_group)
+            _safe_optional_output("correlation_geographic_location", correlation_scatterplot_analysis, tidy_file, figures_dir, group_col="Geographic Location", min_samples_per_group=min_samples_per_group)
             print("Generating Continent analysis...")
-            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Continent", min_samples_per_group=min_samples_per_group)
+            _safe_optional_output("correlation_continent", correlation_scatterplot_analysis, tidy_file, figures_dir, group_col="Continent", min_samples_per_group=min_samples_per_group)
             print("Generating Subcontinent analysis...")
-            correlation_scatterplot_analysis(tidy_file, figures_dir, group_col="Subcontinent", min_samples_per_group=min_samples_per_group)
+            _safe_optional_output("correlation_subcontinent", correlation_scatterplot_analysis, tidy_file, figures_dir, group_col="Subcontinent", min_samples_per_group=min_samples_per_group)
              # Combine the three CSV files
             print("Combining correlation summary CSV files...")
-            combined_correlation_analysis(figures_dir)
+            _safe_optional_output("combined_correlation_analysis", combined_correlation_analysis, figures_dir)
 
 
             # Keeping all the html files in html_dir inside figures_dir
