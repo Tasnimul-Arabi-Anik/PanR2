@@ -17,6 +17,8 @@ FEATURE_LABELS = {
     "isfinder": "ISfinder",
     "integronfinder": "IntegronFinder",
     "iceberg": "ICEberg",
+    "defensefinder": "DefenseFinder",
+    "prophage": "Prophage",
 }
 
 

@@ -25,6 +25,7 @@ from panr2.io import (
     unique_input_files,
 )
 from panr2.metadata import write_metadata_reports
+from panr2.mlst import analyze_mlst, finalize_mlst_analysis, run_mlst
 from panr2.plots import (
     analyze_gene_presence,
     generate_comparison_heatmap,
@@ -42,6 +43,8 @@ from panr2.qc import write_input_qc_report
 from panr2.report import write_report
 from panr2.runners import convert_iceberg_tables, run_abricate_databases, run_integronfinder, run_mobileelementfinder
 from panr2.stats import combined_correlation_analysis, correlation_scatterplot_analysis
+from panr2.table_features import convert_defensefinder_tables, convert_prophage_tables, run_defensefinder
+from panr2.temporal import write_temporal_trends
 
 
 PANR2_VERSION = "0.1.3-dev"
@@ -114,7 +117,7 @@ def _list_abricate_databases(abricate_path):
     return databases
 
 
-def collect_doctor_report(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder", include_system=False):
+def collect_doctor_report(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder", mlst_bin="mlst", defensefinder_bin="defense-finder", include_system=False):
     """Collect dependency status for analysis-only and integrated-runner modes."""
     python_packages = ["pandas", "numpy", "matplotlib", "seaborn", "scipy", "plotly"]
     package_rows = {package: _python_package_status(package) for package in python_packages}
@@ -123,6 +126,8 @@ def collect_doctor_report(abricate_bin="abricate", mobileelementfinder_bin="mefi
         ("abricate", abricate_bin, [["--version"]]),
         ("mobileelementfinder", mobileelementfinder_bin, [["--version"], ["version"]]),
         ("integronfinder", integronfinder_bin, [["--version"], ["--help"]]),
+        ("mlst", mlst_bin, [["--version"]]),
+        ("defensefinder", defensefinder_bin, [["--version"], ["--help"]]),
     ]
     tool_rows = {}
     abricate_path = None
@@ -144,7 +149,7 @@ def collect_doctor_report(abricate_bin="abricate", mobileelementfinder_bin="mefi
         "abricate_databases": _list_abricate_databases(abricate_path),
         "install_modes": {
             "analysis_only": "Requires PanR2 Python dependencies plus existing ABRicate-style result folders.",
-            "integrated_runners": "Additionally requires ABRicate, MobileElementFinder, and/or IntegronFinder installed with their databases.",
+            "integrated_runners": "Additionally requires ABRicate, MobileElementFinder, IntegronFinder, MLST, and/or DefenseFinder installed with their databases/schemes.",
             "iceberg_style": "Requires user-provided ICE/IME/CIME annotation tables or ABRicate-style ICEberg inputs; PanR2 does not run ICEberg directly.",
         },
     }
@@ -244,9 +249,16 @@ def setup_abricate_databases(abricate_bin="abricate", dbs=None, check_only=False
     return 0 if not missing else 1
 
 
-def run_doctor(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder", json_output=False, fix=False, include_system=False):
+def _has_abricate_feature_files(feature_dir):
+    if not feature_dir or not os.path.isdir(feature_dir):
+        return False
+    names = [name.lower() for name in os.listdir(feature_dir) if name.lower().endswith((".csv", ".tab"))]
+    return any("summary" in name for name in names) and any("results" in name for name in names)
+
+
+def run_doctor(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder", mlst_bin="mlst", defensefinder_bin="defense-finder", json_output=False, fix=False, include_system=False):
     """Print dependency status for analysis-only and integrated-runner modes."""
-    report = collect_doctor_report(abricate_bin, mobileelementfinder_bin, integronfinder_bin, include_system=include_system)
+    report = collect_doctor_report(abricate_bin, mobileelementfinder_bin, integronfinder_bin, mlst_bin=mlst_bin, defensefinder_bin=defensefinder_bin, include_system=include_system)
     fixes = []
     if fix and report["tools"]["abricate"]["path"] and not report["abricate_databases"]:
         executable = report["tools"]["abricate"]["path"]
@@ -257,7 +269,7 @@ def run_doctor(abricate_bin="abricate", mobileelementfinder_bin="mefinder", inte
             "status": "ok" if completed.returncode == 0 else "failed",
             "stderr": completed.stderr.strip(),
         })
-        report = collect_doctor_report(abricate_bin, mobileelementfinder_bin, integronfinder_bin, include_system=include_system)
+        report = collect_doctor_report(abricate_bin, mobileelementfinder_bin, integronfinder_bin, mlst_bin=mlst_bin, defensefinder_bin=defensefinder_bin, include_system=include_system)
     if fixes:
         report["fixes"] = fixes
 
@@ -284,6 +296,8 @@ def _run_subcommand(argv):
         parser.add_argument("--abricate-bin", default="abricate", help="ABRicate executable name or path.")
         parser.add_argument("--mobileelementfinder-bin", default="mefinder", help="MobileElementFinder executable name or path.")
         parser.add_argument("--integronfinder-bin", default="integron_finder", help="IntegronFinder executable name or path.")
+        parser.add_argument("--mlst-bin", default="mlst", help="MLST executable name or path.")
+        parser.add_argument("--defensefinder-bin", default="defense-finder", help="DefenseFinder executable name or path.")
         args = parser.parse_args(argv[1:])
         include_system = command == "install-info"
         if command == "setup" and args.mode == "databases-only":
@@ -292,6 +306,8 @@ def _run_subcommand(argv):
             abricate_bin=args.abricate_bin,
             mobileelementfinder_bin=args.mobileelementfinder_bin,
             integronfinder_bin=args.integronfinder_bin,
+            mlst_bin=args.mlst_bin,
+            defensefinder_bin=args.defensefinder_bin,
             json_output=args.json,
             fix=args.fix,
             include_system=include_system,
@@ -314,10 +330,43 @@ def _run_subcommand(argv):
         print(f"BibTeX file written to {outputs['citations_bib']}")
         print(f"Software versions written to {outputs['software_versions']}")
         return 0
+    if command == "validate-demo":
+        parser = argparse.ArgumentParser(prog="panr validate-demo", description="Run PanR2 on the bundled small validation dataset.")
+        parser.add_argument("--output-dir", required=True, help="Directory where validation outputs will be written.")
+        parser.add_argument("--format", default="png", choices=["tiff", "svg", "png", "pdf"], help="Output format for figures.")
+        args = parser.parse_args(argv[1:])
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        fixtures = os.path.join(repo_root, "tests", "fixtures")
+        if not os.path.isdir(fixtures):
+            raise FileNotFoundError("Bundled test fixtures were not found. Run validate-demo from a source checkout.")
+        main(
+            os.path.join(fixtures, "ncbi"),
+            os.path.join(fixtures, "abricate"),
+            args.output_dir,
+            args.format,
+            1,
+            0,
+            min_identity=90,
+            min_samples_per_group=2,
+            core_threshold=75,
+            rare_threshold=25,
+            top_n=10,
+            cooccurrence_min_prevalence=0,
+            cooccurrence_top_n=10,
+            vfdb_dir=os.path.join(fixtures, "vfdb"),
+            plasmidfinder_dir=os.path.join(fixtures, "plasmidfinder"),
+            mobileelementfinder_dir=os.path.join(fixtures, "mobileelementfinder"),
+            isfinder_dir=os.path.join(fixtures, "isfinder"),
+            integronfinder_dir=os.path.join(fixtures, "integronfinder"),
+            iceberg_dir=os.path.join(fixtures, "iceberg"),
+        )
+        print(f"Validation demo written to {args.output_dir}")
+        print(f"Open {os.path.join(args.output_dir, 'report', 'index.html')}")
+        return 0
     raise ValueError(f"Unknown PanR2 subcommand: {command}")
 
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, iceberg_table_dir=None, force_tool_run=False, run_cross_database=True, cross_database_max_features=300):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, mlst_dir=None, defensefinder_dir=None, prophage_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, run_mlst_tool=False, mlst_bin="mlst", run_defensefinder_tool=False, defensefinder_bin="defense-finder", iceberg_table_dir=None, force_tool_run=False, run_cross_database=True, cross_database_max_features=300, plot_style="publication", label_max_length=None, run_temporal_trends=True):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -387,6 +436,30 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         tool_manifest = integronfinder_run.get("manifest", tool_manifest)
         if not integronfinder_dir:
             integronfinder_dir = integronfinder_run["feature_dir"]
+    if run_mlst_tool:
+        if not sequence_dir:
+            raise ValueError("--sequence-dir is required when --run-mlst is used.")
+        mlst_run = run_mlst(
+            sequence_dir,
+            output_dir,
+            mlst_bin=mlst_bin,
+            force=force_tool_run,
+        )
+        tool_manifest = mlst_run.get("manifest", tool_manifest)
+        if not mlst_dir:
+            mlst_dir = mlst_run["mlst_dir"]
+    if run_defensefinder_tool:
+        if not sequence_dir:
+            raise ValueError("--sequence-dir is required when --run-defensefinder is used.")
+        defensefinder_run = run_defensefinder(
+            sequence_dir,
+            output_dir,
+            defensefinder_bin=defensefinder_bin,
+            force=force_tool_run,
+        )
+        tool_manifest = defensefinder_run.get("manifest", tool_manifest)
+        if not defensefinder_dir:
+            defensefinder_dir = defensefinder_run["feature_dir"]
     if iceberg_table_dir:
         iceberg_run = convert_iceberg_tables(iceberg_table_dir, output_dir)
         tool_manifest = iceberg_run.get("manifest", tool_manifest)
@@ -427,6 +500,14 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
     metadata_report_outputs = write_metadata_reports(ncbi_clean_path, output_dir, min_group_size=min_samples_per_group)
 
     optional_feature_outputs = {}
+    mlst_outputs = {}
+    if mlst_dir:
+        mlst_outputs = analyze_mlst(ncbi_clean_path, mlst_dir, output_dir, fig_format=fig_format)
+        optional_feature_outputs["mlst"] = mlst_outputs
+    if defensefinder_dir and not _has_abricate_feature_files(defensefinder_dir):
+        defensefinder_dir = convert_defensefinder_tables(defensefinder_dir, output_dir)["feature_dir"]
+    if prophage_dir and not _has_abricate_feature_files(prophage_dir):
+        prophage_dir = convert_prophage_tables(prophage_dir, output_dir)["feature_dir"]
     optional_database_specs = [
         ("vfdb", vfdb_dir, "virulence"),
         ("plasmidfinder", plasmidfinder_dir, "plasmid"),
@@ -434,6 +515,8 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         ("isfinder", isfinder_dir, "mge"),
         ("integronfinder", integronfinder_dir, "mge"),
         ("iceberg", iceberg_dir, "mge"),
+        ("defensefinder", defensefinder_dir, "defense"),
+        ("prophage", prophage_dir, "prophage"),
     ]
     for feature_type, feature_dir, mode in optional_database_specs:
         if feature_dir:
@@ -537,7 +620,21 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                     min_prevalence=cooccurrence_min_prevalence,
                     max_features=cross_database_max_features,
                     min_group_size=min_samples_per_group,
+                    plot_style=plot_style,
+                    label_max_length=label_max_length,
                 )
+            temporal_outputs = {}
+            if run_temporal_trends:
+                temporal_outputs = write_temporal_trends(
+                    output_dir,
+                    base_name,
+                    tidy_df,
+                    optional_feature_outputs,
+                    fig_format=fig_format,
+                )
+            if mlst_outputs:
+                mlst_outputs = finalize_mlst_analysis(output_dir, mlst_outputs, cross_database_outputs)
+                optional_feature_outputs["mlst"] = mlst_outputs
             
             # Analyze gene prevalence and generate figures
             analyze_gene_presence(tidy_df, figures_dir, base_name, fig_format)
@@ -633,12 +730,18 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 "cooccurrence_top_n": cooccurrence_top_n,
                 "run_cross_database": run_cross_database,
                 "cross_database_max_features": cross_database_max_features,
+                "plot_style": plot_style,
+                "label_max_length": label_max_length or "default",
+                "run_temporal_trends": run_temporal_trends,
                 "vfdb_dir": vfdb_dir or "not provided",
                 "plasmidfinder_dir": plasmidfinder_dir or "not provided",
                 "mobileelementfinder_dir": mobileelementfinder_dir or "not provided",
                 "isfinder_dir": isfinder_dir or "not provided",
                 "integronfinder_dir": integronfinder_dir or "not provided",
                 "iceberg_dir": iceberg_dir or "not provided",
+                "mlst_dir": mlst_dir or "not provided",
+                "defensefinder_dir": defensefinder_dir or "not provided",
+                "prophage_dir": prophage_dir or "not provided",
                 "sequence_dir": sequence_dir or "not provided",
                 "run_abricate": run_abricate,
                 "abricate_dbs": ",".join(abricate_dbs or []) if abricate_dbs else "not provided",
@@ -649,6 +752,10 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 "run_integronfinder": run_integronfinder_tool,
                 "integronfinder_bin": integronfinder_bin,
                 "integronfinder_threads": integronfinder_threads,
+                "run_mlst": run_mlst_tool,
+                "mlst_bin": mlst_bin,
+                "run_defensefinder": run_defensefinder_tool,
+                "defensefinder_bin": defensefinder_bin,
                 "iceberg_table_dir": iceberg_table_dir or "not provided",
                 "tool_manifest_json": tool_manifest.get("json", "not available"),
                 "tool_manifest_csv": tool_manifest.get("csv", "not available"),
@@ -678,6 +785,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 input_files=input_files,
                 cross_database_outputs=cross_database_outputs,
                 citation_outputs=citation_outputs,
+                temporal_outputs=temporal_outputs,
             )
 
         except Exception as e:
@@ -690,7 +798,7 @@ def run_cli(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] == "run-all":
         return run_cli(argv[1:] + ["--run-all"])
-    if argv and argv[0] in {"doctor", "setup", "setup-db", "install-info", "citations"}:
+    if argv and argv[0] in {"doctor", "setup", "setup-db", "install-info", "citations", "validate-demo"}:
         return _run_subcommand(argv)
 
     # Set up argument parser
@@ -717,6 +825,10 @@ def run_cli(argv=None):
     parser.add_argument("--run-integronfinder", action="store_true", help="Run IntegronFinder internally before PanR2 feature analysis.")
     parser.add_argument("--integronfinder-bin", default="integron_finder", help="IntegronFinder executable name or path.")
     parser.add_argument("--integronfinder-threads", type=int, default=1, help="CPU threads passed to IntegronFinder.")
+    parser.add_argument("--run-mlst", action="store_true", help="Run mlst internally before PanR2 typing analysis.")
+    parser.add_argument("--mlst-bin", default="mlst", help="MLST executable name or path.")
+    parser.add_argument("--run-defensefinder", action="store_true", help="Run DefenseFinder internally before PanR2 feature analysis.")
+    parser.add_argument("--defensefinder-bin", default="defense-finder", help="DefenseFinder executable name or path.")
     parser.add_argument("--iceberg-table-dir", help="Directory containing ICE/IME/CIME CSV/TSV/TAB tables to convert into PanR2 ICEberg analysis inputs.")
     parser.add_argument("--force-tool-run", action="store_true", help="Re-run integrated tools even when result files already exist.")
     parser.add_argument("--genep", type=float, default=10.0, help="Minimum %% gene presence to include in heatmap.")
@@ -730,14 +842,20 @@ def run_cli(argv=None):
     parser.add_argument("--top-n", type=int, default=25, help="Number of top genes/classes to include in compact summary plots.")
     parser.add_argument("--cooccurrence-min-prevalence", type=float, default=0.0, help="Minimum prevalence percentage for genes/classes included in co-occurrence matrices.")
     parser.add_argument("--cooccurrence-top-n", type=int, default=25, help="Number of top genes/classes or pairs to include in co-occurrence plots and pair tables.")
+    parser.add_argument("--plot-style", default="publication", choices=["publication", "dashboard", "compact"], help="Plot readability preset for integrated figures.")
+    parser.add_argument("--label-max-length", type=int, help="Maximum displayed feature-label length in crowded integrated figures.")
     parser.add_argument("--no-cross-database", action="store_true", help="Disable integrated cross-database association outputs.")
     parser.add_argument("--cross-database-max-features", type=int, default=300, help="Maximum most-prevalent features used for pairwise cross-database statistics; use 0 for no limit.")
+    parser.add_argument("--no-temporal-trends", action="store_true", help="Disable advanced temporal trend outputs.")
     parser.add_argument("--vfdb-dir", help="Optional directory containing ABRicate VFDB summary/results files.")
     parser.add_argument("--plasmidfinder-dir", help="Optional directory containing ABRicate PlasmidFinder summary/results files.")
     parser.add_argument("--mobileelementfinder-dir", help="Optional directory containing ABRicate MobileElementFinder summary/results files.")
     parser.add_argument("--isfinder-dir", help="Optional directory containing ABRicate ISfinder summary/results files.")
     parser.add_argument("--integronfinder-dir", help="Optional directory containing IntegronFinder or ABRicate-style integron summary/results files.")
     parser.add_argument("--iceberg-dir", help="Optional directory containing ABRicate ICEberg summary/results files.")
+    parser.add_argument("--mlst-dir", help="Optional directory containing mlst TSV/CSV output.")
+    parser.add_argument("--defensefinder-dir", help="Optional directory containing DefenseFinder tables or PanR2-compatible DefenseFinder summary/results files.")
+    parser.add_argument("--prophage-dir", help="Optional directory containing prophage/viral-region tables or PanR2-compatible prophage summary/results files.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args(argv)
@@ -746,6 +864,8 @@ def run_cli(argv=None):
             abricate_bin=args.abricate_bin,
             mobileelementfinder_bin=args.mobileelementfinder_bin,
             integronfinder_bin=args.integronfinder_bin,
+            mlst_bin=args.mlst_bin,
+            defensefinder_bin=args.defensefinder_bin,
             json_output=args.json,
             fix=args.fix,
             include_system=args.install_info,
@@ -768,6 +888,8 @@ def run_cli(argv=None):
         args.run_abricate = True
         args.run_mobileelementfinder = True
         args.run_integronfinder = True
+        args.run_mlst = True
+        args.run_defensefinder = True
         if args.abricate_dbs == "ncbi":
             args.abricate_dbs = "ncbi,vfdb,plasmidfinder,isfinder"
 
@@ -795,6 +917,9 @@ def run_cli(argv=None):
         isfinder_dir=args.isfinder_dir,
         integronfinder_dir=args.integronfinder_dir,
         iceberg_dir=args.iceberg_dir,
+        mlst_dir=args.mlst_dir,
+        defensefinder_dir=args.defensefinder_dir,
+        prophage_dir=args.prophage_dir,
         sequence_dir=args.sequence_dir,
         run_abricate=args.run_abricate,
         abricate_dbs=abricate_dbs,
@@ -806,10 +931,17 @@ def run_cli(argv=None):
         run_integronfinder_tool=args.run_integronfinder,
         integronfinder_bin=args.integronfinder_bin,
         integronfinder_threads=args.integronfinder_threads,
+        run_mlst_tool=args.run_mlst,
+        mlst_bin=args.mlst_bin,
+        run_defensefinder_tool=args.run_defensefinder,
+        defensefinder_bin=args.defensefinder_bin,
         iceberg_table_dir=args.iceberg_table_dir,
         force_tool_run=args.force_tool_run,
         run_cross_database=not args.no_cross_database,
         cross_database_max_features=args.cross_database_max_features,
+        plot_style=args.plot_style,
+        label_max_length=args.label_max_length,
+        run_temporal_trends=not args.no_temporal_trends,
     )
     return 0
 

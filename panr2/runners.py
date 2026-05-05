@@ -480,10 +480,11 @@ def _find_table_files(table_dir):
     if not os.path.isdir(table_dir):
         raise FileNotFoundError(f"Table directory not found: {table_dir}")
     paths = []
-    for name in sorted(os.listdir(table_dir)):
-        lower = name.lower()
-        if lower.endswith((".csv", ".tsv", ".tab")):
-            paths.append(os.path.join(table_dir, name))
+    for root, _, files in os.walk(table_dir):
+        for name in sorted(files):
+            lower = name.lower()
+            if lower.endswith((".csv", ".tsv", ".tab")):
+                paths.append(os.path.join(root, name))
     return paths
 
 

@@ -58,6 +58,26 @@ CITATION_REGISTRY = {
         "citation": "ICEberg database or ICE/IME/CIME annotation source used for ICEberg-style inputs. PanR2 does not run ICEberg directly.",
         "url": "https://db-mml.sjtu.edu.cn/ICEberg/",
     },
+    "mlst": {
+        "name": "MLST",
+        "citation": "MLST sequence typing and PubMLST-compatible schemes used for strain typing.",
+        "url": "https://github.com/tseemann/mlst",
+    },
+    "pubmlst": {
+        "name": "PubMLST",
+        "citation": "PubMLST typing schemes used by the MLST annotation workflow.",
+        "url": "https://pubmlst.org/",
+    },
+    "defensefinder": {
+        "name": "DefenseFinder",
+        "citation": "DefenseFinder for annotation of prokaryotic antiviral defense systems.",
+        "url": "https://github.com/mdmparis/defense-finder",
+    },
+    "prophage": {
+        "name": "Prophage or viral-region annotation source",
+        "citation": "User-provided prophage or viral-region annotation tables parsed by PanR2. Cite the upstream prophage detection tool or database used to produce these inputs.",
+        "url": "https://github.com/Tasnimul-Arabi-Anik/PanR2",
+    },
     "python": {
         "name": "Python scientific stack",
         "citation": "pandas, NumPy, SciPy, matplotlib, seaborn, and Plotly were used for analysis and visualization.",

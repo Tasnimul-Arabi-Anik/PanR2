@@ -25,7 +25,7 @@ It enables robust statistical analysis, including group-wise comparisons, summar
 PanR2 has three practical install modes:
 
 - Analysis-only install: use PanR2 with existing ABRicate-style result folders. This does not install external annotation tools or databases.
-- Source checkout with `environment.yml`: installs PanR2 Python dependencies plus ABRicate, IntegronFinder, BLAST/KMA support, and MobileElementFinder. ABRicate databases still need to be initialized with `abricate --setupdb`.
+- Source checkout with `environment.yml`: installs PanR2 Python dependencies plus ABRicate, IntegronFinder, MLST, DefenseFinder, BLAST/KMA support, and MobileElementFinder. ABRicate databases still need to be initialized with `abricate --setupdb`.
 - Container install: builds a reproducible command-line image for users who want fewer local dependency conflicts.
 
 ### Method 1: Analysis-only `pip` Install
@@ -79,7 +79,7 @@ panr doctor --json
 panr install-info
 ```
 
-`panr --doctor` reports whether the Python dependencies, optional external annotation tools, and ABRicate databases are visible in the current environment. Missing ABRicate, MobileElementFinder, or IntegronFinder is not fatal for analysis-only mode, but those tools are required when using the corresponding integrated runner flags.
+`panr --doctor` reports whether the Python dependencies, optional external annotation tools, and ABRicate databases are visible in the current environment. Missing ABRicate, MobileElementFinder, IntegronFinder, MLST, or DefenseFinder is not fatal for analysis-only mode, but those tools are required when using the corresponding integrated runner flags.
 
 For integrated ABRicate runs, initialize or check ABRicate databases with:
 
@@ -92,6 +92,14 @@ panr setup-db --dbs ncbi,vfdb,plasmidfinder
 
 ### Run the Included Smoke Test
 From a source checkout, run the bundled small fixture to confirm the CLI, merge step, tidy output, and plotting path work locally:
+
+```bash
+panr validate-demo --output-dir test_output --format png
+```
+
+The validation command writes a complete small multi-database run and creates the main dashboard at `test_output/report/index.html`.
+
+You can also run the equivalent explicit command:
 
 ```bash
 python bin/panr \
@@ -122,7 +130,7 @@ The fixture is intentionally small. Correlation plots that require at least five
 
 ## Source Layout
 
-PanR2 keeps the installed command as `panr`, while the implementation lives in the `panr2` Python package. The `bin/panr` file is a compatibility wrapper around `panr2.cli`. Core code is split into focused modules: `io`, `qc`, `filters`, `analysis`, `plots`, and `stats`.
+PanR2 keeps the installed command as `panr`, while the implementation lives in the `panr2` Python package. The `bin/panr` file is a compatibility wrapper around `panr2.cli`. Core code is split into focused modules for I/O, QC, filtering, AMR analysis, optional feature analysis, integrated runners, MLST, temporal trends, cross-database associations, reports, dashboards, plots, and statistics.
 
 ---
 
@@ -140,6 +148,7 @@ panr doctor [--json] [--fix]
 panr setup-db [--dbs ncbi,vfdb,plasmidfinder] [--check-only] [--json]
 panr install-info
 panr citations --output-dir <OUTPUT_DIRECTORY>
+panr validate-demo --output-dir <OUTPUT_DIRECTORY>
 panr run-all --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY>
 ```
 
@@ -149,7 +158,7 @@ PanR2 can also run ABRicate internally from assembly FASTA files:
 panr --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-abricate --abricate-dbs ncbi,vfdb,plasmidfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
-For a broad integrated run, use `panr run-all` or `--run-all`. This enables ABRicate, MobileElementFinder, and IntegronFinder runners, then performs AMR, optional database, and cross-database comparative analyses:
+For a broad integrated run, use `panr run-all` or `--run-all`. This enables ABRicate, MobileElementFinder, IntegronFinder, MLST, and DefenseFinder runners, then performs AMR, optional database, temporal trend, and cross-database comparative analyses:
 
 ```bash
 panr run-all --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> --min-identity 90
@@ -165,6 +174,26 @@ IntegronFinder can also be run internally when installed:
 
 ```bash
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-integronfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
+MLST can be run internally when installed, or existing `mlst` TSV/CSV output can be supplied:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-mlst --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --mlst-dir <MLST_OUTPUT_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
+DefenseFinder can be run internally when installed, or existing DefenseFinder TSV/CSV outputs can be converted into PanR2-compatible feature inputs:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-defensefinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --defensefinder-dir <DEFENSEFINDER_TABLE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
+User-provided prophage or viral-region tables can be converted into PanR2 feature inputs. PanR2 does not currently run a prophage caller directly; cite the upstream tool used to create the supplied tables:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --prophage-dir <PROPHAGE_TABLE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
 User-provided ICE/IME/CIME tables can be converted into ICEberg-style PanR2 analysis inputs. PanR2 does not run an ICEberg annotation program directly; it converts existing ICE/IME/CIME annotation tables into PanR2-compatible feature tables:
@@ -206,6 +235,10 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 | `--run-integronfinder` | flag | off | Run IntegronFinder internally before PanR2 feature analysis |
 | `--integronfinder-bin` | path | `integron_finder` | IntegronFinder executable name or path |
 | `--integronfinder-threads` | int | `1` | CPU threads passed to IntegronFinder |
+| `--run-mlst` | flag | off | Run `mlst` internally before PanR2 typing analysis |
+| `--mlst-bin` | path | `mlst` | MLST executable name or path |
+| `--run-defensefinder` | flag | off | Run DefenseFinder internally before PanR2 feature analysis |
+| `--defensefinder-bin` | path | `defense-finder` | DefenseFinder executable name or path |
 | `--iceberg-table-dir` | path | optional | Directory containing ICE/IME/CIME CSV/TSV/TAB tables to convert into PanR2 ICEberg analysis inputs |
 | `--force-tool-run` | flag | off | Re-run integrated tools even when raw result files already exist |
 | `--min-identity` | float | `0.0` | Minimum ABRicate identity percentage to treat a gene call as present |
@@ -216,14 +249,20 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 | `--top-n` | int | `25` | Number of top genes/classes to include in compact summary plots |
 | `--cooccurrence-min-prevalence` | float | `0.0` | Minimum prevalence percentage for genes/classes included in co-occurrence matrices |
 | `--cooccurrence-top-n` | int | `25` | Number of top genes/classes or pairs to include in co-occurrence plots and pair tables |
+| `--plot-style` | str | `publication` | Integrated plot readability preset: `publication`, `dashboard`, or `compact` |
+| `--label-max-length` | int | style default | Maximum displayed feature-label length in crowded integrated figures |
 | `--no-cross-database` | flag | off | Disable integrated cross-database association outputs |
 | `--cross-database-max-features` | int | `300` | Maximum most-prevalent features used for pairwise cross-database statistics; use `0` for no limit |
+| `--no-temporal-trends` | flag | off | Disable advanced temporal trend outputs |
 | `--vfdb-dir` | path | optional | Directory containing ABRicate VFDB summary/results files |
 | `--plasmidfinder-dir` | path | optional | Directory containing ABRicate PlasmidFinder summary/results files |
 | `--mobileelementfinder-dir` | path | optional | Directory containing ABRicate MobileElementFinder summary/results files |
 | `--isfinder-dir` | path | optional | Directory containing ABRicate ISfinder summary/results files |
 | `--integronfinder-dir` | path | optional | Directory containing IntegronFinder or ABRicate-style integron summary/results files |
 | `--iceberg-dir` | path | optional | Directory containing ABRicate ICEberg summary/results files |
+| `--mlst-dir` | path | optional | Directory containing MLST TSV/CSV output |
+| `--defensefinder-dir` | path | optional | Directory containing DefenseFinder tables or PanR2-compatible summary/results files |
+| `--prophage-dir` | path | optional | Directory containing prophage/viral-region tables or PanR2-compatible summary/results files |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
 
@@ -246,6 +285,9 @@ panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --sequence
 
 # Run IntegronFinder inside PanR2 and include integron feature analysis
 panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --sequence-dir ./data/sequence --run-integronfinder --output-dir ./output_integrons --min-identity 90
+
+# Add MLST typing and DefenseFinder/prophage table inputs to the same comparative workflow
+panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --mlst-dir ./data/mlst --defensefinder-dir ./data/defensefinder --prophage-dir ./data/prophage --output-dir ./output_comparative --min-identity 90
 
 # Convert ICE/IME/CIME annotation tables and include ICEberg-style feature analysis
 panr --ncbi-dir ./data/metadata_output --abricate-dir ./data/abricate --iceberg-table-dir ./data/iceberg_tables --output-dir ./output_iceberg --min-identity 90
@@ -270,6 +312,11 @@ output/
 │       ├── raw/
 │       └── panr2_inputs/
 │   └── integronfinder/
+│       ├── raw/
+│       └── panr2_inputs/
+│   └── mlst/
+│       └── raw/
+│   └── defensefinder/
 │       ├── raw/
 │       └── panr2_inputs/
 │   └── iceberg/
@@ -302,11 +349,26 @@ output/
 │   ├── analysis/
 │   ├── figures/
 │   └── merged_output/
+├── mlst/                              # Optional sequence typing summaries and figures
+│   ├── analysis/
+│   ├── figures/
+│   └── merged_output/
+├── defensefinder/                     # Optional defense-system feature tables and figures
+│   ├── analysis/
+│   ├── figures/
+│   └── merged_output/
+├── prophage/                          # Optional prophage/viral-region feature tables and figures
+│   ├── analysis/
+│   ├── figures/
+│   └── merged_output/
 ├── cross_database/                    # Integrated AMR/VFDB/plasmid/MGE comparative genomics
 │   ├── analysis/
 │   └── figures/
+├── temporal/                          # Advanced temporal trend tables and HTML plots
+│   ├── analysis/
+│   └── figures/
 ├── qc/                                # Shared input validation and filter reports
-└── report/                            # Journal-style narrative report and methods text
+└── report/                            # Dashboard, journal-style report, citations, and methods text
 ```
 
 ### Output Files Description
@@ -356,40 +418,51 @@ output/
 - **`plasmidfinder/analysis/plasmidfinder_group_pairwise_tests.csv`** - PlasmidFinder pairwise group comparisons where sample sizes permit
 - **`plasmidfinder/figures/`** - PlasmidFinder static figures, burden-by-group plots, interactive HTML files under `html_files/`, and `index.html` navigation
 
-The same database-named output pattern is used for `mobileelementfinder/`, `isfinder/`, `integronfinder/`, and `iceberg/`. Each optional mobile genetic element database writes `analysis/`, `figures/`, and `merged_output/` folders with feature summaries, product/category summaries, sample burden, per-database QC summaries, unmatched-sample reports, geographic and temporal summaries, co-occurrence tables, group-burden comparisons, static plots, interactive HTML plots, and an `index.html` figure browser.
+The same database-named output pattern is used for `mobileelementfinder/`, `isfinder/`, `integronfinder/`, `iceberg/`, `defensefinder/`, and `prophage/`. Each optional feature database writes `analysis/`, `figures/`, and `merged_output/` folders with feature summaries, product/category summaries, sample burden, per-database QC summaries, unmatched-sample reports, geographic and temporal summaries, co-occurrence tables, group-burden comparisons, static plots, interactive HTML plots, and an `index.html` figure browser when applicable.
 
-VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots.
+VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg, DefenseFinder, and prophage inputs are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions where applicable, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots. MLST is treated as typing metadata/features, not as AMR, virulence, plasmid, or mobile-element annotation.
+
+MLST-specific outputs include `mlst/analysis/sample_mlst_summary.csv`, `mlst/analysis/mlst_by_metadata.csv`, and `mlst/analysis/st_feature_burden_summary.csv`.
 
 #### 4. Cross-Database Comparative Genomics (`cross_database/` directory)
-- **`cross_database_feature_matrix.csv`** - Unified sample-by-feature matrix with prefixed features such as `AMR:blaA`, `VFDB:fimH`, `PLASMID:IncFIB`, `MGE:IS26`, `INTEGRON:intI1`, and `ICE:ICEKp1`
+- **`cross_database_feature_matrix.csv`** - Unified sample-by-feature matrix with prefixed features such as `AMR:blaA`, `VFDB:fimH`, `PLASMID:IncFIB`, `MGE:IS26`, `INTEGRON:intI1`, `ICE:ICEKp1`, `MLST:scheme:ST11`, `DEFENSE:RM_type_I`, and `PROPHAGE:pp1`
 - **`cross_database_top_associations.csv`** - Pairwise feature associations with co-occurrence count, Jaccard index, phi coefficient, Fisher exact-test odds ratio, p-value, and FDR-adjusted q-value
 - **`cross_database_cooccurrence_matrix.csv`**, **`cross_database_jaccard_matrix.csv`**, and **`cross_database_phi_correlation_matrix.csv`** - Global association matrices
-- **`amr_mge_associations.csv`**, **`amr_plasmid_associations.csv`**, **`amr_integron_associations.csv`**, **`amr_virulence_associations.csv`**, and **`plasmid_mge_associations.csv`** - Biologically focused cross-database association tables
+- **`amr_mge_associations.csv`**, **`amr_plasmid_associations.csv`**, **`amr_integron_associations.csv`**, **`amr_virulence_associations.csv`**, **`amr_defense_associations.csv`**, **`amr_prophage_associations.csv`**, **`plasmid_mge_associations.csv`**, **`defense_mge_associations.csv`**, and **`prophage_mge_associations.csv`** - Biologically focused cross-database association tables
 - **`sample_integrated_feature_burden.csv`** - Per-sample AMR, virulence, plasmid, mobileome, total feature, and mobility-associated AMR burden metrics
 - **`cross_database_feature_enrichment_by_metadata.csv`** - Feature enrichment by metadata group using Fisher exact tests and FDR correction
 - **`global_feature_association_heatmap.*`**, **`integrated_feature_presence_heatmap.*`**, and **`cross_database_feature_network.html`** - Static and interactive integrated comparative figures
 - **`figure_manifest.csv`** - Figure inventory with descriptions and recommended use
+- **`plot_readability_warnings.csv`** - Warnings when labels or dense networks/heatmaps were shortened or limited for readability
 
-#### 5. Written Report (`report/` directory)
+Cross-database co-occurrence is sample/genome-level only. It does not prove physical linkage, plasmid localization, horizontal transfer, shared regulation, phenotype, or causality.
+
+#### 5. Advanced Temporal Trends (`temporal/` directory)
+- **`temporal_feature_trends.csv`** - Feature-level Mann-Kendall, Spearman, and logistic presence trend summaries by collection year
+- **`temporal_burden_trends.csv`** - Linear and Mann-Kendall trend summaries for per-sample feature burdens
+- **`temporal_top_feature_trends.html`** - Interactive yearly prevalence trends for selected features
+
+#### 6. Written Report (`report/` directory)
+- **`index.html`** - Top-level dashboard linking QC, metadata completeness, AMR, optional database outputs, cross-database outputs, temporal trends, figures, citations, and software versions
 - **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables
 - **`*_panr2_report.html`** - Simple HTML rendering of the Markdown report
 - **`*_methods.txt`** - Reusable methods description for manuscript drafting
 - **`citations.md`** and **`citations.bib`** - Run-specific citation files for PanR2 and detected tools/databases
 - **`software_versions.csv`** - PanR2, Python package, and integrated-tool versions when available
 
-#### 6. NCBI/AMR Static Visualizations
+#### 7. NCBI/AMR Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
 - **`Resistance_percentage_by_Antibiotics.{format}`** - Bar plot of resistance by antibiotic classes
 
-#### 7. Heatmaps (`ncbi/figures/heatmap/` directory)
+#### 8. Heatmaps (`ncbi/figures/heatmap/` directory)
 - **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
-#### 8. Mean ARG Analysis (`ncbi/figures/mean_ARG/` directory)
+#### 9. Mean ARG Analysis (`ncbi/figures/mean_ARG/` directory)
 - **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
-#### 9. Interactive HTML Visualizations (`ncbi/figures/html_files/` directory)
+#### 10. Interactive HTML Visualizations (`ncbi/figures/html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
 - **`Resistance_gene_geographic_distribution.html`** - Geographic distribution map
 - **`Resistance_gene_frequency_boxplot.html`** - Interactive frequency analysis
@@ -402,14 +475,14 @@ VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg 
 - **`Geographic_Location_correlation_plot.html`** - Location-based correlations
 - **`Subcontinent_correlation_plot.html`** - Subcontinental correlation patterns
 
-#### 10. Statistical Analysis (`ncbi/figures/Stat_analysis/` directory)
+#### 11. Statistical Analysis (`ncbi/figures/Stat_analysis/` directory)
 - **`combined_geographic_correlation_summary.csv`** - Geographic correlation statistics
 - **`combined_overall_tests.csv`** - Overall statistical test results
 - **`combined_pairwise_comparisons.csv`** - Pairwise comparison results
 - **`combined_summary_statistics.csv`** - Comprehensive summary statistics
 - **`ncbi_gene_presence_count_percentage.csv`** - Gene presence counts and percentages
 
-#### 11. Navigation
+#### 12. Navigation
 - **It generates an interactive combined index.html file** 
 - **[View the interactive HTML report](https://tasnimul-arabi-anik.github.io/PanR2/)** – Interactive HTML index page for easy navigation of all generated visualizations
 

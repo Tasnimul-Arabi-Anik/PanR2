@@ -756,6 +756,7 @@ sys.exit(2)
             self.assertTrue((output_dir / "report" / "citations.md").exists())
             self.assertTrue((output_dir / "report" / "citations.bib").exists())
             self.assertTrue((output_dir / "report" / "software_versions.csv").exists())
+            self.assertTrue((output_dir / "report" / "index.html").exists())
             self.assertTrue((output_dir / "cross_database" / "analysis" / "cross_database_feature_matrix.csv").exists())
             self.assertTrue((output_dir / "cross_database" / "analysis" / "cross_database_top_associations.csv").exists())
             self.assertTrue((output_dir / "cross_database" / "analysis" / "amr_mge_associations.csv").exists())
@@ -767,15 +768,34 @@ sys.exit(2)
             self.assertTrue((output_dir / "cross_database" / "figures" / "integrated_feature_presence_heatmap.png").exists())
             self.assertTrue((output_dir / "cross_database" / "figures" / "html_files" / "global_feature_association_heatmap.html").exists())
             self.assertTrue((output_dir / "cross_database" / "figures" / "html_files" / "cross_database_feature_network.html").exists())
+            self.assertTrue((output_dir / "cross_database" / "figures" / "plot_readability_warnings.csv").exists())
+            self.assertTrue((output_dir / "temporal" / "analysis" / "temporal_feature_trends.csv").exists())
             self.assertIn("## Optional Database Feature Analysis", report_text)
             self.assertIn("## Cross-Database Comparative Genomics", report_text)
             self.assertIn("## Citations and Software Versions", report_text)
+            self.assertIn("plasmid localization", report_text)
 
             cross_pairs = pd.read_csv(output_dir / "cross_database" / "analysis" / "cross_database_top_associations.csv")
+            amr_mge = pd.read_csv(output_dir / "cross_database" / "analysis" / "amr_mge_associations.csv")
             integrated_burden = pd.read_csv(output_dir / "cross_database" / "analysis" / "sample_integrated_feature_burden.csv")
+            dashboard_text = (output_dir / "report" / "index.html").read_text()
             self.assertIn("phi_coefficient", cross_pairs.columns)
             self.assertIn("q_value", cross_pairs.columns)
+            exact_pair = amr_mge[
+                ((amr_mge["feature_1"] == "AMR:blaA") & (amr_mge["feature_2"] == "MGE:Tn3"))
+                | ((amr_mge["feature_1"] == "MGE:Tn3") & (amr_mge["feature_2"] == "AMR:blaA"))
+            ].iloc[0]
+            self.assertEqual(int(exact_pair["n11"]), 2)
+            self.assertEqual(int(exact_pair["n10"]), 0)
+            self.assertEqual(int(exact_pair["n01"]), 0)
+            self.assertEqual(int(exact_pair["n00"]), 2)
+            self.assertAlmostEqual(float(exact_pair["jaccard_index"]), 1.0)
+            self.assertAlmostEqual(float(exact_pair["phi_coefficient"]), 1.0)
+            self.assertIn("p_value", amr_mge.columns)
+            self.assertIn("q_value", amr_mge.columns)
             self.assertIn("total_mobileome_count", integrated_burden.columns)
+            self.assertIn("Recommended Outputs To Inspect First", dashboard_text)
+            self.assertIn("sample/genome", dashboard_text)
 
             for db in database_dirs:
                 with self.subTest(database=db):
@@ -841,6 +861,70 @@ sys.exit(2)
                     self.assertIn("Continent", set(overall_tests["grouping_variable"]))
                     self.assertTrue((output_dir / db / "figures" / f"{db}_mean_burden_by_continent.png").exists())
                     self.assertTrue((output_dir / db / "figures" / "html_files" / f"{db}_mean_burden_by_continent.html").exists())
+
+    def test_mlst_defensefinder_and_prophage_inputs_join_cross_database_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            mlst_dir = tmp_path / "mlst_input"
+            defense_dir = tmp_path / "defense_input"
+            prophage_dir = tmp_path / "prophage_input"
+            mlst_dir.mkdir()
+            defense_dir.mkdir()
+            prophage_dir.mkdir()
+            (mlst_dir / "mlst.tsv").write_text(
+                "GCF_000001.1.fna\tescherichia_coli\t11\tabc1\n"
+                "GCA_000002.1.fna\tescherichia_coli\t22\tabc2\n"
+                "GCA_000004.1.fna\tescherichia_coli\t11\tabc1\n"
+            )
+            (defense_dir / "defense.tsv").write_text(
+                "assembly_accession\tsystem\tsystem_type\tgene_name\tscore\n"
+                "GCF_000001.1\tRM_type_I\trestriction_modification\thsds\t100\n"
+                "GCA_000004.1\tRM_type_I\trestriction_modification\thsds\t100\n"
+                "GCA_000002.1\tCRISPR_Cas\tcrispr_cas\tcas9\t100\n"
+            )
+            (prophage_dir / "prophage.tsv").write_text(
+                "assembly_accession\tcontig\tstart\tend\tprophage_id\ttype\tscore\n"
+                "GCF_000001.1\tcontig1\t10\t5000\tpp1\tintact\t100\n"
+                "GCA_000004.1\tcontig2\t50\t6000\tpp1\tintact\t100\n"
+                "GCA_000002.1\tcontig3\t100\t2500\tpp2\tquestionable\t100\n"
+            )
+            output_dir = tmp_path / "panr2_output"
+            self.panr.main(
+                str(REPO_ROOT / "tests" / "fixtures" / "ncbi"),
+                str(REPO_ROOT / "tests" / "fixtures" / "abricate"),
+                str(output_dir),
+                "png",
+                1,
+                0,
+                min_identity=90,
+                min_samples_per_group=2,
+                core_threshold=75,
+                rare_threshold=25,
+                top_n=10,
+                cooccurrence_min_prevalence=0,
+                cooccurrence_top_n=10,
+                mlst_dir=str(mlst_dir),
+                defensefinder_dir=str(defense_dir),
+                prophage_dir=str(prophage_dir),
+            )
+
+            self.assertTrue((output_dir / "mlst" / "analysis" / "sample_mlst_summary.csv").exists())
+            self.assertTrue((output_dir / "mlst" / "analysis" / "st_feature_burden_summary.csv").exists())
+            self.assertTrue((output_dir / "defensefinder" / "analysis" / "defensefinder_feature_summary.csv").exists())
+            self.assertTrue((output_dir / "prophage" / "analysis" / "prophage_feature_summary.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "amr_defense_associations.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "amr_prophage_associations.csv").exists())
+            matrix = pd.read_csv(output_dir / "cross_database" / "analysis" / "cross_database_feature_matrix.csv", index_col=0)
+            self.assertIn("MLST:escherichia_coli:ST11", matrix.columns)
+            self.assertIn("DEFENSE:RM_type_I", matrix.columns)
+            self.assertIn("PROPHAGE:pp1", matrix.columns)
+            citations = (output_dir / "report" / "citations.md").read_text()
+            self.assertIn("MLST", citations)
+            self.assertIn("DefenseFinder", citations)
+            self.assertIn("Prophage", citations)
+            report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
+            self.assertIn("Advanced Temporal Trends", report_text)
+            self.assertIn("DefenseFinder features", report_text)
 
 
 if __name__ == "__main__":

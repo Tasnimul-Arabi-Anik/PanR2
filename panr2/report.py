@@ -5,6 +5,8 @@ from datetime import datetime
 
 import pandas as pd
 
+from panr2.dashboard import write_dashboard
+
 
 def _read_csv(path):
     if os.path.exists(path):
@@ -87,17 +89,21 @@ def _feature_label(feature_type):
         "isfinder": "ISfinder",
         "integronfinder": "IntegronFinder",
         "iceberg": "ICEberg",
+        "mlst": "MLST",
+        "defensefinder": "DefenseFinder",
+        "prophage": "Prophage",
     }
     return labels.get(feature_type.lower(), feature_type.replace("_", " ").title())
 
 
-def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None, cross_database_outputs=None, citation_outputs=None):
+def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None, cross_database_outputs=None, citation_outputs=None, temporal_outputs=None):
     """Write a deterministic journal-style PanR2 report."""
     options = options or {}
     input_files = input_files or {}
     feature_outputs = feature_outputs or {}
     cross_database_outputs = cross_database_outputs or {}
     citation_outputs = citation_outputs or {}
+    temporal_outputs = temporal_outputs or {}
     report_dir = os.path.join(output_dir, "report")
     os.makedirs(report_dir, exist_ok=True)
     ncbi_output_dir = ncbi_output_dir or output_dir
@@ -257,7 +263,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             "Prevalence values below describe feature presence after the same identity filtering threshold used for this run."
         )
         lines.append("")
-        feature_order = ["vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "virulence", "plasmid"]
+        feature_order = ["vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "mlst", "defensefinder", "prophage", "virulence", "plasmid"]
         for feature_type in feature_order:
             if feature_type not in feature_outputs:
                 continue
@@ -282,6 +288,21 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             lines.append(
                 f"The {label} module detected {feature_count} feature(s), with {carrying_samples} sample(s) carrying at least one {label} feature."
             )
+            if feature_type == "mlst":
+                lines.append("")
+                lines.append(
+                    "MLST sequence types are treated as typing features for metadata-linked comparisons. They are not interpreted as AMR, virulence, plasmid, or mobile-element annotations."
+                )
+            if feature_type == "defensefinder":
+                lines.append("")
+                lines.append(
+                    "DefenseFinder features describe predicted genome-defense systems and are interpreted separately from AMR and mobile-element features."
+                )
+            if feature_type == "prophage":
+                lines.append("")
+                lines.append(
+                    "Prophage features describe user-provided viral-region or prophage annotations. They indicate sample-level viral-region burden and do not by themselves prove active phage, transfer, or AMR linkage."
+                )
             if feature_type == "iceberg":
                 lines.append("")
                 lines.append(
@@ -333,7 +354,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         lines.append(
             "PanR2 built a unified sample-by-feature matrix across AMR, virulence, plasmid, and mobile genetic element feature families. "
             "Pairwise associations report co-occurring sample count, Jaccard index, phi coefficient, Fisher exact-test odds ratio, nominal p-value, and Benjamini-Hochberg FDR-adjusted q-value. "
-            "These associations describe shared sample presence and should not be interpreted as physical linkage without genomic-context validation."
+            "These associations describe shared sample/genome presence only and should not be interpreted as physical linkage, plasmid localization, horizontal transfer, shared regulation, clinical phenotype, or causality without genomic-context validation."
         )
         lines.append("")
         if not prevalence.empty:
@@ -366,6 +387,20 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         )
         lines.append("")
         lines.append(_markdown_table(enrichment, ["feature", "database", "metadata_variable", "group", "feature_present_in_group", "feature_present_outside_group", "odds_ratio", "p_value", "q_value", "direction"], max_rows=25))
+
+    if temporal_outputs:
+        feature_trends = _read_csv(temporal_outputs.get("temporal_feature_trends", ""))
+        burden_trends = _read_csv(temporal_outputs.get("temporal_burden_trends", ""))
+        lines.append("## Advanced Temporal Trends")
+        lines.append("")
+        lines.append(
+            "Temporal trend summaries use available collection years only. Feature trends include Mann-Kendall trend statistics, Spearman correlation across yearly prevalence, and a logistic feature-presence slope when enough variation is available. Burden trends use per-sample linear regression and Mann-Kendall summaries."
+        )
+        lines.append("")
+        lines.append("### Feature-Level Temporal Trends")
+        lines.append(_markdown_table(feature_trends, ["feature", "database", "years_observed", "first_year", "last_year", "mann_kendall_trend", "mann_kendall_p_value", "spearman_r", "logistic_odds_ratio_per_year", "logistic_p_value"], max_rows=20))
+        lines.append("### Burden-Level Temporal Trends")
+        lines.append(_markdown_table(burden_trends, ["burden_metric", "years_observed", "linear_slope_per_year", "linear_r_value", "linear_p_value", "mann_kendall_trend", "mann_kendall_p_value"], max_rows=20))
 
     lines.append("## Geographic and Temporal Patterns")
     lines.append("")
@@ -418,11 +453,16 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             "amr_plasmid_associations",
             "amr_integron_associations",
             "amr_virulence_associations",
+            "amr_defense_associations",
+            "amr_prophage_associations",
             "plasmid_mge_associations",
+            "defense_mge_associations",
+            "prophage_mge_associations",
             "sample_integrated_feature_burden",
             "feature_enrichment_by_metadata",
             "network_edges",
             "network_nodes",
+            "plot_readability_warnings",
             "figure_manifest",
         ]:
             output_path = cross_database_outputs.get(key)
@@ -436,7 +476,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         "PanR2 reports descriptive panresistome patterns from the provided metadata and ABRicate calls. "
         "The report should not be interpreted as evidence of clinical resistance phenotype without appropriate phenotypic validation, database curation, and epidemiological context. "
         "Small group sizes, incomplete collection dates, uneven geographic sampling, and constant ARG burdens can limit correlation and temporal analyses. "
-        "Co-occurrence indicates shared presence in samples and does not imply physical linkage, transfer, or causal association."
+        "Co-occurrence indicates shared presence in samples/genomes and does not imply physical linkage, plasmid localization, horizontal transfer, transfer direction, or causal association."
     )
     lines.append("")
 
@@ -494,7 +534,7 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         "PanR2 merged NCBI-derived sample metadata with ABRicate antimicrobial resistance gene summary output by assembly accession. "
         "ABRicate gene identity values were converted into a tidy presence/absence table after optional identity filtering. "
         "Per-sample burden, per-gene prevalence, resistance class summaries, core/accessory/rare categories, and co-occurrence statistics were then calculated from the filtered tidy table. "
-        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg-style analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, database-specific QC summaries, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit. ICEberg-style analysis uses user-provided ICE/IME/CIME annotations or ABRicate-style inputs converted to PanR2 feature tables; PanR2 does not run an ICEberg annotation program directly."
+        "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg-style, MLST, DefenseFinder, and prophage-style analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, database-specific QC summaries, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots where applicable, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit. ICEberg-style analysis uses user-provided ICE/IME/CIME annotations or ABRicate-style inputs converted to PanR2 feature tables; PanR2 does not run an ICEberg annotation program directly."
     )
     lines.append("")
     if cross_database_outputs:
@@ -566,4 +606,13 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         )
 
     logging.info(f"PanR2 report saved to {md_path}")
-    return {"markdown": md_path, "html": html_path, "methods": methods_path}
+    dashboard_outputs = write_dashboard(
+        output_dir,
+        base_name,
+        feature_outputs=feature_outputs,
+        cross_database_outputs=cross_database_outputs,
+        citation_outputs=citation_outputs,
+        temporal_outputs=temporal_outputs,
+        panr2_version=panr2_version,
+    )
+    return {"markdown": md_path, "html": html_path, "methods": methods_path, **dashboard_outputs}

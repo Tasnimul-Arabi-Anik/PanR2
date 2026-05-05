@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import fisher_exact
 
+from panr2.viz import crowding_warning_row, label_map, label_warning_rows, plot_style_config
+
 
 DATABASE_PREFIXES = {
     "amr": "AMR",
@@ -17,6 +19,9 @@ DATABASE_PREFIXES = {
     "isfinder": "IS",
     "integronfinder": "INTEGRON",
     "iceberg": "ICE",
+    "mlst": "MLST",
+    "defensefinder": "DEFENSE",
+    "prophage": "PROPHAGE",
 }
 
 DATABASE_COLORS = {
@@ -27,6 +32,9 @@ DATABASE_COLORS = {
     "IS": "#67A953",
     "INTEGRON": "#008C8C",
     "ICE": "#8A6A3D",
+    "MLST": "#4B5563",
+    "DEFENSE": "#9467BD",
+    "PROPHAGE": "#D97706",
 }
 
 METADATA_COLUMNS = [
@@ -172,6 +180,9 @@ def build_unified_feature_matrix(amr_tidy_df, feature_outputs):
     if metadata_frames:
         metadata = pd.concat(metadata_frames, ignore_index=True)
         metadata = metadata.drop_duplicates(subset=["Assembly Accession"], keep="first")
+    if not feature_matrix.empty and not metadata.empty and "Assembly Accession" in metadata.columns:
+        all_samples = metadata["Assembly Accession"].dropna().astype(str).drop_duplicates().tolist()
+        feature_matrix = feature_matrix.reindex(all_samples, fill_value=0).astype(int)
     return feature_matrix, feature_map, metadata
 
 
@@ -273,7 +284,11 @@ def _write_specific_associations(pair_df, analysis_dir):
         "amr_plasmid_associations": ({"AMR"}, {"PLASMID"}),
         "amr_integron_associations": ({"AMR"}, {"INTEGRON"}),
         "amr_virulence_associations": ({"AMR"}, {"VFDB"}),
+        "amr_defense_associations": ({"AMR"}, {"DEFENSE"}),
+        "amr_prophage_associations": ({"AMR"}, {"PROPHAGE"}),
         "plasmid_mge_associations": ({"PLASMID"}, {"MGE", "IS", "INTEGRON", "ICE"}),
+        "defense_mge_associations": ({"DEFENSE"}, {"MGE", "IS", "INTEGRON", "ICE", "PROPHAGE"}),
+        "prophage_mge_associations": ({"PROPHAGE"}, {"MGE", "IS", "INTEGRON", "ICE"}),
     }
     paths = {}
     for name, (left, right) in specs.items():
@@ -301,7 +316,7 @@ def _write_integrated_burden(matrix, metadata, analysis_dir, figures_dir, fig_fo
     for db in sorted(set(_feature_database(col) for col in matrix.columns)):
         cols = [col for col in matrix.columns if _feature_database(col) == db]
         rows[f"{db.lower()}_feature_count"] = matrix[cols].sum(axis=1).astype(int).values
-    mobile_cols = [col for col in ["mge_feature_count", "is_feature_count", "integron_feature_count", "ice_feature_count"] if col in rows.columns]
+    mobile_cols = [col for col in ["mge_feature_count", "is_feature_count", "integron_feature_count", "ice_feature_count", "prophage_feature_count"] if col in rows.columns]
     rows["total_mobileome_count"] = rows[mobile_cols].sum(axis=1).astype(int) if mobile_cols else 0
     count_cols = [col for col in rows.columns if col.endswith("_feature_count")]
     rows["total_feature_count"] = rows[count_cols].sum(axis=1).astype(int) if count_cols else 0
@@ -320,6 +335,8 @@ def _write_integrated_burden(matrix, metadata, analysis_dir, figures_dir, fig_fo
         ("amr_feature_count", "total_mobileome_count", "AMR_vs_mobileome_burden"),
         ("amr_feature_count", "plasmid_feature_count", "AMR_vs_plasmid_burden"),
         ("amr_feature_count", "vfdb_feature_count", "AMR_vs_virulence_burden"),
+        ("amr_feature_count", "defense_feature_count", "AMR_vs_defense_burden"),
+        ("amr_feature_count", "prophage_feature_count", "AMR_vs_prophage_burden"),
     ]
     for x_col, y_col, name in scatter_specs:
         if x_col not in rows.columns or y_col not in rows.columns:
@@ -344,18 +361,29 @@ def _write_integrated_burden(matrix, metadata, analysis_dir, figures_dir, fig_fo
     return plot_paths
 
 
-def _write_heatmaps(matrix, phi_path, figures_dir, fig_format, top_n):
+def _write_heatmaps(matrix, phi_path, figures_dir, fig_format, top_n, style_config):
     plot_paths = {}
+    warnings = []
     if matrix.empty:
-        return plot_paths
+        return plot_paths, warnings
     prevalence = matrix.sum(axis=0).sort_values(ascending=False)
-    top_features = prevalence.head(top_n).index.tolist()
+    heatmap_limit = min(top_n, style_config.get("heatmap_max_features", top_n))
+    warning = crowding_warning_row("integrated_feature_presence_heatmap", len(prevalence), heatmap_limit, item="features")
+    if warning:
+        warnings.append(warning)
+    top_features = prevalence.head(heatmap_limit).index.tolist()
+    warnings.extend(label_warning_rows(top_features, style_config.get("label_max_length", 55), "cross_database_heatmaps"))
     html_dir = os.path.join(figures_dir, "html_files")
     os.makedirs(html_dir, exist_ok=True)
+    labels = label_map(
+        top_features,
+        max_length=style_config.get("label_max_length", 55),
+        wrap_width=style_config.get("wrap_width", 18),
+    )
 
     if len(top_features) >= 2 and os.path.exists(phi_path):
         phi = pd.read_csv(phi_path, index_col=0)
-        plot_matrix = phi.loc[top_features, top_features]
+        plot_matrix = phi.loc[top_features, top_features].rename(index=labels, columns=labels)
         size = max(6, min(18, 0.36 * len(top_features) + 4))
         plt.figure(figsize=(size, size))
         sns.heatmap(plot_matrix, cmap="vlag", center=0, vmin=-1, vmax=1, linewidths=0.2, linecolor="white", cbar_kws={"label": "Phi coefficient"})
@@ -373,7 +401,7 @@ def _write_heatmaps(matrix, phi_path, figures_dir, fig_format, top_n):
         plot_paths["global_feature_association_heatmap"] = path
         plot_paths["global_feature_association_heatmap_html"] = html_path
 
-    presence = matrix[top_features]
+    presence = matrix[top_features].rename(columns=labels)
     if not presence.empty:
         width = max(8, min(18, 0.35 * presence.shape[1] + 4))
         height = max(5, min(18, 0.22 * presence.shape[0] + 4))
@@ -393,25 +421,30 @@ def _write_heatmaps(matrix, phi_path, figures_dir, fig_format, top_n):
         fig.write_html(html_path)
         plot_paths["integrated_feature_presence_heatmap"] = path
         plot_paths["integrated_feature_presence_heatmap_html"] = html_path
-    return plot_paths
+    return plot_paths, warnings
 
 
-def _write_network(pair_df, matrix, analysis_dir, figures_dir, top_n):
+def _write_network(pair_df, matrix, analysis_dir, figures_dir, top_n, style_config):
     edges_path = os.path.join(analysis_dir, "cross_database_feature_network_edges.csv")
     nodes_path = os.path.join(analysis_dir, "cross_database_feature_network_nodes.csv")
     html_path = os.path.join(figures_dir, "html_files", "cross_database_feature_network.html")
+    warnings = []
     if pair_df.empty or matrix.empty:
         pd.DataFrame().to_csv(edges_path, index=False)
         pd.DataFrame().to_csv(nodes_path, index=False)
-        return {"network_edges": edges_path, "network_nodes": nodes_path}
+        return {"network_edges": edges_path, "network_nodes": nodes_path}, warnings
 
     edges = pair_df[(pair_df["association_scope"] == "cross_database") & (pair_df["cooccurring_samples"] > 0)].copy()
     if edges.empty:
         edges.to_csv(edges_path, index=False)
         pd.DataFrame().to_csv(nodes_path, index=False)
-        return {"network_edges": edges_path, "network_nodes": nodes_path}
+        return {"network_edges": edges_path, "network_nodes": nodes_path}, warnings
     edges["abs_phi"] = edges["phi_coefficient"].abs()
-    edges = edges.sort_values(["q_value", "abs_phi", "jaccard_index"], ascending=[True, False, False]).head(max(top_n * 2, 25))
+    edge_limit = min(max(top_n * 2, 25), style_config.get("network_max_edges", max(top_n * 2, 25)))
+    warning = crowding_warning_row("cross_database_feature_network", len(edges), edge_limit, item="edges")
+    if warning:
+        warnings.append(warning)
+    edges = edges.sort_values(["q_value", "abs_phi", "jaccard_index"], ascending=[True, False, False]).head(edge_limit)
     edges.to_csv(edges_path, index=False)
 
     features = sorted(set(edges["feature_1"]).union(set(edges["feature_2"])), key=lambda value: (_feature_database(value), value))
@@ -421,6 +454,12 @@ def _write_network(pair_df, matrix, analysis_dir, figures_dir, top_n):
         "sample_count": [int(matrix[feature].sum()) if feature in matrix.columns else 0 for feature in features],
     })
     nodes.to_csv(nodes_path, index=False)
+    warnings.extend(label_warning_rows(nodes["feature"].tolist(), style_config.get("label_max_length", 55), "cross_database_feature_network"))
+    display_labels = label_map(
+        nodes["feature"].tolist(),
+        max_length=style_config.get("label_max_length", 55),
+        wrap_width=0,
+    )
 
     os.makedirs(os.path.dirname(html_path), exist_ok=True)
     if len(nodes) >= 2:
@@ -443,7 +482,7 @@ def _write_network(pair_df, matrix, analysis_dir, figures_dir, top_n):
                 x=xs,
                 y=ys,
                 mode="markers+text",
-                text=sub_df["feature"],
+                text=[display_labels.get(feature, feature) for feature in sub_df["feature"]],
                 textposition="top center",
                 marker={"size": 10 + sub_df["sample_count"].clip(upper=30), "color": DATABASE_COLORS.get(database, "#6B7280")},
                 name=database,
@@ -452,7 +491,7 @@ def _write_network(pair_df, matrix, analysis_dir, figures_dir, top_n):
             ))
         fig.update_layout(title="Cross-database feature association network", showlegend=True, xaxis={"visible": False}, yaxis={"visible": False})
         fig.write_html(html_path)
-    return {"network_edges": edges_path, "network_nodes": nodes_path, "cross_database_feature_network_html": html_path}
+    return {"network_edges": edges_path, "network_nodes": nodes_path, "cross_database_feature_network_html": html_path}, warnings
 
 
 def _write_metadata_enrichment(matrix, metadata, analysis_dir, min_group_size):
@@ -527,6 +566,8 @@ def _write_figure_manifest(figures_dir, output_paths):
         "AMR_vs_mobileome_burden_plot": "Burden-level scatter comparing AMR count and total mobileome count.",
         "AMR_vs_plasmid_burden_plot": "Burden-level scatter comparing AMR count and plasmid replicon count.",
         "AMR_vs_virulence_burden_plot": "Burden-level scatter comparing AMR count and virulence feature count.",
+        "AMR_vs_defense_burden_plot": "Burden-level scatter comparing AMR count and defense-system count.",
+        "AMR_vs_prophage_burden_plot": "Burden-level scatter comparing AMR count and prophage or viral-region count.",
     }
     for key, path in sorted(output_paths.items()):
         if path and isinstance(path, str) and os.path.exists(path) and (path.endswith((".png", ".pdf", ".svg", ".tiff", ".html"))):
@@ -554,6 +595,8 @@ def generate_cross_database_associations(
     min_prevalence=0.0,
     max_features=300,
     min_group_size=5,
+    plot_style="publication",
+    label_max_length=None,
 ):
     """Generate cross-database comparative genomics outputs."""
     cross_dir = os.path.join(output_dir, "cross_database")
@@ -562,6 +605,8 @@ def generate_cross_database_associations(
     os.makedirs(analysis_dir, exist_ok=True)
     os.makedirs(figures_dir, exist_ok=True)
     os.makedirs(os.path.join(figures_dir, "html_files"), exist_ok=True)
+    style_config = plot_style_config(plot_style, label_max_length=label_max_length)
+    plot_warnings = []
 
     matrix, feature_map, metadata = build_unified_feature_matrix(amr_tidy_df, feature_outputs)
     matrix_path = os.path.join(analysis_dir, "cross_database_feature_matrix.csv")
@@ -601,8 +646,15 @@ def generate_cross_database_associations(
     }
     outputs.update(_write_specific_associations(pair_df, analysis_dir))
     outputs.update(_write_integrated_burden(matrix, metadata, analysis_dir, figures_dir, fig_format))
-    outputs.update(_write_heatmaps(pairwise_matrix, phi_path, figures_dir, fig_format, top_n))
-    outputs.update(_write_network(pair_df, pairwise_matrix, analysis_dir, figures_dir, top_n))
+    heatmap_outputs, heatmap_warnings = _write_heatmaps(pairwise_matrix, phi_path, figures_dir, fig_format, top_n, style_config)
+    outputs.update(heatmap_outputs)
+    plot_warnings.extend(heatmap_warnings)
+    network_outputs, network_warnings = _write_network(pair_df, pairwise_matrix, analysis_dir, figures_dir, top_n, style_config)
+    outputs.update(network_outputs)
+    plot_warnings.extend(network_warnings)
     outputs.update(_write_metadata_enrichment(pairwise_matrix, metadata, analysis_dir, min_group_size))
+    warning_path = os.path.join(figures_dir, "plot_readability_warnings.csv")
+    pd.DataFrame(plot_warnings, columns=["figure", "warning_type", "detail", "value", "limit"]).to_csv(warning_path, index=False)
+    outputs["plot_readability_warnings"] = warning_path
     outputs["figure_manifest"] = _write_figure_manifest(figures_dir, outputs)
     return outputs

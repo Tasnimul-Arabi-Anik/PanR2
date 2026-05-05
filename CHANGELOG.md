@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- Top-level `report/index.html` dashboard linking QC, metadata completeness, database-specific outputs, cross-database outputs, temporal trends, figures, citations, and software versions.
+- MLST support through `--mlst-dir` and optional `--run-mlst`, with ST metadata summaries, ST feature-burden summaries, MLST participation in cross-database matrices as `MLST:<scheme>:ST<type>`, doctor checks, citations, and software-version reporting.
+- DefenseFinder support through `--defensefinder-dir` and optional `--run-defensefinder`, including conversion of DefenseFinder tables into PanR2-compatible feature inputs and cross-database prefixes as `DEFENSE:<feature>`.
+- Prophage/viral-region table support through `--prophage-dir`, including PanR2-compatible conversion, database-named summaries, and cross-database prefixes as `PROPHAGE:<feature>`.
+- Advanced temporal trend outputs under `temporal/`, including Mann-Kendall trend statistics, Spearman prevalence trends, logistic feature-presence slopes, and linear burden trends.
+- Plot readability controls with `--plot-style {publication,dashboard,compact}`, `--label-max-length`, integrated label shortening/wrapping, and `cross_database/figures/plot_readability_warnings.csv`.
+- Validation workflow via `panr validate-demo --output-dir <dir>` for running the bundled small multi-database fixture from a source checkout.
+- Additional focused association outputs for AMR-defense, AMR-prophage, defense-mobileome, and prophage-mobileome relationships.
 - Cross-database comparative genomics module that builds a unified AMR/VFDB/plasmid/MGE/integron/ICE sample-by-feature matrix and writes co-occurrence, Jaccard, phi-correlation, Fisher exact-test, odds-ratio, and FDR-adjusted association outputs.
 - Focused cross-database association tables for AMR-mobileome, AMR-plasmid, AMR-integron, AMR-virulence, and plasmid-mobileome relationships.
 - Integrated burden outputs for AMR, virulence, plasmid, mobileome, total feature count, and mobility-associated AMR scoring.
@@ -38,6 +46,9 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- Cross-database association matrices now keep metadata samples with zero detected features, so `n00` contingency counts include feature-negative genomes.
+- Reports and dashboards now state that sample/genome-level co-occurrence does not prove physical linkage, plasmid localization, horizontal transfer, transfer direction, phenotype, or causality.
+- `environment.yml` now includes optional MLST and DefenseFinder dependencies for integrated-tool environments.
 - Integrated runner failures now point users to `panr doctor`, `panr setup-db`, and environment.yml/Docker installation paths when external tools or ABRicate databases are missing.
 - IntegronFinder table selection now prefers detailed `.integrons` outputs, then tabular files, and uses `.summary` files only as a logged fallback.
 - Documentation and reports now describe ICEberg support as an ICE/IME/CIME table-conversion workflow rather than a direct ICEberg runner.

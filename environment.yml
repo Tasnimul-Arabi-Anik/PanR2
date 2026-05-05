@@ -16,5 +16,7 @@ dependencies:
   - kma
   - abricate
   - integron_finder
+  - mlst
+  - defense-finder
   - pip:
       - MobileElementFinder
