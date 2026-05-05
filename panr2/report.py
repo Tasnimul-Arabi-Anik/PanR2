@@ -8,7 +8,10 @@ import pandas as pd
 
 def _read_csv(path):
     if os.path.exists(path):
-        return pd.read_csv(path)
+        try:
+            return pd.read_csv(path)
+        except pd.errors.EmptyDataError:
+            return pd.DataFrame()
     return pd.DataFrame()
 
 
@@ -88,11 +91,13 @@ def _feature_label(feature_type):
     return labels.get(feature_type.lower(), feature_type.replace("_", " ").title())
 
 
-def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None):
+def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr2_version="unknown", input_files=None, feature_outputs=None, cross_database_outputs=None, citation_outputs=None):
     """Write a deterministic journal-style PanR2 report."""
     options = options or {}
     input_files = input_files or {}
     feature_outputs = feature_outputs or {}
+    cross_database_outputs = cross_database_outputs or {}
+    citation_outputs = citation_outputs or {}
     report_dir = os.path.join(output_dir, "report")
     os.makedirs(report_dir, exist_ok=True)
     ncbi_output_dir = ncbi_output_dir or output_dir
@@ -314,6 +319,54 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             lines.append(f"### {label} Group-Level Statistical Tests")
             lines.append(_markdown_table(group_overall, ["grouping_variable", "test", "groups_tested", "min_group_size", "statistic", "p_value", "significant_0_05", "error"], max_rows=20))
 
+    if cross_database_outputs:
+        associations = _read_csv(cross_database_outputs.get("cross_database_top_associations", ""))
+        prevalence = _read_csv(cross_database_outputs.get("cross_database_feature_prevalence", ""))
+        burden = _read_csv(cross_database_outputs.get("sample_integrated_feature_burden", ""))
+        enrichment = _read_csv(cross_database_outputs.get("feature_enrichment_by_metadata", ""))
+        amr_mge = _read_csv(cross_database_outputs.get("amr_mge_associations", ""))
+        amr_plasmid = _read_csv(cross_database_outputs.get("amr_plasmid_associations", ""))
+        amr_virulence = _read_csv(cross_database_outputs.get("amr_virulence_associations", ""))
+
+        lines.append("## Cross-Database Comparative Genomics")
+        lines.append("")
+        lines.append(
+            "PanR2 built a unified sample-by-feature matrix across AMR, virulence, plasmid, and mobile genetic element feature families. "
+            "Pairwise associations report co-occurring sample count, Jaccard index, phi coefficient, Fisher exact-test odds ratio, nominal p-value, and Benjamini-Hochberg FDR-adjusted q-value. "
+            "These associations describe shared sample presence and should not be interpreted as physical linkage without genomic-context validation."
+        )
+        lines.append("")
+        if not prevalence.empty:
+            database_counts = prevalence.groupby("database")["feature"].nunique().to_dict()
+            lines.append(
+                "The integrated matrix included "
+                + _sentence_list([f"{count} {database} feature(s)" for database, count in sorted(database_counts.items())])
+                + "."
+            )
+            lines.append("")
+        lines.append("### Top Cross-Database Associations")
+        cross_only = associations[associations["association_scope"].eq("cross_database")] if "association_scope" in associations.columns else associations
+        lines.append(_markdown_table(cross_only, ["feature_1", "feature_2", "database_1", "database_2", "cooccurring_samples", "jaccard_index", "phi_coefficient", "odds_ratio", "p_value", "q_value"], max_rows=25))
+        lines.append("### AMR-Mobileome Associations")
+        lines.append(_markdown_table(amr_mge, ["feature_1", "feature_2", "database_1", "database_2", "cooccurring_samples", "jaccard_index", "phi_coefficient", "odds_ratio", "q_value"], max_rows=15))
+        lines.append("### AMR-Plasmid Associations")
+        lines.append(_markdown_table(amr_plasmid, ["feature_1", "feature_2", "database_1", "database_2", "cooccurring_samples", "jaccard_index", "phi_coefficient", "odds_ratio", "q_value"], max_rows=15))
+        lines.append("### AMR-Virulence Associations")
+        lines.append(_markdown_table(amr_virulence, ["feature_1", "feature_2", "database_1", "database_2", "cooccurring_samples", "jaccard_index", "phi_coefficient", "odds_ratio", "q_value"], max_rows=15))
+        lines.append("### Integrated Sample Burden")
+        lines.append(
+            "Genome-level composite burden metrics summarize AMR, virulence, plasmid, and mobileome feature counts per sample. "
+            "The mobility-associated AMR score is a screening metric that highlights AMR-bearing samples with any detected mobileome feature."
+        )
+        lines.append("")
+        lines.append(_markdown_table(burden, ["Assembly Accession", "Geographic Location", "Continent", "amr_feature_count", "vfdb_feature_count", "plasmid_feature_count", "total_mobileome_count", "total_feature_count", "mobility_associated_amr_score"], max_rows=15))
+        lines.append("### Metadata Enrichment")
+        lines.append(
+            "Feature-level enrichment by metadata group used Fisher exact tests with FDR correction where metadata groups met the configured minimum sample-size threshold."
+        )
+        lines.append("")
+        lines.append(_markdown_table(enrichment, ["feature", "database", "metadata_variable", "group", "feature_present_in_group", "feature_present_outside_group", "odds_ratio", "p_value", "q_value", "direction"], max_rows=25))
+
     lines.append("## Geographic and Temporal Patterns")
     lines.append("")
     if correlation.empty:
@@ -350,6 +403,31 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
             primary_outputs.insert(2, manifest_rel_path)
     for rel_path in primary_outputs:
         lines.append(f"- `{rel_path}`")
+    if cross_database_outputs:
+        lines.append("")
+        lines.append("Cross-database comparative genomics outputs include:")
+        lines.append("")
+        for key in [
+            "cross_database_feature_matrix",
+            "cross_database_feature_prevalence",
+            "cross_database_cooccurrence_matrix",
+            "cross_database_jaccard_matrix",
+            "cross_database_phi_correlation_matrix",
+            "cross_database_top_associations",
+            "amr_mge_associations",
+            "amr_plasmid_associations",
+            "amr_integron_associations",
+            "amr_virulence_associations",
+            "plasmid_mge_associations",
+            "sample_integrated_feature_burden",
+            "feature_enrichment_by_metadata",
+            "network_edges",
+            "network_nodes",
+            "figure_manifest",
+        ]:
+            output_path = cross_database_outputs.get(key)
+            if output_path and isinstance(output_path, str) and os.path.exists(output_path):
+                lines.append(f"- `{os.path.relpath(output_path, output_dir)}`")
     lines.append("")
 
     lines.append("## Interpretive Notes and Limitations")
@@ -419,6 +497,24 @@ def write_report(output_dir, base_name, ncbi_output_dir=None, options=None, panr
         "Static and interactive visualizations were generated from the same filtered data tables. Optional VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg-style analyses, when provided, were written to database-named output folders and parsed as separate feature families and summarized independently from AMR resistance classes using feature prevalence, category or replicon prevalence, sample burden, database-specific QC summaries, geographic and temporal feature-burden summaries, feature presence heatmaps, identity-distribution plots, descriptive feature co-occurrence tables, and database-specific interactive HTML figures, group-burden summaries, and nonparametric group-comparison tests where sample sizes permit. ICEberg-style analysis uses user-provided ICE/IME/CIME annotations or ABRicate-style inputs converted to PanR2 feature tables; PanR2 does not run an ICEberg annotation program directly."
     )
     lines.append("")
+    if cross_database_outputs:
+        lines.append(
+            "For cross-database comparative genomics, PanR2 joined AMR, virulence, plasmid, insertion-sequence, integron, ICE/IME/CIME, and mobile genetic element feature calls into a unified binary sample-feature matrix. "
+            "Pairwise binary associations were summarized using co-occurrence counts, Jaccard index, phi coefficient, Fisher exact tests, odds ratios, and Benjamini-Hochberg FDR-adjusted q-values. "
+            "Metadata enrichment used feature presence/absence against metadata-defined groups with the configured minimum group-size threshold."
+        )
+        lines.append("")
+
+    if citation_outputs:
+        lines.append("## Citations and Software Versions")
+        lines.append("")
+        lines.append("PanR2 wrote run-specific citation and software-version files for reproducibility and manuscript preparation:")
+        lines.append("")
+        for key in ["citations_md", "citations_bib", "software_versions"]:
+            output_path = citation_outputs.get(key)
+            if output_path and os.path.exists(output_path):
+                lines.append(f"- `{os.path.relpath(output_path, output_dir)}`")
+        lines.append("")
 
     lines.append("## Reproducibility")
     lines.append("")

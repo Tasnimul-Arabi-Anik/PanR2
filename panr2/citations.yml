@@ -1,0 +1,30 @@
+panr2:
+  name: PanR2
+  url: https://github.com/Tasnimul-Arabi-Anik/PanR2
+fetchm:
+  name: FetchM
+  url: https://github.com/Tasnimul-Arabi-Anik/FetchM
+abricate:
+  name: ABRicate
+  url: https://github.com/tseemann/abricate
+ncbi:
+  name: NCBI AMR resources
+  url: https://www.ncbi.nlm.nih.gov/pathogens/antimicrobial-resistance/
+vfdb:
+  name: VFDB
+  url: http://www.mgc.ac.cn/VFs/
+plasmidfinder:
+  name: PlasmidFinder
+  url: https://cge.food.dtu.dk/services/PlasmidFinder/
+mobileelementfinder:
+  name: MobileElementFinder
+  url: https://bitbucket.org/genomicepidemiology/mobileelementfinder/
+isfinder:
+  name: ISfinder
+  url: https://isfinder.biotoul.fr/
+integronfinder:
+  name: IntegronFinder
+  url: https://github.com/gem-pasteur/Integron_Finder
+iceberg:
+  name: ICEberg
+  url: https://db-mml.sjtu.edu.cn/ICEberg/

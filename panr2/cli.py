@@ -1,14 +1,20 @@
 import argparse
 import glob
 import importlib.util
+import json
 import logging
 import os
+import platform
 import shutil
 import subprocess
+import sys
+from importlib import metadata as importlib_metadata
 
 import pandas as pd
 
 from panr2.analysis import generate_comprehensive_analysis_outputs
+from panr2.associations import generate_cross_database_associations
+from panr2.citations import write_citation_outputs
 from panr2.features import analyze_abricate_feature_database
 from panr2.filters import apply_analysis_filters
 from panr2.io import (
@@ -18,6 +24,7 @@ from panr2.io import (
     save_merged_data,
     unique_input_files,
 )
+from panr2.metadata import write_metadata_reports
 from panr2.plots import (
     analyze_gene_presence,
     generate_comparison_heatmap,
@@ -44,6 +51,16 @@ PANR2_VERSION = "0.1.3-dev"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
+def _python_package_status(package):
+    if not importlib.util.find_spec(package):
+        return {"status": "missing", "version": ""}
+    try:
+        version = importlib_metadata.version(package)
+    except Exception:
+        version = "available"
+    return {"status": "ok", "version": version}
+
+
 def _command_version(command, version_args):
     executable = shutil.which(command)
     if not executable:
@@ -68,71 +85,239 @@ def _command_version(command, version_args):
     return "found", executable, "version unavailable"
 
 
-def run_doctor(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder"):
-    """Print dependency status for analysis-only and integrated-runner modes."""
+def _list_abricate_databases(abricate_path):
+    databases = []
+    if not abricate_path:
+        return databases
+    try:
+        completed = subprocess.run(
+            [abricate_path, "--list"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+        if completed.returncode == 0:
+            for line in completed.stdout.splitlines()[1:]:
+                if not line.strip():
+                    continue
+                parts = line.split("\t")
+                databases.append({
+                    "name": parts[0],
+                    "sequences": parts[1] if len(parts) > 1 else "",
+                    "type": parts[2] if len(parts) > 2 else "",
+                    "date": parts[3] if len(parts) > 3 else "",
+                })
+    except Exception:
+        return []
+    return databases
+
+
+def collect_doctor_report(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder", include_system=False):
+    """Collect dependency status for analysis-only and integrated-runner modes."""
     python_packages = ["pandas", "numpy", "matplotlib", "seaborn", "scipy", "plotly"]
-    package_rows = []
-    for package in python_packages:
-        package_rows.append((package, "ok" if importlib.util.find_spec(package) else "missing"))
+    package_rows = {package: _python_package_status(package) for package in python_packages}
 
     tool_specs = [
         ("abricate", abricate_bin, [["--version"]]),
         ("mobileelementfinder", mobileelementfinder_bin, [["--version"], ["version"]]),
         ("integronfinder", integronfinder_bin, [["--version"], ["--help"]]),
     ]
-    tool_rows = []
+    tool_rows = {}
     abricate_path = None
     for label, command, version_args in tool_specs:
         status, path, version = _command_version(command, version_args)
         if label == "abricate":
             abricate_path = path
-        tool_rows.append((label, command, status, path, version))
+        tool_rows[label] = {
+            "command": command,
+            "status": status,
+            "path": path,
+            "version": version,
+        }
 
-    abricate_databases = []
-    if abricate_path:
-        try:
-            completed = subprocess.run(
-                [abricate_path, "--list"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=False,
-                timeout=30,
-            )
-            if completed.returncode == 0:
-                abricate_databases = [
-                    line.split("\t")[0]
-                    for line in completed.stdout.splitlines()[1:]
-                    if line.strip()
-                ]
-        except Exception:
-            abricate_databases = []
+    report = {
+        "panr2_version": PANR2_VERSION,
+        "python_packages": package_rows,
+        "tools": tool_rows,
+        "abricate_databases": _list_abricate_databases(abricate_path),
+        "install_modes": {
+            "analysis_only": "Requires PanR2 Python dependencies plus existing ABRicate-style result folders.",
+            "integrated_runners": "Additionally requires ABRicate, MobileElementFinder, and/or IntegronFinder installed with their databases.",
+            "iceberg_style": "Requires user-provided ICE/IME/CIME annotation tables or ABRicate-style ICEberg inputs; PanR2 does not run ICEberg directly.",
+        },
+    }
+    if include_system:
+        report["system"] = {
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+            "executable": sys.executable,
+            "cwd": os.getcwd(),
+            "conda_prefix": os.environ.get("CONDA_PREFIX", ""),
+        }
+    return report
 
-    print(f"PanR2 doctor report (PanR2 {PANR2_VERSION})")
+
+def _print_doctor_report(report):
+    print(f"PanR2 doctor report (PanR2 {report['panr2_version']})")
+    if "system" in report:
+        print("")
+        print("System:")
+        for key, value in report["system"].items():
+            print(f"- {key}: {value}")
+
     print("")
     print("Python package dependencies:")
-    for package, status in package_rows:
-        print(f"- {package}: {status}")
+    for package, details in report["python_packages"].items():
+        version = f" ({details['version']})" if details.get("version") else ""
+        print(f"- {package}: {details['status']}{version}")
     print("")
     print("External annotation tools:")
-    for label, command, status, path, version in tool_rows:
+    for label, details in report["tools"].items():
+        command = details["command"]
+        status = details["status"]
+        path = details["path"]
+        version = details["version"]
         detail = f"{path} ({version})" if path else "not found on PATH"
         print(f"- {label} [{command}]: {status}; {detail}")
-    if abricate_path:
-        if abricate_databases:
-            print(f"- abricate databases: {len(abricate_databases)} available ({', '.join(abricate_databases[:10])})")
+    if report["tools"]["abricate"]["path"]:
+        databases = report["abricate_databases"]
+        if databases:
+            names = [row["name"] for row in databases[:10]]
+            print(f"- abricate databases: {len(databases)} available ({', '.join(names)})")
         else:
-            print("- abricate databases: none detected; run `abricate --setupdb` before integrated ABRicate analysis")
+            print("- abricate databases: none detected; run `panr setup-db` or `abricate --setupdb` before integrated ABRicate analysis")
     print("")
     print("Install modes:")
-    print("- analysis-only: requires PanR2 Python dependencies plus existing ABRicate-style result folders.")
-    print("- integrated runners: additionally requires ABRicate, MobileElementFinder, and/or IntegronFinder installed with their databases.")
-    print("- ICEberg-style analysis: requires user-provided ICE/IME/CIME annotation tables or ABRicate-style ICEberg inputs; PanR2 does not run ICEberg directly.")
+    print(f"- analysis-only: {report['install_modes']['analysis_only']}")
+    print(f"- integrated runners: {report['install_modes']['integrated_runners']}")
+    print(f"- ICEberg-style analysis: {report['install_modes']['iceberg_style']}")
 
-    missing_packages = [name for name, status in package_rows if status != "ok"]
+
+def setup_abricate_databases(abricate_bin="abricate", dbs=None, check_only=False, json_output=False):
+    executable = shutil.which(abricate_bin)
+    result = {"tool": "abricate", "command": abricate_bin, "path": executable, "check_only": check_only, "requested_databases": dbs or []}
+    if not executable:
+        result["status"] = "missing"
+        result["message"] = "ABRicate was not found. Install with environment.yml/Docker or run `panr doctor` for details."
+        if json_output:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        else:
+            print(result["message"])
+        return 1
+
+    before = _list_abricate_databases(executable)
+    result["databases_before"] = before
+    if not check_only:
+        completed = subprocess.run([executable, "--setupdb"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+        result["setupdb_returncode"] = completed.returncode
+        result["setupdb_stdout"] = completed.stdout.strip()
+        result["setupdb_stderr"] = completed.stderr.strip()
+        if completed.returncode != 0:
+            result["status"] = "failed"
+            result["message"] = "ABRicate database setup failed. Check network access and ABRicate installation."
+            if json_output:
+                print(json.dumps(result, indent=2, sort_keys=True))
+            else:
+                print(result["message"])
+                if result["setupdb_stderr"]:
+                    print(result["setupdb_stderr"])
+            return completed.returncode
+
+    after = _list_abricate_databases(executable)
+    result["databases_after"] = after
+    available_names = {row["name"] for row in after}
+    requested = set(dbs or [])
+    missing = sorted(requested - available_names)
+    result["missing_requested_databases"] = missing
+    result["status"] = "ok" if not missing else "missing_requested_databases"
+    if json_output:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(f"ABRicate path: {executable}")
+        print(f"ABRicate databases available: {len(after)}")
+        if after:
+            print("Databases: " + ", ".join(row["name"] for row in after[:20]))
+        if missing:
+            print("Missing requested databases: " + ", ".join(missing))
+    return 0 if not missing else 1
+
+
+def run_doctor(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder", json_output=False, fix=False, include_system=False):
+    """Print dependency status for analysis-only and integrated-runner modes."""
+    report = collect_doctor_report(abricate_bin, mobileelementfinder_bin, integronfinder_bin, include_system=include_system)
+    fixes = []
+    if fix and report["tools"]["abricate"]["path"] and not report["abricate_databases"]:
+        executable = report["tools"]["abricate"]["path"]
+        completed = subprocess.run([executable, "--setupdb"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+        fixes.append({
+            "action": "abricate --setupdb",
+            "returncode": completed.returncode,
+            "status": "ok" if completed.returncode == 0 else "failed",
+            "stderr": completed.stderr.strip(),
+        })
+        report = collect_doctor_report(abricate_bin, mobileelementfinder_bin, integronfinder_bin, include_system=include_system)
+    if fixes:
+        report["fixes"] = fixes
+
+    if json_output:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        for fix_result in fixes:
+            print(f"Fix action `{fix_result['action']}`: {fix_result['status']}")
+            if fix_result.get("stderr") and fix_result["status"] != "ok":
+                print(fix_result["stderr"])
+        _print_doctor_report(report)
+
+    missing_packages = [name for name, details in report["python_packages"].items() if details["status"] != "ok"]
     return 1 if missing_packages else 0
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, iceberg_table_dir=None, force_tool_run=False):
+
+def _run_subcommand(argv):
+    command = argv[0]
+    if command in {"doctor", "install-info", "setup"}:
+        parser = argparse.ArgumentParser(prog=f"panr {command}", description="Check PanR2 installation readiness.")
+        parser.add_argument("--json", action="store_true", help="Write machine-readable JSON output.")
+        parser.add_argument("--fix", action="store_true", help="Run safe fixes when possible, currently ABRicate database setup if ABRicate is installed.")
+        parser.add_argument("--mode", choices=["analysis-only", "integrated", "databases-only"], default="integrated", help="Setup/readiness mode label for user guidance.")
+        parser.add_argument("--abricate-bin", default="abricate", help="ABRicate executable name or path.")
+        parser.add_argument("--mobileelementfinder-bin", default="mefinder", help="MobileElementFinder executable name or path.")
+        parser.add_argument("--integronfinder-bin", default="integron_finder", help="IntegronFinder executable name or path.")
+        args = parser.parse_args(argv[1:])
+        include_system = command == "install-info"
+        if command == "setup" and args.mode == "databases-only":
+            return setup_abricate_databases(abricate_bin=args.abricate_bin, check_only=not args.fix, json_output=args.json)
+        return run_doctor(
+            abricate_bin=args.abricate_bin,
+            mobileelementfinder_bin=args.mobileelementfinder_bin,
+            integronfinder_bin=args.integronfinder_bin,
+            json_output=args.json,
+            fix=args.fix,
+            include_system=include_system,
+        )
+    if command == "setup-db":
+        parser = argparse.ArgumentParser(prog="panr setup-db", description="Check or initialize ABRicate databases for integrated PanR2 runs.")
+        parser.add_argument("--abricate-bin", default="abricate", help="ABRicate executable name or path.")
+        parser.add_argument("--dbs", default="", help="Comma-separated ABRicate database names expected after setup, for example ncbi,vfdb,plasmidfinder.")
+        parser.add_argument("--check-only", action="store_true", help="Only report database visibility without running abricate --setupdb.")
+        parser.add_argument("--json", action="store_true", help="Write machine-readable JSON output.")
+        args = parser.parse_args(argv[1:])
+        dbs = [db.strip() for db in args.dbs.split(",") if db.strip()]
+        return setup_abricate_databases(abricate_bin=args.abricate_bin, dbs=dbs, check_only=args.check_only, json_output=args.json)
+    if command == "citations":
+        parser = argparse.ArgumentParser(prog="panr citations", description="Write PanR2 citation and software-version files for an output directory.")
+        parser.add_argument("--output-dir", required=True, help="PanR2 output directory.")
+        args = parser.parse_args(argv[1:])
+        outputs = write_citation_outputs(args.output_dir, panr2_version=PANR2_VERSION)
+        print(f"Citation report written to {outputs['citations_md']}")
+        print(f"BibTeX file written to {outputs['citations_bib']}")
+        print(f"Software versions written to {outputs['software_versions']}")
+        return 0
+    raise ValueError(f"Unknown PanR2 subcommand: {command}")
+
+
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, iceberg_table_dir=None, force_tool_run=False, run_cross_database=True, cross_database_max_features=300):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -174,6 +359,8 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
             vfdb_dir = generated_dirs["vfdb"]
         if not plasmidfinder_dir and "plasmidfinder" in generated_dirs:
             plasmidfinder_dir = generated_dirs["plasmidfinder"]
+        if not isfinder_dir and "isfinder" in generated_dirs:
+            isfinder_dir = generated_dirs["isfinder"]
     if run_mobileelementfinder_tool:
         if not sequence_dir:
             raise ValueError("--sequence-dir is required when --run-mobileelementfinder is used.")
@@ -237,6 +424,7 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
     first_summary_file = sorted(abricate_summary_files)[0]
     first_results_file = sorted(abricate_results_files)[0]
     write_input_qc_report(ncbi_clean_path, first_summary_file, first_results_file, output_dir)
+    metadata_report_outputs = write_metadata_reports(ncbi_clean_path, output_dir, min_group_size=min_samples_per_group)
 
     optional_feature_outputs = {}
     optional_database_specs = [
@@ -337,6 +525,19 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 cooccurrence_min_prevalence=cooccurrence_min_prevalence,
                 cooccurrence_top_n=cooccurrence_top_n,
             )
+            cross_database_outputs = {}
+            if run_cross_database and optional_feature_outputs:
+                cross_database_outputs = generate_cross_database_associations(
+                    output_dir,
+                    base_name,
+                    tidy_df,
+                    optional_feature_outputs,
+                    fig_format=fig_format,
+                    top_n=top_n,
+                    min_prevalence=cooccurrence_min_prevalence,
+                    max_features=cross_database_max_features,
+                    min_group_size=min_samples_per_group,
+                )
             
             # Analyze gene prevalence and generate figures
             analyze_gene_presence(tidy_df, figures_dir, base_name, fig_format)
@@ -418,49 +619,65 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                     dst = os.path.join(stat_analysis_dir, file)
                     shutil.move(src, dst)
 
+            report_options = {
+                "fig_format": fig_format,
+                "nseq": nseq,
+                "genep": genep,
+                "min_identity": min_identity,
+                "drop_unmatched_accessions": drop_unmatched_accessions,
+                "min_samples_per_group": min_samples_per_group,
+                "core_threshold": core_threshold,
+                "rare_threshold": rare_threshold,
+                "top_n": top_n,
+                "cooccurrence_min_prevalence": cooccurrence_min_prevalence,
+                "cooccurrence_top_n": cooccurrence_top_n,
+                "run_cross_database": run_cross_database,
+                "cross_database_max_features": cross_database_max_features,
+                "vfdb_dir": vfdb_dir or "not provided",
+                "plasmidfinder_dir": plasmidfinder_dir or "not provided",
+                "mobileelementfinder_dir": mobileelementfinder_dir or "not provided",
+                "isfinder_dir": isfinder_dir or "not provided",
+                "integronfinder_dir": integronfinder_dir or "not provided",
+                "iceberg_dir": iceberg_dir or "not provided",
+                "sequence_dir": sequence_dir or "not provided",
+                "run_abricate": run_abricate,
+                "abricate_dbs": ",".join(abricate_dbs or []) if abricate_dbs else "not provided",
+                "abricate_summary_metric": abricate_summary_metric,
+                "run_mobileelementfinder": run_mobileelementfinder_tool,
+                "mobileelementfinder_bin": mobileelementfinder_bin,
+                "mobileelementfinder_threads": mobileelementfinder_threads,
+                "run_integronfinder": run_integronfinder_tool,
+                "integronfinder_bin": integronfinder_bin,
+                "integronfinder_threads": integronfinder_threads,
+                "iceberg_table_dir": iceberg_table_dir or "not provided",
+                "tool_manifest_json": tool_manifest.get("json", "not available"),
+                "tool_manifest_csv": tool_manifest.get("csv", "not available"),
+                "metadata_completeness": metadata_report_outputs.get("metadata_completeness", "not available"),
+                "metadata_group_sample_sizes": metadata_report_outputs.get("metadata_group_sample_sizes", "not available"),
+                "metadata_bias_warning": metadata_report_outputs.get("metadata_bias_warning", "not available"),
+            }
+            input_files = {
+                "ncbi_clean": ncbi_clean_path,
+                "abricate_summary": abricate_summary_file,
+                "abricate_results": expected_results_file or "not available",
+            }
+            citation_outputs = write_citation_outputs(
+                output_dir,
+                options=report_options,
+                feature_outputs=optional_feature_outputs,
+                input_files=input_files,
+                panr2_version=PANR2_VERSION,
+            )
             write_report(
                 output_dir,
                 base_name,
                 ncbi_output_dir=ncbi_output_dir,
-                options={
-                    "fig_format": fig_format,
-                    "nseq": nseq,
-                    "genep": genep,
-                    "min_identity": min_identity,
-                    "drop_unmatched_accessions": drop_unmatched_accessions,
-                    "min_samples_per_group": min_samples_per_group,
-                    "core_threshold": core_threshold,
-                    "rare_threshold": rare_threshold,
-                    "top_n": top_n,
-                    "cooccurrence_min_prevalence": cooccurrence_min_prevalence,
-                    "cooccurrence_top_n": cooccurrence_top_n,
-                    "vfdb_dir": vfdb_dir or "not provided",
-                    "plasmidfinder_dir": plasmidfinder_dir or "not provided",
-                    "mobileelementfinder_dir": mobileelementfinder_dir or "not provided",
-                    "isfinder_dir": isfinder_dir or "not provided",
-                    "integronfinder_dir": integronfinder_dir or "not provided",
-                    "iceberg_dir": iceberg_dir or "not provided",
-                    "sequence_dir": sequence_dir or "not provided",
-                    "run_abricate": run_abricate,
-                    "abricate_dbs": ",".join(abricate_dbs or []) if abricate_dbs else "not provided",
-                    "abricate_summary_metric": abricate_summary_metric,
-                    "run_mobileelementfinder": run_mobileelementfinder_tool,
-                    "mobileelementfinder_bin": mobileelementfinder_bin,
-                    "mobileelementfinder_threads": mobileelementfinder_threads,
-                    "run_integronfinder": run_integronfinder_tool,
-                    "integronfinder_bin": integronfinder_bin,
-                    "integronfinder_threads": integronfinder_threads,
-                    "iceberg_table_dir": iceberg_table_dir or "not provided",
-                    "tool_manifest_json": tool_manifest.get("json", "not available"),
-                    "tool_manifest_csv": tool_manifest.get("csv", "not available"),
-                },
+                options=report_options,
                 panr2_version=PANR2_VERSION,
                 feature_outputs=optional_feature_outputs,
-                input_files={
-                    "ncbi_clean": ncbi_clean_path,
-                    "abricate_summary": abricate_summary_file,
-                    "abricate_results": expected_results_file or "not available",
-                },
+                input_files=input_files,
+                cross_database_outputs=cross_database_outputs,
+                citation_outputs=citation_outputs,
             )
 
         except Exception as e:
@@ -469,14 +686,27 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
     logging.info("panr run successfully.")
 
 
-def run_cli():
+def run_cli(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "run-all":
+        return run_cli(argv[1:] + ["--run-all"])
+    if argv and argv[0] in {"doctor", "setup", "setup-db", "install-info", "citations"}:
+        return _run_subcommand(argv)
+
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Process NCBI and Abricate data.")
     parser.add_argument("--doctor", action="store_true", help="Check PanR2 Python dependencies and optional external annotation tools, then exit.")
+    parser.add_argument("--json", action="store_true", help="With --doctor, write machine-readable JSON output.")
+    parser.add_argument("--fix", action="store_true", help="With --doctor, run safe fixes when possible, currently ABRicate database setup if ABRicate is installed.")
+    parser.add_argument("--install-info", action="store_true", help="Print PanR2, Python, system, tool, and database readiness information, then exit.")
+    parser.add_argument("--setup-db", action="store_true", help="Run ABRicate database setup, then exit.")
+    parser.add_argument("--check-only", action="store_true", help="With --setup-db, only report database visibility.")
+    parser.add_argument("--citations", action="store_true", help="Write citation/software-version files for --output-dir, then exit.")
     parser.add_argument("--ncbi-dir", help="Directory containing ncbi_clean.csv.")
     parser.add_argument("--abricate-dir", help="Directory containing Abricate summary CSV or TAB files. Required unless --run-abricate is used with the ncbi database.")
     parser.add_argument("--output-dir", help="Base output directory.")
     parser.add_argument("--sequence-dir", help="Directory containing assembly FASTA files used by integrated tool runners.")
+    parser.add_argument("--run-all", action="store_true", help="Run all currently integrated annotation runners from --sequence-dir, then perform all PanR2 analyses.")
     parser.add_argument("--run-abricate", action="store_true", help="Run ABRicate internally before PanR2 analysis.")
     parser.add_argument("--abricate-dbs", default="ncbi", help="Comma-separated ABRicate databases to run when --run-abricate is used, for example ncbi,vfdb,plasmidfinder.")
     parser.add_argument("--abricate-bin", default="abricate", help="ABRicate executable name or path.")
@@ -500,6 +730,8 @@ def run_cli():
     parser.add_argument("--top-n", type=int, default=25, help="Number of top genes/classes to include in compact summary plots.")
     parser.add_argument("--cooccurrence-min-prevalence", type=float, default=0.0, help="Minimum prevalence percentage for genes/classes included in co-occurrence matrices.")
     parser.add_argument("--cooccurrence-top-n", type=int, default=25, help="Number of top genes/classes or pairs to include in co-occurrence plots and pair tables.")
+    parser.add_argument("--no-cross-database", action="store_true", help="Disable integrated cross-database association outputs.")
+    parser.add_argument("--cross-database-max-features", type=int, default=300, help="Maximum most-prevalent features used for pairwise cross-database statistics; use 0 for no limit.")
     parser.add_argument("--vfdb-dir", help="Optional directory containing ABRicate VFDB summary/results files.")
     parser.add_argument("--plasmidfinder-dir", help="Optional directory containing ABRicate PlasmidFinder summary/results files.")
     parser.add_argument("--mobileelementfinder-dir", help="Optional directory containing ABRicate MobileElementFinder summary/results files.")
@@ -508,18 +740,36 @@ def run_cli():
     parser.add_argument("--iceberg-dir", help="Optional directory containing ABRicate ICEberg summary/results files.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
-    args = parser.parse_args()
-    if args.doctor:
-        raise SystemExit(run_doctor(
+    args = parser.parse_args(argv)
+    if args.doctor or args.install_info:
+        return run_doctor(
             abricate_bin=args.abricate_bin,
             mobileelementfinder_bin=args.mobileelementfinder_bin,
             integronfinder_bin=args.integronfinder_bin,
-        ))
+            json_output=args.json,
+            fix=args.fix,
+            include_system=args.install_info,
+        )
+    if args.setup_db:
+        dbs = [db.strip() for db in args.abricate_dbs.split(",") if db.strip()]
+        return setup_abricate_databases(abricate_bin=args.abricate_bin, dbs=dbs, check_only=args.check_only, json_output=args.json)
+    if args.citations:
+        if not args.output_dir:
+            parser.error("--output-dir is required when --citations is used.")
+        write_citation_outputs(args.output_dir, panr2_version=PANR2_VERSION)
+        return 0
 
     if not args.ncbi_dir:
-        parser.error("--ncbi-dir is required unless --doctor is used.")
+        parser.error("--ncbi-dir is required unless --doctor, --install-info, --setup-db, or --citations is used.")
     if not args.output_dir:
-        parser.error("--output-dir is required unless --doctor is used.")
+        parser.error("--output-dir is required unless --doctor, --install-info, --setup-db, or --citations is used.")
+
+    if args.run_all:
+        args.run_abricate = True
+        args.run_mobileelementfinder = True
+        args.run_integronfinder = True
+        if args.abricate_dbs == "ncbi":
+            args.abricate_dbs = "ncbi,vfdb,plasmidfinder,isfinder"
 
     abricate_dbs = [db.strip() for db in args.abricate_dbs.split(",") if db.strip()]
     
@@ -558,8 +808,11 @@ def run_cli():
         integronfinder_threads=args.integronfinder_threads,
         iceberg_table_dir=args.iceberg_table_dir,
         force_tool_run=args.force_tool_run,
+        run_cross_database=not args.no_cross_database,
+        cross_database_max_features=args.cross_database_max_features,
     )
+    return 0
 
 
 if __name__ == "__main__":
-    run_cli()
+    raise SystemExit(run_cli())

@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Added
+- Cross-database comparative genomics module that builds a unified AMR/VFDB/plasmid/MGE/integron/ICE sample-by-feature matrix and writes co-occurrence, Jaccard, phi-correlation, Fisher exact-test, odds-ratio, and FDR-adjusted association outputs.
+- Focused cross-database association tables for AMR-mobileome, AMR-plasmid, AMR-integron, AMR-virulence, and plasmid-mobileome relationships.
+- Integrated burden outputs for AMR, virulence, plasmid, mobileome, total feature count, and mobility-associated AMR scoring.
+- Metadata-driven feature enrichment outputs and metadata completeness/bias reports for geography, host/source, organism, and FetchM-style standardized metadata fields.
+- Cross-database heatmaps, integrated feature presence heatmaps, interactive association network output, and cross-database figure manifest.
+- Run-specific citation outputs (`citations.md`, `citations.bib`) and `software_versions.csv`.
+- Utility subcommands: `panr doctor`, `panr setup-db`, `panr install-info`, and `panr citations`.
+- Broad integrated runner alias via `panr run-all` / `--run-all` for ABRicate, MobileElementFinder, IntegronFinder, and downstream PanR2 analyses.
+- Machine-readable doctor output with `panr doctor --json` / `panr --doctor --json`, plus safe `--fix` support for ABRicate database setup.
 - Reproducible install support with `environment.yml`, `Dockerfile`, and `.dockerignore` for source and container-based PanR2 setups.
 - `panr --doctor` environment check reporting Python dependencies, optional external annotation tools, ABRicate database visibility, and supported install modes.
 - Per-database optional feature QC summaries and unmatched-sample reports for VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg-style analyses.
@@ -29,6 +38,7 @@
 - Small ABRicate/NCBI fixtures for end-to-end smoke testing.
 
 ### Changed
+- Integrated runner failures now point users to `panr doctor`, `panr setup-db`, and environment.yml/Docker installation paths when external tools or ABRicate databases are missing.
 - IntegronFinder table selection now prefers detailed `.integrons` outputs, then tabular files, and uses `.summary` files only as a logged fallback.
 - Documentation and reports now describe ICEberg support as an ICE/IME/CIME table-conversion workflow rather than a direct ICEberg runner.
 - VFDB and PlasmidFinder outputs now mirror the `ncbi/` folder shape with `analysis/`, `figures/`, `merged_output/`, and interactive HTML figure indexes.

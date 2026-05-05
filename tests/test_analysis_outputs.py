@@ -1,5 +1,6 @@
 import os
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -252,6 +253,22 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertIn("analysis-only", report)
         self.assertIn("not found on PATH", report)
         self.assertIn("PanR2 does not run ICEberg directly", report)
+
+    def test_doctor_json_reports_machine_readable_status(self):
+        stream = io.StringIO()
+        with redirect_stdout(stream):
+            exit_code = self.panr.run_doctor(
+                abricate_bin="missing_abricate_for_panr2_test",
+                mobileelementfinder_bin="missing_mefinder_for_panr2_test",
+                integronfinder_bin="missing_integronfinder_for_panr2_test",
+                json_output=True,
+            )
+        report = json.loads(stream.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(report["tools"]["abricate"]["status"], "missing")
+        self.assertEqual(report["python_packages"]["pandas"]["status"], "ok")
+        self.assertIn("analysis_only", report["install_modes"])
 
     def test_comprehensive_analysis_outputs_expected_tables(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -732,9 +749,33 @@ sys.exit(2)
             report_text = (output_dir / "report" / "ncbi_panr2_report.md").read_text()
             self.assertTrue((output_dir / "report" / "ncbi_panr2_report.html").exists())
             self.assertTrue((output_dir / "qc" / "panr2_input_qc.csv").exists())
+            self.assertTrue((output_dir / "qc" / "metadata_completeness_report.csv").exists())
+            self.assertTrue((output_dir / "qc" / "metadata_group_sample_sizes.csv").exists())
             self.assertTrue((output_dir / "ncbi" / "analysis" / "ncbi_gene_prevalence_summary.csv").exists())
             self.assertTrue((output_dir / "ncbi" / "figures" / "index.html").exists())
+            self.assertTrue((output_dir / "report" / "citations.md").exists())
+            self.assertTrue((output_dir / "report" / "citations.bib").exists())
+            self.assertTrue((output_dir / "report" / "software_versions.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "cross_database_feature_matrix.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "cross_database_top_associations.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "amr_mge_associations.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "amr_plasmid_associations.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "amr_virulence_associations.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "sample_integrated_feature_burden.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "analysis" / "cross_database_feature_enrichment_by_metadata.csv").exists())
+            self.assertTrue((output_dir / "cross_database" / "figures" / "global_feature_association_heatmap.png").exists())
+            self.assertTrue((output_dir / "cross_database" / "figures" / "integrated_feature_presence_heatmap.png").exists())
+            self.assertTrue((output_dir / "cross_database" / "figures" / "html_files" / "global_feature_association_heatmap.html").exists())
+            self.assertTrue((output_dir / "cross_database" / "figures" / "html_files" / "cross_database_feature_network.html").exists())
             self.assertIn("## Optional Database Feature Analysis", report_text)
+            self.assertIn("## Cross-Database Comparative Genomics", report_text)
+            self.assertIn("## Citations and Software Versions", report_text)
+
+            cross_pairs = pd.read_csv(output_dir / "cross_database" / "analysis" / "cross_database_top_associations.csv")
+            integrated_burden = pd.read_csv(output_dir / "cross_database" / "analysis" / "sample_integrated_feature_burden.csv")
+            self.assertIn("phi_coefficient", cross_pairs.columns)
+            self.assertIn("q_value", cross_pairs.columns)
+            self.assertIn("total_mobileome_count", integrated_burden.columns)
 
             for db in database_dirs:
                 with self.subTest(database=db):

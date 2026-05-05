@@ -75,9 +75,20 @@ docker run --rm -v "$PWD":/work -w /work panr2 --help
 ```bash
 panr --help
 panr --doctor
+panr doctor --json
+panr install-info
 ```
 
 `panr --doctor` reports whether the Python dependencies, optional external annotation tools, and ABRicate databases are visible in the current environment. Missing ABRicate, MobileElementFinder, or IntegronFinder is not fatal for analysis-only mode, but those tools are required when using the corresponding integrated runner flags.
+
+For integrated ABRicate runs, initialize or check ABRicate databases with:
+
+```bash
+panr setup-db --dbs ncbi,vfdb,plasmidfinder --check-only
+panr setup-db --dbs ncbi,vfdb,plasmidfinder
+```
+
+`panr doctor --fix` can run safe setup fixes when possible. At present, that means running ABRicate database setup when ABRicate is installed but no databases are visible.
 
 ### Run the Included Smoke Test
 From a source checkout, run the bundled small fixture to confirm the CLI, merge step, tidy output, and plotting path work locally:
@@ -122,10 +133,26 @@ PanR2 keeps the installed command as `panr`, while the implementation lives in t
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
+Utility subcommands are also available:
+
+```bash
+panr doctor [--json] [--fix]
+panr setup-db [--dbs ncbi,vfdb,plasmidfinder] [--check-only] [--json]
+panr install-info
+panr citations --output-dir <OUTPUT_DIRECTORY>
+panr run-all --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY>
+```
+
 PanR2 can also run ABRicate internally from assembly FASTA files:
 
 ```bash
 panr --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --run-abricate --abricate-dbs ncbi,vfdb,plasmidfinder --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
+For a broad integrated run, use `panr run-all` or `--run-all`. This enables ABRicate, MobileElementFinder, and IntegronFinder runners, then performs AMR, optional database, and cross-database comparative analyses:
+
+```bash
+panr run-all --ncbi-dir <NCBI_DIRECTORY> --sequence-dir <SEQUENCE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> --min-identity 90
 ```
 
 MobileElementFinder can also be run internally when installed:
@@ -158,10 +185,17 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
 | `--doctor` | flag | off | Report installed Python dependencies, optional external tools, and ABRicate database visibility, then exit |
+| `--json` | flag | off | With `--doctor` or setup subcommands, write machine-readable JSON output |
+| `--fix` | flag | off | With `--doctor`, run safe fixes when possible, currently ABRicate database setup |
+| `--install-info` | flag | off | Print PanR2/Python/system/tool/database readiness information, then exit |
+| `--setup-db` | flag | off | Run ABRicate database setup, then exit |
+| `--check-only` | flag | off | With `--setup-db`, only report ABRicate database visibility |
+| `--citations` | flag | off | Write citation/software-version files for `--output-dir`, then exit |
 | `--genep` | float | `10.0` | Minimum % gene presence to include in heatmap |
 | `--nseq` | int | `1` | Minimum number of sequences required per group in heatmaps |
 | `--format` | str | `tiff` | Output format for figures (`tiff`, `svg`, `png`, `pdf`) |
 | `--sequence-dir` | path | optional | Directory containing assembly FASTA files for integrated tool runners |
+| `--run-all` | flag | off | Run all currently integrated annotation runners from `--sequence-dir`, then perform all PanR2 analyses |
 | `--run-abricate` | flag | off | Run ABRicate internally before PanR2 analysis |
 | `--abricate-dbs` | str | `ncbi` | Comma-separated ABRicate databases to run, for example `ncbi,vfdb,plasmidfinder` |
 | `--abricate-bin` | path | `abricate` | ABRicate executable name or path |
@@ -182,6 +216,8 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 | `--top-n` | int | `25` | Number of top genes/classes to include in compact summary plots |
 | `--cooccurrence-min-prevalence` | float | `0.0` | Minimum prevalence percentage for genes/classes included in co-occurrence matrices |
 | `--cooccurrence-top-n` | int | `25` | Number of top genes/classes or pairs to include in co-occurrence plots and pair tables |
+| `--no-cross-database` | flag | off | Disable integrated cross-database association outputs |
+| `--cross-database-max-features` | int | `300` | Maximum most-prevalent features used for pairwise cross-database statistics; use `0` for no limit |
 | `--vfdb-dir` | path | optional | Directory containing ABRicate VFDB summary/results files |
 | `--plasmidfinder-dir` | path | optional | Directory containing ABRicate PlasmidFinder summary/results files |
 | `--mobileelementfinder-dir` | path | optional | Directory containing ABRicate MobileElementFinder summary/results files |
@@ -266,6 +302,9 @@ output/
 │   ├── analysis/
 │   ├── figures/
 │   └── merged_output/
+├── cross_database/                    # Integrated AMR/VFDB/plasmid/MGE comparative genomics
+│   ├── analysis/
+│   └── figures/
 ├── qc/                                # Shared input validation and filter reports
 └── report/                            # Journal-style narrative report and methods text
 ```
@@ -278,6 +317,9 @@ output/
 - **`panr2_tool_manifest.csv`** and **`panr2_tool_manifest.json`** - Tool versions, selected databases, database dates/counts where available, and raw output paths for integrated runs
 - **`panr2_unmatched_accessions.csv`** - Accessions present in only one of the NCBI or ABRicate inputs
 - **`*_filter_report.csv`** - Row and ARG-call counts before and after optional analysis filters
+- **`metadata_completeness_report.csv`** - Completeness, missingness, and status for geography, host/source, organism, and FetchM-style standardized metadata fields
+- **`metadata_group_sample_sizes.csv`** - Per-group sample counts and underpowered-group flags for metadata-driven analyses
+- **`metadata_bias_warning.txt`** - Human-readable warnings for incomplete or biased metadata fields
 
 #### 2. NCBI/AMR Panresistome Analysis (`ncbi/` directory)
 - **`*_sample_resistome_burden.csv`** - Per-sample ARG burden, resistance class count, and identity summary
@@ -318,24 +360,36 @@ The same database-named output pattern is used for `mobileelementfinder/`, `isfi
 
 VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots.
 
-#### 4. Written Report (`report/` directory)
+#### 4. Cross-Database Comparative Genomics (`cross_database/` directory)
+- **`cross_database_feature_matrix.csv`** - Unified sample-by-feature matrix with prefixed features such as `AMR:blaA`, `VFDB:fimH`, `PLASMID:IncFIB`, `MGE:IS26`, `INTEGRON:intI1`, and `ICE:ICEKp1`
+- **`cross_database_top_associations.csv`** - Pairwise feature associations with co-occurrence count, Jaccard index, phi coefficient, Fisher exact-test odds ratio, p-value, and FDR-adjusted q-value
+- **`cross_database_cooccurrence_matrix.csv`**, **`cross_database_jaccard_matrix.csv`**, and **`cross_database_phi_correlation_matrix.csv`** - Global association matrices
+- **`amr_mge_associations.csv`**, **`amr_plasmid_associations.csv`**, **`amr_integron_associations.csv`**, **`amr_virulence_associations.csv`**, and **`plasmid_mge_associations.csv`** - Biologically focused cross-database association tables
+- **`sample_integrated_feature_burden.csv`** - Per-sample AMR, virulence, plasmid, mobileome, total feature, and mobility-associated AMR burden metrics
+- **`cross_database_feature_enrichment_by_metadata.csv`** - Feature enrichment by metadata group using Fisher exact tests and FDR correction
+- **`global_feature_association_heatmap.*`**, **`integrated_feature_presence_heatmap.*`**, and **`cross_database_feature_network.html`** - Static and interactive integrated comparative figures
+- **`figure_manifest.csv`** - Figure inventory with descriptions and recommended use
+
+#### 5. Written Report (`report/` directory)
 - **`*_panr2_report.md`** - Comprehensive journal-style narrative report generated from output tables
 - **`*_panr2_report.html`** - Simple HTML rendering of the Markdown report
 - **`*_methods.txt`** - Reusable methods description for manuscript drafting
+- **`citations.md`** and **`citations.bib`** - Run-specific citation files for PanR2 and detected tools/databases
+- **`software_versions.csv`** - PanR2, Python package, and integrated-tool versions when available
 
-#### 5. NCBI/AMR Static Visualizations
+#### 6. NCBI/AMR Static Visualizations
 - **`Resistance_gene_presence.{format}`** - Bar plot showing gene presence across samples
 - **`Resistance_gene_percentage.{format}`** - Lollipop plot showing gene percentage distribution
 - **`Resistance_gene_identity_boxplot.{format}`** - Boxplot of resistance gene variation across sequences
 - **`Resistance_percentage_by_Antibiotics.{format}`** - Bar plot of resistance by antibiotic classes
 
-#### 6. Heatmaps (`ncbi/figures/heatmap/` directory)
+#### 7. Heatmaps (`ncbi/figures/heatmap/` directory)
 - **`Resistance gene distribution by continent, geographic location, subcontinent, and year.`**
 
-#### 7. Mean ARG Analysis (`ncbi/figures/mean_ARG/` directory)
+#### 8. Mean ARG Analysis (`ncbi/figures/mean_ARG/` directory)
 - **`Average antibiotic resistance genes by continent, geographic location, subcontinent, and year.`** - 
 
-#### 8. Interactive HTML Visualizations (`ncbi/figures/html_files/` directory)
+#### 9. Interactive HTML Visualizations (`ncbi/figures/html_files/` directory)
 - **`Resistance_gene_distribution_heatmap.html`** - Interactive heatmap of gene distribution
 - **`Resistance_gene_geographic_distribution.html`** - Geographic distribution map
 - **`Resistance_gene_frequency_boxplot.html`** - Interactive frequency analysis
@@ -348,14 +402,14 @@ VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg 
 - **`Geographic_Location_correlation_plot.html`** - Location-based correlations
 - **`Subcontinent_correlation_plot.html`** - Subcontinental correlation patterns
 
-#### 9. Statistical Analysis (`ncbi/figures/Stat_analysis/` directory)
+#### 10. Statistical Analysis (`ncbi/figures/Stat_analysis/` directory)
 - **`combined_geographic_correlation_summary.csv`** - Geographic correlation statistics
 - **`combined_overall_tests.csv`** - Overall statistical test results
 - **`combined_pairwise_comparisons.csv`** - Pairwise comparison results
 - **`combined_summary_statistics.csv`** - Comprehensive summary statistics
 - **`ncbi_gene_presence_count_percentage.csv`** - Gene presence counts and percentages
 
-#### 10. Navigation
+#### 11. Navigation
 - **It generates an interactive combined index.html file** 
 - **[View the interactive HTML report](https://tasnimul-arabi-anik.github.io/PanR2/)** – Interactive HTML index page for easy navigation of all generated visualizations
 

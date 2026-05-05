@@ -237,7 +237,10 @@ def run_mobileelementfinder(
     """Run MobileElementFinder per assembly and create PanR2-compatible inputs."""
     executable = shutil.which(mefinder_bin)
     if not executable:
-        raise FileNotFoundError(f"MobileElementFinder executable not found: {mefinder_bin}")
+        raise FileNotFoundError(
+            f"MobileElementFinder executable not found: {mefinder_bin}. "
+            "Run `panr doctor` to inspect the environment, or install integrated dependencies with environment.yml/Docker."
+        )
 
     sequence_files = find_sequence_files(sequence_dir)
     if not sequence_files:
@@ -412,7 +415,10 @@ def run_integronfinder(
     """Run IntegronFinder per assembly and create PanR2-compatible inputs."""
     executable = shutil.which(integronfinder_bin)
     if not executable:
-        raise FileNotFoundError(f"IntegronFinder executable not found: {integronfinder_bin}")
+        raise FileNotFoundError(
+            f"IntegronFinder executable not found: {integronfinder_bin}. "
+            "Run `panr doctor` to inspect the environment, or install integrated dependencies with environment.yml/Docker."
+        )
 
     sequence_files = find_sequence_files(sequence_dir)
     if not sequence_files:
@@ -593,7 +599,10 @@ def run_abricate_databases(
         raise ValueError("At least one ABRicate database must be provided.")
     executable = shutil.which(abricate_bin)
     if not executable:
-        raise FileNotFoundError(f"ABRicate executable not found: {abricate_bin}")
+        raise FileNotFoundError(
+            f"ABRicate executable not found: {abricate_bin}. "
+            "Run `panr doctor` to inspect the environment, or install integrated dependencies with environment.yml/Docker."
+        )
 
     sequence_files = find_sequence_files(sequence_dir)
     if not sequence_files:
@@ -601,9 +610,17 @@ def run_abricate_databases(
 
     list_output = _capture_command([executable, "--list"])
     available = _parse_abricate_list(list_output)
+    if not available:
+        raise ValueError(
+            "ABRicate did not report any available databases. "
+            "Run `panr setup-db` or `abricate --setupdb`, then verify with `panr doctor`."
+        )
     missing = [db for db in databases if available and db not in available]
     if missing:
-        raise ValueError(f"ABRicate database(s) not available: {', '.join(missing)}")
+        raise ValueError(
+            f"ABRicate database(s) not available: {', '.join(missing)}. "
+            "Run `panr setup-db --dbs " + ",".join(databases) + "` or check the installed ABRicate databases with `panr doctor`."
+        )
 
     base_dir = os.path.join(output_dir, "tool_results", "abricate")
     os.makedirs(base_dir, exist_ok=True)
