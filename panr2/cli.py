@@ -1,8 +1,10 @@
 import argparse
 import glob
+import importlib.util
 import logging
 import os
 import shutil
+import subprocess
 
 import pandas as pd
 
@@ -40,6 +42,95 @@ PANR2_VERSION = "0.1.3-dev"
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+
+def _command_version(command, version_args):
+    executable = shutil.which(command)
+    if not executable:
+        return "missing", "", ""
+    for args in version_args:
+        try:
+            completed = subprocess.run(
+                [executable, *args],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+                timeout=20,
+            )
+            output = (completed.stdout or completed.stderr or "").strip().splitlines()
+            if completed.returncode == 0 and output:
+                return "ok", executable, output[0]
+            if completed.returncode == 0:
+                return "ok", executable, "available"
+        except Exception as exc:
+            return "error", executable, str(exc)
+    return "found", executable, "version unavailable"
+
+
+def run_doctor(abricate_bin="abricate", mobileelementfinder_bin="mefinder", integronfinder_bin="integron_finder"):
+    """Print dependency status for analysis-only and integrated-runner modes."""
+    python_packages = ["pandas", "numpy", "matplotlib", "seaborn", "scipy", "plotly"]
+    package_rows = []
+    for package in python_packages:
+        package_rows.append((package, "ok" if importlib.util.find_spec(package) else "missing"))
+
+    tool_specs = [
+        ("abricate", abricate_bin, [["--version"]]),
+        ("mobileelementfinder", mobileelementfinder_bin, [["--version"], ["version"]]),
+        ("integronfinder", integronfinder_bin, [["--version"], ["--help"]]),
+    ]
+    tool_rows = []
+    abricate_path = None
+    for label, command, version_args in tool_specs:
+        status, path, version = _command_version(command, version_args)
+        if label == "abricate":
+            abricate_path = path
+        tool_rows.append((label, command, status, path, version))
+
+    abricate_databases = []
+    if abricate_path:
+        try:
+            completed = subprocess.run(
+                [abricate_path, "--list"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+                timeout=30,
+            )
+            if completed.returncode == 0:
+                abricate_databases = [
+                    line.split("\t")[0]
+                    for line in completed.stdout.splitlines()[1:]
+                    if line.strip()
+                ]
+        except Exception:
+            abricate_databases = []
+
+    print(f"PanR2 doctor report (PanR2 {PANR2_VERSION})")
+    print("")
+    print("Python package dependencies:")
+    for package, status in package_rows:
+        print(f"- {package}: {status}")
+    print("")
+    print("External annotation tools:")
+    for label, command, status, path, version in tool_rows:
+        detail = f"{path} ({version})" if path else "not found on PATH"
+        print(f"- {label} [{command}]: {status}; {detail}")
+    if abricate_path:
+        if abricate_databases:
+            print(f"- abricate databases: {len(abricate_databases)} available ({', '.join(abricate_databases[:10])})")
+        else:
+            print("- abricate databases: none detected; run `abricate --setupdb` before integrated ABRicate analysis")
+    print("")
+    print("Install modes:")
+    print("- analysis-only: requires PanR2 Python dependencies plus existing ABRicate-style result folders.")
+    print("- integrated runners: additionally requires ABRicate, MobileElementFinder, and/or IntegronFinder installed with their databases.")
+    print("- ICEberg-style analysis: requires user-provided ICE/IME/CIME annotation tables or ABRicate-style ICEberg inputs; PanR2 does not run ICEberg directly.")
+
+    missing_packages = [name for name, status in package_rows if status != "ok"]
+    return 1 if missing_packages else 0
 
 def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, iceberg_table_dir=None, force_tool_run=False):
     """Main function to process data and generate outputs."""
@@ -381,9 +472,10 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
 def run_cli():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Process NCBI and Abricate data.")
-    parser.add_argument("--ncbi-dir", required=True, help="Directory containing ncbi_clean.csv.")
+    parser.add_argument("--doctor", action="store_true", help="Check PanR2 Python dependencies and optional external annotation tools, then exit.")
+    parser.add_argument("--ncbi-dir", help="Directory containing ncbi_clean.csv.")
     parser.add_argument("--abricate-dir", help="Directory containing Abricate summary CSV or TAB files. Required unless --run-abricate is used with the ncbi database.")
-    parser.add_argument("--output-dir", required=True, help="Base output directory.")
+    parser.add_argument("--output-dir", help="Base output directory.")
     parser.add_argument("--sequence-dir", help="Directory containing assembly FASTA files used by integrated tool runners.")
     parser.add_argument("--run-abricate", action="store_true", help="Run ABRicate internally before PanR2 analysis.")
     parser.add_argument("--abricate-dbs", default="ncbi", help="Comma-separated ABRicate databases to run when --run-abricate is used, for example ncbi,vfdb,plasmidfinder.")
@@ -417,6 +509,18 @@ def run_cli():
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
     args = parser.parse_args()
+    if args.doctor:
+        raise SystemExit(run_doctor(
+            abricate_bin=args.abricate_bin,
+            mobileelementfinder_bin=args.mobileelementfinder_bin,
+            integronfinder_bin=args.integronfinder_bin,
+        ))
+
+    if not args.ncbi_dir:
+        parser.error("--ncbi-dir is required unless --doctor is used.")
+    if not args.output_dir:
+        parser.error("--output-dir is required unless --doctor is used.")
+
     abricate_dbs = [db.strip() for db in args.abricate_dbs.split(",") if db.strip()]
     
     # Run the main function

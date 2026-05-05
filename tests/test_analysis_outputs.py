@@ -1,7 +1,9 @@
 import os
+import io
 import tempfile
 import unittest
 from pathlib import Path
+from contextlib import redirect_stdout
 
 os.environ.setdefault("MPLBACKEND", "Agg")
 
@@ -234,6 +236,22 @@ class PanRAnalysisOutputTests(unittest.TestCase):
         self.assertEqual(accessions.tolist(), ["GCF_000123456.1", "GCA_000987654"])
         self.assertEqual(normalize_assembly_accession("GCF_000123456.1"), "GCF_000123456.1")
         self.assertEqual(normalize_assembly_accession("GCF_000123456.1", preserve_version=False), "GCF_000123456")
+
+    def test_doctor_reports_missing_external_tools_without_failing_analysis_only_install(self):
+        stream = io.StringIO()
+        with redirect_stdout(stream):
+            exit_code = self.panr.run_doctor(
+                abricate_bin="missing_abricate_for_panr2_test",
+                mobileelementfinder_bin="missing_mefinder_for_panr2_test",
+                integronfinder_bin="missing_integronfinder_for_panr2_test",
+            )
+        report = stream.getvalue()
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("PanR2 doctor report", report)
+        self.assertIn("analysis-only", report)
+        self.assertIn("not found on PATH", report)
+        self.assertIn("PanR2 does not run ICEberg directly", report)
 
     def test_comprehensive_analysis_outputs_expected_tables(self):
         with tempfile.TemporaryDirectory() as tmp:

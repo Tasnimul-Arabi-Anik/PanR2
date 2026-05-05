@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Reproducible install support with `environment.yml`, `Dockerfile`, and `.dockerignore` for source and container-based PanR2 setups.
+- `panr --doctor` environment check reporting Python dependencies, optional external annotation tools, ABRicate database visibility, and supported install modes.
 - Per-database optional feature QC summaries and unmatched-sample reports for VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, and ICEberg-style analyses.
 - Explicit assembly accession normalization helpers that preserve GCF/GCA version suffixes by default.
 - Full multi-database workflow validation tests covering NCBI AMR, VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg, QC outputs, reports, static figures, and interactive HTML outputs.

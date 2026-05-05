@@ -22,31 +22,62 @@ It enables robust statistical analysis, including group-wise comparisons, summar
 
 ## Installation
 
-### Method 1: Using `pip` with `conda` (Recommended)
+PanR2 has three practical install modes:
+
+- Analysis-only install: use PanR2 with existing ABRicate-style result folders. This does not install external annotation tools or databases.
+- Source checkout with `environment.yml`: installs PanR2 Python dependencies plus ABRicate, IntegronFinder, BLAST/KMA support, and MobileElementFinder. ABRicate databases still need to be initialized with `abricate --setupdb`.
+- Container install: builds a reproducible command-line image for users who want fewer local dependency conflicts.
+
+### Method 1: Analysis-only `pip` Install
 ```bash
 conda create -n panr_env python=3.9
 conda activate panr_env
 pip install panR2
 ```
 
-### Method 2: Direct installation from GitHub
+### Method 2: Source Checkout with Integrated Tool Dependencies
 ```bash
-conda create -n panr_env python=3.8
+git clone https://github.com/Tasnimul-Arabi-Anik/PanR2.git
+cd PanR2
+conda env create -f environment.yml
+conda activate panr2
+pip install -e .
+abricate --setupdb
+```
+
+### Method 3: Direct Installation from GitHub
+```bash
+conda create -n panr_env python=3.9
 conda activate panr_env
 pip install git+https://github.com/Tasnimul-Arabi-Anik/PanR2.git
 ```
 
-### Method 3: Manual Installation from Source
+### Method 4: Docker/Container Install
+Build the container from a source checkout:
+
 ```bash
-git clone https://github.com/Tasnimul-Arabi-Anik/PanR2.git
-cd PanR2
-pip install -r requirements.txt
+docker build -t panr2 .
+```
+
+To also initialize ABRicate databases during the image build:
+
+```bash
+docker build --build-arg SETUP_ABRICATE_DB=true -t panr2 .
+```
+
+Run PanR2 from the container by mounting your data directory:
+
+```bash
+docker run --rm -v "$PWD":/work -w /work panr2 --help
 ```
 
 ### Confirm Installation
 ```bash
 panr --help
+panr --doctor
 ```
+
+`panr --doctor` reports whether the Python dependencies, optional external annotation tools, and ABRicate databases are visible in the current environment. Missing ABRicate, MobileElementFinder, or IntegronFinder is not fatal for analysis-only mode, but those tools are required when using the corresponding integrated runner flags.
 
 ### Run the Included Smoke Test
 From a source checkout, run the bundled small fixture to confirm the CLI, merge step, tidy output, and plotting path work locally:
@@ -126,6 +157,7 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 ### Optional Arguments
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
+| `--doctor` | flag | off | Report installed Python dependencies, optional external tools, and ABRicate database visibility, then exit |
 | `--genep` | float | `10.0` | Minimum % gene presence to include in heatmap |
 | `--nseq` | int | `1` | Minimum number of sequences required per group in heatmaps |
 | `--format` | str | `tiff` | Output format for figures (`tiff`, `svg`, `png`, `pdf`) |
