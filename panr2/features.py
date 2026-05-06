@@ -567,6 +567,13 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     ncbi_df = normalize_metadata_aliases(pd.read_csv(ncbi_clean_path))
     summary_df = _read_feature_table(summary_path)
     results_df = _read_feature_table(results_path) if results_path else pd.DataFrame()
+    output_feature_dir = os.path.join(output_dir, feature_type)
+    analysis_dir = os.path.join(output_feature_dir, "analysis")
+    figures_dir = os.path.join(output_feature_dir, "figures")
+    merged_output_dir = os.path.join(output_feature_dir, "merged_output")
+    os.makedirs(analysis_dir, exist_ok=True)
+    os.makedirs(figures_dir, exist_ok=True)
+    os.makedirs(merged_output_dir, exist_ok=True)
 
     if "#File" in summary_df.columns:
         file_col = "#File"
@@ -577,7 +584,7 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
 
     summary_df["Assembly Accession"] = resolve_sample_accessions(summary_df[file_col], sample_map=sample_map)
     write_sample_map_qc(output_dir, feature_type, summary_df[file_col], summary_df["Assembly Accession"], sample_map)
-    if summary_df["Assembly Accession"].isna().all():
+    if not summary_df.empty and summary_df["Assembly Accession"].isna().all():
         raise ValueError(
             f"No GCF_ or GCA_ assembly accessions were found in the {feature_type} summary file column and no sample-map entries matched. "
             "PanR2 preserves assembly version suffixes when present; ensure feature result filenames contain matching accessions or pass --sample-map."
@@ -589,15 +596,63 @@ def analyze_abricate_feature_database(ncbi_clean_path, feature_dir, output_dir, 
     merged_df = ncbi_df.merge(summary_df, on="Assembly Accession", how="left").fillna("0")
     feature_cols = _feature_columns(merged_df)
     if not feature_cols:
-        raise ValueError(f"No feature columns found in {summary_path}")
-
-    output_feature_dir = os.path.join(output_dir, feature_type)
-    analysis_dir = os.path.join(output_feature_dir, "analysis")
-    figures_dir = os.path.join(output_feature_dir, "figures")
-    merged_output_dir = os.path.join(output_feature_dir, "merged_output")
-    os.makedirs(analysis_dir, exist_ok=True)
-    os.makedirs(figures_dir, exist_ok=True)
-    os.makedirs(merged_output_dir, exist_ok=True)
+        if "NUM_FOUND" not in merged_df.columns:
+            merged_df["NUM_FOUND"] = 0
+        merged_path = os.path.join(merged_output_dir, f"{feature_type}_merged.csv")
+        merged_df.to_csv(merged_path, index=False)
+        tidy = pd.DataFrame(columns=["Assembly Accession", "feature_id", "identity", "presence", "feature_type", "feature_category"])
+        tidy_path = os.path.join(merged_output_dir, f"{feature_type}_tidy.csv")
+        tidy.to_csv(tidy_path, index=False)
+        feature_summary = pd.DataFrame(columns=["feature_id", "feature_category", "present_samples", "prevalence_percentage", "mean_identity", "min_identity", "max_identity"])
+        category_summary = pd.DataFrame(columns=["feature_category", "present_samples", "prevalence_percentage", "unique_features"])
+        feature_summary_path = os.path.join(analysis_dir, f"{feature_type}_feature_summary.csv")
+        category_summary_path = os.path.join(analysis_dir, f"{feature_type}_category_summary.csv")
+        feature_summary.to_csv(feature_summary_path, index=False)
+        category_summary.to_csv(category_summary_path, index=False)
+        sample_meta_cols = [
+            col for col in [
+                "Assembly Accession", "Assembly BioSample Accession", "Organism Name",
+                "Genus", "Species", "Geographic Location", "Country", "Continent",
+                "Subcontinent", "Collection Date", "Collection_Year", "Host",
+                "Host_SD", "Sample_Type_SD", "Isolation Source", "Isolation_Source_SD",
+                "Environment_Medium_SD",
+            ] if col in merged_df.columns
+        ]
+        sample_burden = merged_df[sample_meta_cols].copy() if sample_meta_cols else merged_df[["Assembly Accession"]].copy()
+        sample_burden[f"{feature_type}_feature_count"] = 0
+        sample_burden_path = os.path.join(analysis_dir, f"{feature_type}_sample_burden.csv")
+        sample_burden.to_csv(sample_burden_path, index=False)
+        qc_summary_path = os.path.join(analysis_dir, f"{feature_type}_qc_summary.csv")
+        pd.DataFrame([
+            {"metric": "metadata_samples", "value": int(len(ncbi_df)), "detail": "Rows in ncbi_clean.csv."},
+            {"metric": "summary_rows", "value": int(len(summary_df)), "detail": f"Rows in {feature_type} summary input."},
+            {"metric": "samples_with_at_least_one_feature", "value": 0, "detail": f"Samples carrying >=1 {feature_type} feature after filtering."},
+            {"metric": "samples_with_zero_features", "value": int(len(ncbi_df)), "detail": f"Samples carrying zero {feature_type} features after filtering."},
+            {"metric": "total_feature_calls", "value": 0, "detail": "Positive sample-feature calls after filtering."},
+            {"metric": "unique_features", "value": 0, "detail": "Unique detected features after filtering."},
+            {"metric": "unmatched_metadata_samples", "value": int(len(unmatched_ncbi)), "detail": "NCBI metadata accessions without matching feature summary rows."},
+            {"metric": "unmatched_feature_summary_samples", "value": int(len(unmatched_summary)), "detail": "Feature summary accessions without matching NCBI metadata."},
+            {"metric": "top_20_features", "value": "", "detail": "Top detected features by prevalence."},
+        ]).to_csv(qc_summary_path, index=False)
+        unmatched_path = os.path.join(analysis_dir, f"{feature_type}_unmatched_samples.csv")
+        pd.DataFrame(
+            [{"source": "ncbi_without_feature_summary", "Assembly Accession": acc} for acc in unmatched_ncbi]
+            + [{"source": "feature_summary_without_ncbi", "Assembly Accession": acc} for acc in unmatched_summary]
+        ).to_csv(unmatched_path, index=False)
+        logging.info(f"{feature_type} input had no feature columns; wrote zero-feature outputs to {output_feature_dir}")
+        return {
+            "feature_type": feature_type,
+            "summary": summary_path,
+            "results": results_path or "not available",
+            "merged": merged_path,
+            "tidy": tidy_path,
+            "feature_summary": feature_summary_path,
+            "category_summary": category_summary_path,
+            "sample_burden": sample_burden_path,
+            "qc_summary": qc_summary_path,
+            "unmatched_samples": unmatched_path,
+            "html_index": "",
+        }
 
     numeric = merged_df[feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0)
     if min_identity > 0:
