@@ -1,0 +1,4 @@
+sample_id	species	st	k_locus	o_locus	ybt	clb	iro	iuc	virulence_score	resistance_score
+sampleA	Klebsiella pneumoniae	11	KL64	O2v1	ybt9	-	iro1	iuc1	4	2
+sampleB	Klebsiella pneumoniae	258	KL107	O1	-	-	-	-	0	1
+sampleD	Klebsiella oxytoca	199	KL74	O3	ybt10	clb2	-	-	2	0

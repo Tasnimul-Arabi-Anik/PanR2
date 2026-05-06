@@ -196,6 +196,19 @@ User-provided prophage or viral-region tables can be converted into PanR2 featur
 panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --prophage-dir <PROPHAGE_TABLE_DIRECTORY> --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
 ```
 
+MOB-suite plasmid reconstruction tables and organism-specific typing outputs can also be supplied as table inputs. PanR2 converts them into the same internal feature contract used for AMR, VFDB, plasmid, MGE, and integron analyses:
+
+```bash
+panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> \
+  --mobsuite-dir <MOBSUITE_TABLE_DIRECTORY> \
+  --kleborate-dir <KLEBORATE_TABLE_DIRECTORY> \
+  --kaptive-dir <KAPTIVE_TABLE_DIRECTORY> \
+  --ectyper-dir <ECTYPER_TABLE_DIRECTORY> \
+  --serotypefinder-dir <SEROTYPEFINDER_TABLE_DIRECTORY> \
+  --sccmecfinder-dir <SCCMECFINDER_TABLE_DIRECTORY> \
+  --output-dir <OUTPUT_DIRECTORY> [OPTIONS]
+```
+
 ### Recommended Stable Workflow
 
 For publication-oriented analyses, the most reliable workflow is:
@@ -299,6 +312,12 @@ panr --ncbi-dir <NCBI_DIRECTORY> --abricate-dir <ABRICATE_DIRECTORY> --iceberg-t
 | `--mlst-dir` | path | optional | Directory containing MLST TSV/CSV output |
 | `--defensefinder-dir` | path | optional | Directory containing DefenseFinder tables or PanR2-compatible summary/results files |
 | `--prophage-dir` | path | optional | Directory containing prophage/viral-region tables or PanR2-compatible summary/results files |
+| `--mobsuite-dir` | path | optional | Directory containing MOB-suite tables or PanR2-compatible summary/results files |
+| `--kleborate-dir` | path | optional | Directory containing Kleborate tables or PanR2-compatible summary/results files |
+| `--kaptive-dir` | path | optional | Directory containing Kaptive tables or PanR2-compatible summary/results files |
+| `--ectyper-dir` | path | optional | Directory containing ECTyper tables or PanR2-compatible summary/results files |
+| `--serotypefinder-dir` | path | optional | Directory containing SerotypeFinder tables or PanR2-compatible summary/results files |
+| `--sccmecfinder-dir` | path | optional | Directory containing SCCmecFinder tables or PanR2-compatible summary/results files |
 | `--sample-map` | path | optional | CSV/TSV mapping local sample IDs or filenames to `Assembly Accession` |
 | `--version` | - | - | Show program's version number and exit |
 | `-h, --help` | - | - | Show help message and exit |
@@ -398,6 +417,12 @@ output/
 │   ├── analysis/
 │   ├── figures/
 │   └── merged_output/
+├── mobsuite/                          # Optional MOB-suite plasmid reconstruction/typing summaries
+├── kleborate/                         # Optional Klebsiella typing/virulence/resistance summaries
+├── kaptive/                           # Optional capsule/O-locus typing summaries
+├── ectyper/                           # Optional E. coli serotype summaries
+├── serotypefinder/                    # Optional serotype summaries
+├── sccmecfinder/                      # Optional SCCmec typing summaries
 ├── cross_database/                    # Integrated AMR/VFDB/plasmid/MGE comparative genomics
 │   ├── analysis/
 │   └── figures/
@@ -458,14 +483,14 @@ output/
 - **`plasmidfinder/analysis/plasmidfinder_group_pairwise_tests.csv`** - PlasmidFinder pairwise group comparisons where sample sizes permit
 - **`plasmidfinder/figures/`** - PlasmidFinder static figures, burden-by-group plots, interactive HTML files under `html_files/`, and `index.html` navigation
 
-The same database-named output pattern is used for `mobileelementfinder/`, `isfinder/`, `integronfinder/`, `iceberg/`, `defensefinder/`, and `prophage/`. Each optional feature database writes `analysis/`, `figures/`, and `merged_output/` folders with feature summaries, product/category summaries, sample burden, per-database QC summaries, unmatched-sample reports, geographic and temporal summaries, co-occurrence tables, group-burden comparisons, static plots, interactive HTML plots, and an `index.html` figure browser when applicable.
+The same database-named output pattern is used for `mobileelementfinder/`, `isfinder/`, `integronfinder/`, `iceberg/`, `defensefinder/`, `prophage/`, `mobsuite/`, `kleborate/`, `kaptive/`, `ectyper/`, `serotypefinder/`, and `sccmecfinder/`. Each optional feature database writes `analysis/`, `figures/`, and `merged_output/` folders with feature summaries, product/category summaries, sample burden, per-database QC summaries, unmatched-sample reports, geographic and temporal summaries, co-occurrence tables, group-burden comparisons, static plots, interactive HTML plots, and an `index.html` figure browser when applicable.
 
-VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg, DefenseFinder, and prophage inputs are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon categories, sample burden, geography and temporal summaries, identity distributions where applicable, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots. MLST is treated as typing metadata/features, not as AMR, virulence, plasmid, or mobile-element annotation.
+VFDB, PlasmidFinder, MobileElementFinder, ISfinder, IntegronFinder, ICEberg, DefenseFinder, prophage, MOB-suite, Kleborate, Kaptive, ECTyper, SerotypeFinder, and SCCmecFinder inputs are handled as separate feature families, not as antibiotic resistance classes. PanR2 therefore uses feature prevalence, product/replicon/typing categories, sample burden, geography and temporal summaries, identity distributions where applicable, feature co-occurrence, feature presence heatmaps, and interactive HTML figures instead of resistance-class composition plots. MLST is treated as typing metadata/features, not as AMR, virulence, plasmid, or mobile-element annotation.
 
 MLST-specific outputs include `mlst/analysis/sample_mlst_summary.csv`, `mlst/analysis/mlst_by_metadata.csv`, and `mlst/analysis/st_feature_burden_summary.csv`.
 
 #### 4. Cross-Database Comparative Genomics (`cross_database/` directory)
-- **`cross_database_feature_matrix.csv`** - Unified sample-by-feature matrix with prefixed features such as `AMR:blaA`, `VFDB:fimH`, `PLASMID:IncFIB`, `MGE:IS26`, `INTEGRON:intI1`, `ICE:ICEKp1`, `MLST:scheme:ST11`, `DEFENSE:RM_type_I`, and `PROPHAGE:pp1`
+- **`cross_database_feature_matrix.csv`** - Unified sample-by-feature matrix with prefixed features such as `AMR:blaA`, `VFDB:fimH`, `PLASMID:IncFIB`, `MGE:IS26`, `INTEGRON:intI1`, `ICE:ICEKp1`, `MLST:scheme:ST11`, `DEFENSE:RM_type_I`, `PROPHAGE:pp1`, `MOB:rep_type:IncFIB`, `KLEBORATE:st:11`, and `ECTYPER:serotype:O157:H7`
 - **`cross_database_top_associations.csv`** - Pairwise feature associations with co-occurrence count, Jaccard index, phi coefficient, Fisher exact-test odds ratio, p-value, and FDR-adjusted q-value
 - **`cross_database_cooccurrence_matrix.csv`**, **`cross_database_jaccard_matrix.csv`**, and **`cross_database_phi_correlation_matrix.csv`** - Global association matrices
 - **`amr_mge_associations.csv`**, **`amr_plasmid_associations.csv`**, **`amr_integron_associations.csv`**, **`amr_virulence_associations.csv`**, **`amr_defense_associations.csv`**, **`amr_prophage_associations.csv`**, **`plasmid_mge_associations.csv`**, **`defense_mge_associations.csv`**, and **`prophage_mge_associations.csv`** - Biologically focused cross-database association tables

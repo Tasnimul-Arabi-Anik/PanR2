@@ -112,6 +112,50 @@ def _convert_generic_tables(table_dir, output_dir, feature_type, database_name, 
     return _write_abricate_style(feature_type, database_name, rows, output_dir)
 
 
+def _convert_wide_marker_tables(table_dir, output_dir, feature_type, database_name, marker_columns, sample_map=None):
+    """Convert one-row-per-sample typing tables into one PanR2 feature per filled marker column."""
+    table_paths = _find_table_files(table_dir)
+    if not table_paths:
+        raise FileNotFoundError(f"No CSV/TSV/TAB tables found in {table_dir}")
+
+    rows = []
+    original_samples = []
+    resolved_samples = []
+    for table_path in table_paths:
+        for source_row in _read_delimited_table(table_path):
+            sample = _first_value(source_row, [
+                "file", "#file", "assembly_file", "assembly", "assembly_accession",
+                "genome", "genome_id", "sample", "sample_id", "isolate", "strain",
+            ], os.path.basename(table_path))
+            resolved_sample = resolve_sample_accessions(pd.Series([str(sample)]), sample_map=sample_map).iloc[0]
+            original_samples.append(str(sample))
+            resolved_samples.append(str(resolved_sample or sample))
+            for marker in marker_columns:
+                value = _first_value(source_row, [marker], "")
+                text = str(value or "").strip()
+                if not text or text.lower() in {"nan", "none", "negative", "-", "0", "not_found", "unknown"}:
+                    continue
+                feature_id = _clean_feature_id(f"{marker}:{text}")
+                rows.append({
+                    "#FILE": str(resolved_sample or sample),
+                    "SEQUENCE": _first_value(source_row, ["contig", "sequence", "chromosome"], "summary"),
+                    "START": _first_value(source_row, ["start", "pos_beg", "begin", "left"], "0"),
+                    "END": _first_value(source_row, ["end", "pos_end", "stop", "right"], "0"),
+                    "GENE": feature_id,
+                    "COVERAGE": "100.00",
+                    "%COVERAGE": "100.00",
+                    "%IDENTITY": "100.00",
+                    "DATABASE": database_name,
+                    "ACCESSION": marker,
+                    "PRODUCT": marker,
+                })
+
+    if not rows:
+        raise ValueError(f"No {feature_type} markers found in {table_dir}")
+    write_sample_map_qc(output_dir, feature_type, pd.Series(original_samples), pd.Series(resolved_samples), sample_map)
+    return _write_abricate_style(feature_type, database_name, rows, output_dir)
+
+
 def convert_defensefinder_tables(table_dir, output_dir, sample_map=None):
     """Convert DefenseFinder-style TSV/CSV outputs into PanR2 feature inputs."""
     return _convert_generic_tables(
@@ -140,6 +184,98 @@ def convert_prophage_tables(table_dir, output_dir, sample_map=None):
             "name", "type", "completeness", "id", "feature",
         ],
         ["type", "completeness", "category", "tool", "product", "description"],
+        sample_map=sample_map,
+    )
+
+
+def convert_mobsuite_tables(table_dir, output_dir, sample_map=None):
+    """Convert MOB-suite plasmid reconstruction/typing tables into PanR2 feature inputs."""
+    return _convert_wide_marker_tables(
+        table_dir,
+        output_dir,
+        "mobsuite",
+        "mobsuite",
+        [
+            "rep_type", "replicon_type", "primary_cluster_id", "secondary_cluster_id",
+            "mob_cluster_id", "mash_neighbor_identification", "plasmid_type",
+            "molecule_type", "relaxase_type", "mpf_type", "orit_type", "feature", "id",
+        ],
+        sample_map=sample_map,
+    )
+
+
+def convert_kleborate_tables(table_dir, output_dir, sample_map=None):
+    """Convert Kleborate typing/virulence/resistance summary tables into PanR2 feature inputs."""
+    return _convert_wide_marker_tables(
+        table_dir,
+        output_dir,
+        "kleborate",
+        "kleborate",
+        [
+            "species", "st", "k_locus", "o_locus", "ybt", "clb", "iro", "iuc",
+            "rmpa", "rmpadc", "virulence_score", "resistance_score", "yersiniabactin",
+            "colibactin", "salmochelin", "aerobactin", "hypermucoidy",
+        ],
+        sample_map=sample_map,
+    )
+
+
+def convert_kaptive_tables(table_dir, output_dir, sample_map=None):
+    """Convert Kaptive capsule/O-locus typing tables into PanR2 feature inputs."""
+    return _convert_wide_marker_tables(
+        table_dir,
+        output_dir,
+        "kaptive",
+        "kaptive",
+        [
+            "best_match", "best_match_locus", "locus", "type", "k_locus",
+            "o_locus", "serotype", "capsule_type", "confidence",
+        ],
+        sample_map=sample_map,
+    )
+
+
+def convert_ectyper_tables(table_dir, output_dir, sample_map=None):
+    """Convert ECTyper output tables into PanR2 feature inputs."""
+    return _convert_wide_marker_tables(
+        table_dir,
+        output_dir,
+        "ectyper",
+        "ectyper",
+        [
+            "serotype", "o_type", "h_type", "o_genotype", "h_genotype",
+            "pathotype",
+        ],
+        sample_map=sample_map,
+    )
+
+
+def convert_serotypefinder_tables(table_dir, output_dir, sample_map=None):
+    """Convert SerotypeFinder output tables into PanR2 feature inputs."""
+    return _convert_wide_marker_tables(
+        table_dir,
+        output_dir,
+        "serotypefinder",
+        "serotypefinder",
+        [
+            "serotype", "o_type", "h_type", "gene", "gene_name",
+            "template",
+        ],
+        sample_map=sample_map,
+    )
+
+
+def convert_sccmecfinder_tables(table_dir, output_dir, sample_map=None):
+    """Convert SCCmecFinder output tables into PanR2 feature inputs."""
+    return _convert_wide_marker_tables(
+        table_dir,
+        output_dir,
+        "sccmecfinder",
+        "sccmecfinder",
+        [
+            "sccmec_type", "mec_complex", "ccr_complex", "gene",
+            "gene_name", "template",
+        ],
         sample_map=sample_map,
     )
 

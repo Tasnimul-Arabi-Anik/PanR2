@@ -83,6 +83,36 @@ CITATION_REGISTRY = {
         "citation": "User-provided prophage or viral-region annotation tables parsed by PanR2. Cite the upstream prophage detection tool or database used to produce these inputs.",
         "url": "https://github.com/Tasnimul-Arabi-Anik/PanR2",
     },
+    "mobsuite": {
+        "name": "MOB-suite",
+        "citation": "Robertson J, Nash JHE. MOB-suite: software tools for clustering, reconstruction and typing of plasmids from draft assemblies. Microbial Genomics. 2018;4(8).",
+        "url": "https://github.com/phac-nml/mob-suite",
+    },
+    "kleborate": {
+        "name": "Kleborate",
+        "citation": "Kleborate was used or parsed for Klebsiella species-complex typing, virulence, resistance, and locus summaries. Cite the current Kleborate publication/documentation used for the run.",
+        "url": "https://github.com/klebgenomics/Kleborate",
+    },
+    "kaptive": {
+        "name": "Kaptive",
+        "citation": "Kaptive was used or parsed for bacterial capsule/O-antigen locus typing. Cite the current Kaptive publication/documentation and database used for the run.",
+        "url": "https://github.com/klebgenomics/Kaptive",
+    },
+    "ectyper": {
+        "name": "ECTyper",
+        "citation": "ECTyper was used or parsed for Escherichia coli serotype prediction. Cite the current ECTyper publication/documentation used for the run.",
+        "url": "https://github.com/phac-nml/ecoli_serotyping",
+    },
+    "serotypefinder": {
+        "name": "SerotypeFinder",
+        "citation": "SerotypeFinder was used or parsed for serotype prediction. Cite the current CGE SerotypeFinder publication/documentation and database used for the run.",
+        "url": "https://bitbucket.org/genomicepidemiology/serotypefinder/",
+    },
+    "sccmecfinder": {
+        "name": "SCCmecFinder",
+        "citation": "SCCmecFinder was used or parsed for Staphylococcus SCCmec typing. Cite the current CGE SCCmecFinder publication/documentation and database used for the run.",
+        "url": "https://bitbucket.org/genomicepidemiology/sccmecfinder/",
+    },
     "python": {
         "name": "Python scientific stack",
         "citation": "pandas, NumPy, SciPy, matplotlib, seaborn, and Plotly were used for analysis and visualization.",

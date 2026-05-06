@@ -19,6 +19,12 @@ FEATURE_LABELS = {
     "iceberg": "ICEberg",
     "defensefinder": "DefenseFinder",
     "prophage": "Prophage",
+    "mobsuite": "MOB-suite",
+    "kleborate": "Kleborate",
+    "kaptive": "Kaptive",
+    "ectyper": "ECTyper",
+    "serotypefinder": "SerotypeFinder",
+    "sccmecfinder": "SCCmecFinder",
 }
 
 

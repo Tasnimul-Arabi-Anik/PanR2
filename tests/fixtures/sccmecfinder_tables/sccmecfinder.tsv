@@ -1,0 +1,4 @@
+sample_id	sccmec_type	mec_complex	ccr_complex
+sampleA	IV	mecA	ccrA2B2
+sampleB	II	mecA	ccrA2B2
+sampleD	V	mecC	ccrC

@@ -10,7 +10,7 @@ Every feature-like tool output should be convertible to these columns:
 | --- | --- |
 | `sample_id` | Local sample name or FASTA stem used by the upstream tool |
 | `assembly_accession` | Stable assembly accession, preferably versioned `GCF_*.*` or `GCA_*.*` |
-| `database` | Feature family or database name, such as `ncbi`, `vfdb`, `plasmidfinder`, `mobileelementfinder`, `isfinder`, `integronfinder`, `iceberg`, `mlst`, `defensefinder`, `prophage`, `ani`, or `assembly_qc` |
+| `database` | Feature family or database name, such as `ncbi`, `vfdb`, `plasmidfinder`, `mobileelementfinder`, `isfinder`, `integronfinder`, `iceberg`, `mlst`, `defensefinder`, `prophage`, `mobsuite`, `kleborate`, `kaptive`, `ectyper`, `serotypefinder`, `sccmecfinder`, `ani`, or `assembly_qc` |
 | `feature_id` | Gene, replicon, element, ST, cluster, or metric identifier |
 | `feature_category` | Biological category, product, class, system type, or summary category |
 | `presence` | `1` for detected/present feature; `0` can be used for explicit absence records |

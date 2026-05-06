@@ -23,6 +23,12 @@ DATABASE_PREFIXES = {
     "mlst": "MLST",
     "defensefinder": "DEFENSE",
     "prophage": "PROPHAGE",
+    "mobsuite": "MOB",
+    "kleborate": "KLEBORATE",
+    "kaptive": "KAPTIVE",
+    "ectyper": "ECTYPER",
+    "serotypefinder": "SEROTYPE",
+    "sccmecfinder": "SCCMEC",
 }
 
 DATABASE_COLORS = {
@@ -36,6 +42,12 @@ DATABASE_COLORS = {
     "MLST": "#4B5563",
     "DEFENSE": "#9467BD",
     "PROPHAGE": "#D97706",
+    "MOB": "#2563EB",
+    "KLEBORATE": "#7C3AED",
+    "KAPTIVE": "#A855F7",
+    "ECTYPER": "#0F766E",
+    "SEROTYPE": "#14B8A6",
+    "SCCMEC": "#B45309",
 }
 
 METADATA_COLUMNS = [
@@ -301,15 +313,17 @@ def _write_pair_matrices(matrix, analysis_dir):
 
 def _write_specific_associations(pair_df, analysis_dir):
     specs = {
-        "amr_mge_associations": ({"AMR"}, {"MGE", "IS", "INTEGRON", "ICE"}),
-        "amr_plasmid_associations": ({"AMR"}, {"PLASMID"}),
+        "amr_mge_associations": ({"AMR"}, {"MGE", "IS", "INTEGRON", "ICE", "MOB", "SCCMEC"}),
+        "amr_plasmid_associations": ({"AMR"}, {"PLASMID", "MOB"}),
         "amr_integron_associations": ({"AMR"}, {"INTEGRON"}),
         "amr_virulence_associations": ({"AMR"}, {"VFDB"}),
         "amr_defense_associations": ({"AMR"}, {"DEFENSE"}),
         "amr_prophage_associations": ({"AMR"}, {"PROPHAGE"}),
-        "plasmid_mge_associations": ({"PLASMID"}, {"MGE", "IS", "INTEGRON", "ICE"}),
-        "defense_mge_associations": ({"DEFENSE"}, {"MGE", "IS", "INTEGRON", "ICE", "PROPHAGE"}),
-        "prophage_mge_associations": ({"PROPHAGE"}, {"MGE", "IS", "INTEGRON", "ICE"}),
+        "plasmid_mge_associations": ({"PLASMID", "MOB"}, {"MGE", "IS", "INTEGRON", "ICE", "SCCMEC"}),
+        "defense_mge_associations": ({"DEFENSE"}, {"MGE", "IS", "INTEGRON", "ICE", "PROPHAGE", "MOB", "SCCMEC"}),
+        "prophage_mge_associations": ({"PROPHAGE"}, {"MGE", "IS", "INTEGRON", "ICE", "MOB", "SCCMEC"}),
+        "amr_typing_associations": ({"AMR"}, {"MLST", "KLEBORATE", "KAPTIVE", "ECTYPER", "SEROTYPE", "SCCMEC"}),
+        "plasmid_typing_associations": ({"PLASMID", "MOB"}, {"MLST", "KLEBORATE", "KAPTIVE", "ECTYPER", "SEROTYPE", "SCCMEC"}),
     }
     paths = {}
     for name, (left, right) in specs.items():
@@ -337,7 +351,7 @@ def _write_integrated_burden(matrix, metadata, analysis_dir, figures_dir, fig_fo
     for db in sorted(set(_feature_database(col) for col in matrix.columns)):
         cols = [col for col in matrix.columns if _feature_database(col) == db]
         rows[f"{db.lower()}_feature_count"] = matrix[cols].sum(axis=1).astype(int).values
-    mobile_cols = [col for col in ["mge_feature_count", "is_feature_count", "integron_feature_count", "ice_feature_count", "prophage_feature_count"] if col in rows.columns]
+    mobile_cols = [col for col in ["mge_feature_count", "is_feature_count", "integron_feature_count", "ice_feature_count", "prophage_feature_count", "mob_feature_count", "sccmec_feature_count"] if col in rows.columns]
     rows["total_mobileome_count"] = rows[mobile_cols].sum(axis=1).astype(int) if mobile_cols else 0
     count_cols = [col for col in rows.columns if col.endswith("_feature_count")]
     rows["total_feature_count"] = rows[count_cols].sum(axis=1).astype(int) if count_cols else 0

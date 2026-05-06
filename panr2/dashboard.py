@@ -14,6 +14,12 @@ MODULE_LABELS = {
     "mlst": "MLST",
     "defensefinder": "DefenseFinder",
     "prophage": "Prophage / viral-region inputs",
+    "mobsuite": "MOB-suite",
+    "kleborate": "Kleborate",
+    "kaptive": "Kaptive",
+    "ectyper": "ECTyper",
+    "serotypefinder": "SerotypeFinder",
+    "sccmecfinder": "SCCmecFinder",
 }
 
 
@@ -41,7 +47,7 @@ def _section_links(output_dir, links):
 def _module_status(feature_outputs, cross_database_outputs, temporal_outputs, panresistome_context_outputs=None):
     panresistome_context_outputs = panresistome_context_outputs or {}
     modules = [{"module": "amr", "label": MODULE_LABELS["amr"], "status": "used"}]
-    for key in ["vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "mlst", "defensefinder", "prophage"]:
+    for key in ["vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "mlst", "defensefinder", "prophage", "mobsuite", "kleborate", "kaptive", "ectyper", "serotypefinder", "sccmecfinder"]:
         modules.append({
             "module": key,
             "label": MODULE_LABELS[key],
@@ -109,7 +115,7 @@ def write_dashboard(output_dir, base_name, feature_outputs=None, cross_database_
     ]
 
     db_sections = []
-    for key in ["ncbi", "vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "mlst", "defensefinder", "prophage"]:
+    for key in ["ncbi", "vfdb", "plasmidfinder", "mobileelementfinder", "isfinder", "integronfinder", "iceberg", "mlst", "defensefinder", "prophage", "mobsuite", "kleborate", "kaptive", "ectyper", "serotypefinder", "sccmecfinder"]:
         label = MODULE_LABELS.get(key, key)
         links = [
             (f"{key}/analysis/{key}_feature_summary.csv", "Feature summary"),

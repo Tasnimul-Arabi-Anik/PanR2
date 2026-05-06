@@ -1,0 +1,4 @@
+sample_id	rep_type	relaxase_type	mpf_type	molecule_type
+sampleA	IncFIB	MOBF	MPF_F	plasmid
+sampleB	IncHI1	MOBH	MPF_T	plasmid
+sampleD	IncFIB	MOBF	MPF_F	plasmid

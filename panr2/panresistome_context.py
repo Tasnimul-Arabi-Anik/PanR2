@@ -141,6 +141,12 @@ def _merge_context(qc_master, burden):
                 "ice_feature_count",
                 "defense_feature_count",
                 "prophage_feature_count",
+                "mob_feature_count",
+                "kleborate_feature_count",
+                "kaptive_feature_count",
+                "ectyper_feature_count",
+                "serotype_feature_count",
+                "sccmec_feature_count",
                 "total_mobileome_count",
                 "total_feature_count",
                 "mobility_associated_amr_score",
@@ -161,6 +167,12 @@ def _merge_context(qc_master, burden):
         "ice_feature_count",
         "defense_feature_count",
         "prophage_feature_count",
+        "mob_feature_count",
+        "kleborate_feature_count",
+        "kaptive_feature_count",
+        "ectyper_feature_count",
+        "serotype_feature_count",
+        "sccmec_feature_count",
         "total_mobileome_count",
         "total_feature_count",
         "mobility_associated_amr_score",
@@ -189,6 +201,8 @@ def _summarize_duplicate_clusters(clusters, merged):
                 "vfdb_feature_count",
                 "plasmid_feature_count",
                 "total_mobileome_count",
+                "mob_feature_count",
+                "sccmec_feature_count",
             ] if column in merged.columns
         ]].drop_duplicates("_sample_key")
         extra = extra[extra["_sample_key"].astype(str) != ""]
@@ -205,7 +219,7 @@ def _summarize_duplicate_clusters(clusters, merged):
             row["qc_pass_samples"] = int((group["qc_master_status"] == "PASS").sum())
             row["qc_warn_samples"] = int((group["qc_master_status"] == "WARN").sum())
             row["qc_fail_samples"] = int((group["qc_master_status"] == "FAIL").sum())
-        for metric in ["amr_feature_count", "vfdb_feature_count", "plasmid_feature_count", "total_mobileome_count"]:
+        for metric in ["amr_feature_count", "vfdb_feature_count", "plasmid_feature_count", "mge_feature_count", "integron_feature_count", "mob_feature_count", "sccmec_feature_count", "total_mobileome_count"]:
             if metric in group.columns:
                 row[f"mean_{metric}"] = group[metric].mean()
         rows.append(row)
@@ -221,6 +235,14 @@ def _burden_by_ani_cluster(merged):
             "amr_class_count",
             "vfdb_feature_count",
             "plasmid_feature_count",
+            "mge_feature_count",
+            "integron_feature_count",
+            "mob_feature_count",
+            "sccmec_feature_count",
+            "kleborate_feature_count",
+            "kaptive_feature_count",
+            "ectyper_feature_count",
+            "serotype_feature_count",
             "total_mobileome_count",
             "total_feature_count",
         ] if column in merged.columns

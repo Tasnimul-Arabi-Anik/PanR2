@@ -45,7 +45,17 @@ from panr2.qc import write_input_qc_report
 from panr2.report import write_report
 from panr2.runners import convert_iceberg_tables, run_abricate_databases, run_integronfinder, run_mobileelementfinder
 from panr2.stats import combined_correlation_analysis, correlation_scatterplot_analysis
-from panr2.table_features import convert_defensefinder_tables, convert_prophage_tables, run_defensefinder
+from panr2.table_features import (
+    convert_defensefinder_tables,
+    convert_ectyper_tables,
+    convert_kaptive_tables,
+    convert_kleborate_tables,
+    convert_mobsuite_tables,
+    convert_prophage_tables,
+    convert_sccmecfinder_tables,
+    convert_serotypefinder_tables,
+    run_defensefinder,
+)
 from panr2.temporal import write_temporal_trends
 
 
@@ -373,6 +383,12 @@ def _run_subcommand(argv):
             mlst_dir=os.path.join(fixtures, "mlst"),
             defensefinder_dir=os.path.join(fixtures, "defensefinder_tables"),
             prophage_dir=os.path.join(fixtures, "prophage_tables"),
+            mobsuite_dir=os.path.join(fixtures, "mobsuite_tables"),
+            kleborate_dir=os.path.join(fixtures, "kleborate_tables"),
+            kaptive_dir=os.path.join(fixtures, "kaptive_tables"),
+            ectyper_dir=os.path.join(fixtures, "ectyper_tables"),
+            serotypefinder_dir=os.path.join(fixtures, "serotypefinder_tables"),
+            sccmecfinder_dir=os.path.join(fixtures, "sccmecfinder_tables"),
             sample_map_path=os.path.join(fixtures, "sample_map.csv"),
         )
         print(f"Validation demo written to {args.output_dir}")
@@ -381,7 +397,7 @@ def _run_subcommand(argv):
     raise ValueError(f"Unknown PanR2 subcommand: {command}")
 
 
-def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, mlst_dir=None, defensefinder_dir=None, prophage_dir=None, sample_map_path=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, run_mlst_tool=False, mlst_bin="mlst", run_defensefinder_tool=False, defensefinder_bin="defense-finder", iceberg_table_dir=None, force_tool_run=False, run_cross_database=True, cross_database_max_features=300, plot_style="publication", label_max_length=None, run_temporal_trends=True):
+def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identity=0.0, drop_unmatched_accessions=False, min_samples_per_group=5, core_threshold=95.0, rare_threshold=5.0, top_n=25, cooccurrence_min_prevalence=0.0, cooccurrence_top_n=25, vfdb_dir=None, plasmidfinder_dir=None, mobileelementfinder_dir=None, isfinder_dir=None, integronfinder_dir=None, iceberg_dir=None, mlst_dir=None, defensefinder_dir=None, prophage_dir=None, mobsuite_dir=None, kleborate_dir=None, kaptive_dir=None, ectyper_dir=None, serotypefinder_dir=None, sccmecfinder_dir=None, sample_map_path=None, sequence_dir=None, run_abricate=False, abricate_dbs=None, abricate_bin="abricate", abricate_summary_metric="identity", run_mobileelementfinder_tool=False, mobileelementfinder_bin="mefinder", mobileelementfinder_threads=1, run_integronfinder_tool=False, integronfinder_bin="integron_finder", integronfinder_threads=1, run_mlst_tool=False, mlst_bin="mlst", run_defensefinder_tool=False, defensefinder_bin="defense-finder", iceberg_table_dir=None, force_tool_run=False, run_cross_database=True, cross_database_max_features=300, plot_style="publication", label_max_length=None, run_temporal_trends=True):
     """Main function to process data and generate outputs."""
     logging.info("Starting the script.")
 
@@ -525,6 +541,18 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         defensefinder_dir = convert_defensefinder_tables(defensefinder_dir, output_dir, sample_map=sample_map)["feature_dir"]
     if prophage_dir and not _has_abricate_feature_files(prophage_dir):
         prophage_dir = convert_prophage_tables(prophage_dir, output_dir, sample_map=sample_map)["feature_dir"]
+    if mobsuite_dir and not _has_abricate_feature_files(mobsuite_dir):
+        mobsuite_dir = convert_mobsuite_tables(mobsuite_dir, output_dir, sample_map=sample_map)["feature_dir"]
+    if kleborate_dir and not _has_abricate_feature_files(kleborate_dir):
+        kleborate_dir = convert_kleborate_tables(kleborate_dir, output_dir, sample_map=sample_map)["feature_dir"]
+    if kaptive_dir and not _has_abricate_feature_files(kaptive_dir):
+        kaptive_dir = convert_kaptive_tables(kaptive_dir, output_dir, sample_map=sample_map)["feature_dir"]
+    if ectyper_dir and not _has_abricate_feature_files(ectyper_dir):
+        ectyper_dir = convert_ectyper_tables(ectyper_dir, output_dir, sample_map=sample_map)["feature_dir"]
+    if serotypefinder_dir and not _has_abricate_feature_files(serotypefinder_dir):
+        serotypefinder_dir = convert_serotypefinder_tables(serotypefinder_dir, output_dir, sample_map=sample_map)["feature_dir"]
+    if sccmecfinder_dir and not _has_abricate_feature_files(sccmecfinder_dir):
+        sccmecfinder_dir = convert_sccmecfinder_tables(sccmecfinder_dir, output_dir, sample_map=sample_map)["feature_dir"]
     optional_database_specs = [
         ("vfdb", vfdb_dir, "virulence"),
         ("plasmidfinder", plasmidfinder_dir, "plasmid"),
@@ -534,6 +562,12 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
         ("iceberg", iceberg_dir, "mge"),
         ("defensefinder", defensefinder_dir, "defense"),
         ("prophage", prophage_dir, "prophage"),
+        ("mobsuite", mobsuite_dir, "plasmid"),
+        ("kleborate", kleborate_dir, "typing"),
+        ("kaptive", kaptive_dir, "typing"),
+        ("ectyper", ectyper_dir, "typing"),
+        ("serotypefinder", serotypefinder_dir, "typing"),
+        ("sccmecfinder", sccmecfinder_dir, "mge"),
     ]
     for feature_type, feature_dir, mode in optional_database_specs:
         if feature_dir:
@@ -765,6 +799,12 @@ def main(ncbi_dir, abricate_dir, output_dir, fig_format, nseq, genep, min_identi
                 "mlst_dir": mlst_dir or "not provided",
                 "defensefinder_dir": defensefinder_dir or "not provided",
                 "prophage_dir": prophage_dir or "not provided",
+                "mobsuite_dir": mobsuite_dir or "not provided",
+                "kleborate_dir": kleborate_dir or "not provided",
+                "kaptive_dir": kaptive_dir or "not provided",
+                "ectyper_dir": ectyper_dir or "not provided",
+                "serotypefinder_dir": serotypefinder_dir or "not provided",
+                "sccmecfinder_dir": sccmecfinder_dir or "not provided",
                 "sample_map": sample_map_path or "not provided",
                 "sequence_dir": sequence_dir or "not provided",
                 "run_abricate": run_abricate,
@@ -881,6 +921,12 @@ def run_cli(argv=None):
     parser.add_argument("--mlst-dir", help="Optional directory containing mlst TSV/CSV output.")
     parser.add_argument("--defensefinder-dir", help="Optional directory containing DefenseFinder tables or PanR2-compatible DefenseFinder summary/results files.")
     parser.add_argument("--prophage-dir", help="Optional directory containing prophage/viral-region tables or PanR2-compatible prophage summary/results files.")
+    parser.add_argument("--mobsuite-dir", help="Optional directory containing MOB-suite tables or PanR2-compatible MOB-suite summary/results files.")
+    parser.add_argument("--kleborate-dir", help="Optional directory containing Kleborate tables or PanR2-compatible Kleborate summary/results files.")
+    parser.add_argument("--kaptive-dir", help="Optional directory containing Kaptive tables or PanR2-compatible Kaptive summary/results files.")
+    parser.add_argument("--ectyper-dir", help="Optional directory containing ECTyper tables or PanR2-compatible ECTyper summary/results files.")
+    parser.add_argument("--serotypefinder-dir", help="Optional directory containing SerotypeFinder tables or PanR2-compatible SerotypeFinder summary/results files.")
+    parser.add_argument("--sccmecfinder-dir", help="Optional directory containing SCCmecFinder tables or PanR2-compatible SCCmecFinder summary/results files.")
     parser.add_argument("--sample-map", help="Optional CSV/TSV mapping sample_id values to Assembly Accession for filenames or tool outputs without GCF/GCA accessions.")
     parser.add_argument('--version', action='version', version=f'PanR2 {PANR2_VERSION}')
 
@@ -946,6 +992,12 @@ def run_cli(argv=None):
         mlst_dir=args.mlst_dir,
         defensefinder_dir=args.defensefinder_dir,
         prophage_dir=args.prophage_dir,
+        mobsuite_dir=args.mobsuite_dir,
+        kleborate_dir=args.kleborate_dir,
+        kaptive_dir=args.kaptive_dir,
+        ectyper_dir=args.ectyper_dir,
+        serotypefinder_dir=args.serotypefinder_dir,
+        sccmecfinder_dir=args.sccmecfinder_dir,
         sample_map_path=args.sample_map,
         sequence_dir=args.sequence_dir,
         run_abricate=args.run_abricate,

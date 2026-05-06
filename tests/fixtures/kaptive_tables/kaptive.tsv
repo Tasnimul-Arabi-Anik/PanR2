@@ -1,0 +1,4 @@
+sample_id	best_match_locus	type	confidence
+sampleA	KL64	K_locus	high
+sampleB	O1	O_locus	good
+sampleD	KL74	K_locus	high

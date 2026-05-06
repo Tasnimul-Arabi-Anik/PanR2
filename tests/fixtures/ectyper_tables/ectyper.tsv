@@ -1,0 +1,4 @@
+sample_id	serotype	o_type	h_type	pathotype
+sampleA	O25:H4	O25	H4	ExPEC
+sampleB	O157:H7	O157	H7	EHEC
+sampleD	O1:H6	O1	H6	unknown
